@@ -1,13 +1,13 @@
 {
- "name": "Escola Bíblica Dominical",
- "short_name": "EBD",
+ "name": "EBD IADP",
+ "short_name": "EBD IADP",
  "description": "Chamada, faltas, avisos e agenda da Escola Bíblica Dominical",
  "lang": "pt-BR",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
  "orientation": "portrait",
- "background_color": "#f5f7fb",
+ "background_color": "#ffffff",
  "theme_color": "#0f1f3d",
  "icons": [
   {

@@ -1,6 +1,6 @@
 // Service worker da EBD: deixa o app instalável e mostra a tela mesmo sem internet.
 // Os dados vêm do Supabase e NÃO são guardados aqui (precisam de internet).
-const CACHE='ebd-v1';
+const CACHE='ebd-v2';
 const BASE=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(BASE)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
