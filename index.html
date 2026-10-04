@@ -274,10 +274,11 @@ function vChamada(){
  }
  const t=turma(A.turma),key=aulaKey(A),e=ex(key)||{};
  if(!work)work=new Set(S.pres[key]||[]);
- const list=t.alunos.filter(a=>work.has(a.id)||(a.ativo!==false&&!a.arq));
+ const list=t.alunos.filter(a=>work.has(a.id)||(a.ativo!==false&&!a.arq&&!emAula(a,t,A.data))),fora=t.alunos.filter(a=>a.ativo!==false&&!a.arq&&!work.has(a.id)&&emAula(a,t,A.data));
  return '<button class="tg" data-av="1">Voltar às aulas</button>'
  +'<h2 style="margin-top:14px">'+esc(t.nome)+'</h2><p class="sub" style="margin:-8px 0 0;text-transform:capitalize">'+fmtD(A.data)+'</p>'
  +'<p class="sub" style="margin:6px 0 0"><b>Tema:</b> '+esc(A.tema)+' · Professor(a): '+(A.prof?esc(A.prof):'a definir')+'</p>'
+ +(fora.length?'<p class="sub" style="margin:6px 0 0"><b>Dando aula em outra turma neste dia</b> (fora da chamada, sem falta): '+fora.map(a=>esc(nm(a))).join(', ')+'.</p>':'')
  +'<div class="bar"><b>Presença</b><span class="sub" id="cnt"></span></div>'
  +'<div class="list">'+(list.length?list.map(a=>'<button class="row" data-a="'+a.id+'" aria-pressed="'+work.has(a.id)+'"><span class="chk">✓</span>'+esc(nm(a))+tags(a)+'<span class="st"></span></button>').join(''):'<div class="item sub">Nenhum aluno ativo nesta turma.</div>')+'</div>'
  +'<div class="sec"><h2>Registro da aula</h2>'
@@ -290,9 +291,11 @@ function updCount(){const c=$('#cnt'),rows=document.querySelectorAll('.row[data-
  rows.forEach(r=>{r.querySelector('.st').textContent=work.has(r.dataset.a)?'Presente':'Ausente'})}
 
 const keysT=t=>Object.keys(S.pres).filter(k=>k.endsWith('|'+t.id)).sort();
+// aluno marcado como professor(a) que dá aula em OUTRA turma naquele dia: fora da chamada e sem falta
+const emAula=(a,t,d)=>!!a.professor&&S.aulas.some(g=>g.data===d&&g.prof===nm(a)&&g.turma!==t.id);
 // alunos que contam numa chamada: quem estava presente + ativos (e já cadastrados) naquela data
-const eleg=(t,k)=>{const d=k.split('|')[0],ids=S.pres[k]||[];return t.alunos.filter(a=>ids.includes(a.id)||(a.ativo!==false&&!a.arq&&(!a.desde||d>=a.desde)))};
-const rowsA=(a,t)=>keysT(t).filter(k=>{const d=k.split('|')[0];return !a.desde||d>=a.desde||S.pres[k].includes(a.id)}).map(k=>({d:k.split('|')[0],ok:S.pres[k].includes(a.id)}));
+const eleg=(t,k)=>{const d=k.split('|')[0],ids=S.pres[k]||[];return t.alunos.filter(a=>ids.includes(a.id)||(a.ativo!==false&&!a.arq&&(!a.desde||d>=a.desde)&&!emAula(a,t,d)))};
+const rowsA=(a,t)=>keysT(t).filter(k=>{const d=k.split('|')[0];const ok=S.pres[k].includes(a.id);return (!a.desde||d>=a.desde||ok)&&(ok||!emAula(a,t,d))}).map(k=>({d:k.split('|')[0],ok:S.pres[k].includes(a.id)}));
 function stats(t){const keys=keysT(t);let tot=0,poss=0;
  keys.forEach(k=>{tot+=S.pres[k].length;poss+=eleg(t,k).length});
  return {keys,tot,poss,p:poss?Math.round(tot/poss*100):0}}
@@ -339,7 +342,7 @@ function vPainel(){
   +'</details>'}).join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>')+'</div></div>';
 }
 
-function hForm(k,t){const list=t.alunos.filter(a=>workH.has(a.id)||(a.ativo!==false&&!a.arq)),e=ex(k)||{};
+function hForm(k,t){const list=t.alunos.filter(a=>workH.has(a.id)||(a.ativo!==false&&!a.arq&&!emAula(a,t,k.split('|')[0]))),e=ex(k)||{};
  return '<div class="item"><b>Editando esta chamada</b><span class="sub">Toque no nome para marcar presente ou ausente.</span></div><div class="list" style="margin:0 12px 12px">'
  +list.map(a=>'<button class="row" data-ha="'+a.id+'" aria-pressed="'+workH.has(a.id)+'"><span class="chk">✓</span>'+esc(nm(a))+'<span class="st">'+(workH.has(a.id)?'Presente':'Ausente')+'</span></button>').join('')+'</div>'
  +'<div class="item"><label for="hb" style="margin-top:0">Quantas Bíblias físicas?</label><input id="hb" type="number" min="0" inputmode="numeric" value="'+(e.biblias??'')+'"><label for="ho">Contribuições arrecadadas (R$)</label><input id="ho" type="number" min="0" step="0.01" inputmode="decimal" value="'+(e.oferta??'')+'"><label for="hv">Visitantes (0 se não houve)</label><input id="hv" type="number" min="0" inputmode="numeric" value="'+(e.visitantes??'')+'">'+climaSel('hc',e.clima||'')+'<div class="acts"><button class="btn" style="margin-top:0" data-hok="1">Salvar alterações</button><button class="tg" data-hno="1">Cancelar</button></div></div>'}
