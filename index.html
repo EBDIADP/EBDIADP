@@ -208,9 +208,12 @@ async function push(){
    for(const id in cur[tab])if(cur[tab][id]!==remoto[tab][id])up.push({id,dados:JSON.parse(cur[tab][id])});
    for(const id in remoto[tab])if(!(id in cur[tab]))del.push(id);
    if(up.length){const {error}=await sb.from(tab).upsert(up);if(error)throw error}
-   if(del.length){const {error}=await sb.from(tab).delete().in('id',del);if(error)throw error}
+   if(del.length){const {data,error}=await sb.from(tab).delete().in('id',del).select('id');if(error)throw error;if((data||[]).length<del.length)throw {code:'42501',message:'row-level security'}}
    remoto[tab]=cur[tab]}
-  saveErr=false}catch(e){saveErr=true;toast('')}}
+  saveErr=false}catch(e){
+  const perm=!!e&&(e.code==='42501'||/row-level security|permission denied/i.test(e.message||''));
+  if(perm){try{await pull();saveErr=false;render();toast('Sem permissão para essa alteração. Os dados foram recarregados do servidor.',6000);return}catch(x){}}
+  saveErr=true;toast('')}}
 function save(){pend++;fila=fila.then(push).catch(()=>{}).then(()=>{pend--})}
 window.addEventListener('beforeunload',e=>{if(pend){e.preventDefault();e.returnValue=''}});
 async function todos(tab){let out=[],i=0;for(;;){const {data,error}=await sb.from(tab).select('id,dados').order('id').range(i,i+999);if(error)throw error;out=out.concat(data);if(data.length<1000)return out;i+=1000}}
@@ -239,7 +242,7 @@ const tOptsReq=()=>'<option value="">Selecione o título</option>'+TITULOS.map((
 const bOptsReq=()=>[['','Selecione'],['sim','Sim'],['nao','Não']].map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('');
 const tOpts=sel=>'<option value="">Sem título</option>'+TITULOS.map(([v,l])=>'<option value="'+v+'"'+(v===sel?' selected':'')+'>'+l+'</option>').join('');
 const ativos=t=>t.alunos.filter(a=>a.ativo!==false&&!a.arq);
-function toast(m){const t=$('#toast');if(saveErr)m='Atenção: não foi possível salvar no servidor. Verifique a conexão e tente de novo.'+(m?' ('+m+')':'');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),saveErr?6000:1800)}
+function toast(m,ms){const t=$('#toast');if(saveErr)m='Atenção: não foi possível salvar no servidor. Verifique a conexão e tente de novo.'+(m?' ('+m+')':'');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),saveErr?6000:(ms||1800))}
 function opts(sel,blank){return (blank?'<option value="">'+blank+'</option>':'')+TV().map(t=>'<option value="'+t.id+'"'+(t.id===sel?' selected':'')+'>'+esc(t.nome)+'</option>').join('')}
 
 const PERFIS=[['admin','Administrador(a)'],['secretario','Secretário(a)'],['lider','Líder'],['professor','Professor(a)']],pNome=p=>(PERFIS.find(x=>x[0]===p)||[0,p])[1];
