@@ -222,7 +222,7 @@ async function pullUsers(){const {data,error}=await sb.from('perfis').select('*'
 const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
 let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null,workJ={},workHJ={};
 const expT=new Set();
-let expP=false;const opP=new Set();
+let expP=false,expF=false;const opP=new Set();
 $('#app').addEventListener('toggle',e=>{const d=e.target;if(d&&d.dataset&&d.dataset.pn){d.open?opP.add(d.dataset.pn):opP.delete(d.dataset.pn)}},true);
 const turma=id=>S.turmas.find(t=>t.id===id);
 const TITULOS=[['Pr.','Pr. (Pastor)'],['Pra.','Pra. (Pastora)'],['Miss.','Miss. (Missionário/a)'],['Pb.','Pb. (Presbítero)'],['Coop.','Coop. (Cooperador/a)'],['Dc.','Dc. (Diácono)'],['Membro','Membro']];
@@ -274,7 +274,7 @@ function vChamada(){
    +(aberta?'<div class="acts"><button class="tg" data-ab="'+x.id+'">'+(feita?'Editar chamada':'Fazer chamada')+'</button></div>':'<div class="sub" style="margin-top:6px">Chamada disponível a partir de '+x.data.split('-').reverse().join('/')+'</div>')+'</div>'};
   return '<h2>Chamada</h2><p class="sub">A chamada é liberada conforme as aulas da Agenda e fica disponível a partir do dia da aula.</p>'
    +'<div class="list">'+(disp.length?disp.map(x=>card(x,true)).join(''):'<div class="item sub">Nenhuma chamada liberada. Agende uma aula em Gerenciar › Agenda: a chamada abre no dia marcado.</div>')+'</div>'
-   +(fut.length?'<div class="sec"><h2>Próximas aulas</h2><div class="list">'+fut.map(x=>card(x,false)).join('')+'</div></div>':'');
+   +(fut.length?'<div class="sec"><h2>Próximas aulas</h2><div class="list">'+(expF?fut:fut.slice(0,1)).map(x=>card(x,false)).join('')+(fut.length>1?'<div class="item" style="text-align:center"><button class="tg" data-vf="1">'+(expF?'Mostrar menos':'Ver todos ('+fut.length+')')+'</button></div>':'')+'</div></div>':'');
  }
  const t=turma(A.turma),key=aulaKey(A),e=ex(key)||{};
  if(!work){work=new Set(S.pres[key]||[]);workJ=Object.assign({},e.just||{})}
@@ -493,7 +493,9 @@ $('#sub').addEventListener('click',e=>{const b=e.target.closest('button');if(b){
 $('#app').addEventListener('click',e=>{
  const r=e.target.closest('.row[data-a]');
  if(r){const id=r.dataset.a;work.has(id)?work.delete(id):work.add(id);r.setAttribute('aria-pressed',work.has(id));updCount();return}
-  const vp=e.target.closest('[data-vp]');
+  const vf=e.target.closest('[data-vf]');
+ if(vf){expF=!expF;render();return}
+ const vp=e.target.closest('[data-vp]');
  if(vp){expP=!expP;render();return}
   const vt=e.target.closest('[data-vt]');
  if(vt){const id=vt.dataset.vt;expT.has(id)?expT.delete(id):expT.add(id);render();return}
