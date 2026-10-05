@@ -230,7 +230,7 @@ const info=a=>{const p=[];if(a.nasc)p.push('Nasc. '+a.nasc.split('-').reverse().
  if(a.resp)p.push('Responsável: '+esc(a.resp)+(a.respTel?' · '+esc(a.respTel):''));
  else if(tt&&tt.exigeResp)p.push('<span style="color:var(--bad);font-weight:700">Sem responsável informado</span>');
  return p.length?'<span class="sub" style="display:block">'+p.join(' · ')+'</span>':''};
-const tags=a=>(a.titulo==='Membro'?' <span class="tag">Membro</span>':'')+(a.professor?' <span class="tag">Professor(a)</span>':'');
+const tags=a=>(a.titulo?' <span class="tag">'+esc(a.titulo)+'</span>':'')+(a.professor?' <span class="tag">Professor(a)</span>':'');
 const tOpts=sel=>'<option value="">Sem título</option>'+TITULOS.map(([v,l])=>'<option value="'+v+'"'+(v===sel?' selected':'')+'>'+l+'</option>').join('');
 const ativos=t=>t.alunos.filter(a=>a.ativo!==false&&!a.arq);
 function toast(m){const t=$('#toast');if(saveErr)m='Atenção: não foi possível salvar no servidor. Verifique a conexão e tente de novo.'+(m?' ('+m+')':'');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),saveErr?6000:1800)}
@@ -280,7 +280,7 @@ function vChamada(){
  +'<p class="sub" style="margin:6px 0 0"><b>Tema:</b> '+esc(A.tema)+' · Professor(a): '+(A.prof?esc(A.prof):'a definir')+'</p>'
  +(fora.length?'<p class="sub" style="margin:6px 0 0"><b>Dando aula em outra turma neste dia</b> (fora da chamada, sem falta): '+fora.map(a=>esc(nm(a))).join(', ')+'.</p>':'')
  +'<div class="bar"><b>Presença</b><span class="sub" id="cnt"></span></div>'
- +'<div class="list">'+(list.length?list.map(a=>'<button class="row" data-a="'+a.id+'" aria-pressed="'+work.has(a.id)+'"><span class="chk">✓</span>'+esc(nm(a))+tags(a)+'<span class="st"></span></button>').join(''):'<div class="item sub">Nenhum aluno ativo nesta turma.</div>')+'</div>'
+ +'<div class="list">'+(list.length?list.map(a=>'<button class="row" data-a="'+a.id+'" aria-pressed="'+work.has(a.id)+'"><span class="chk">✓</span>'+esc(a.nome)+tags(a)+'<span class="st"></span></button>').join(''):'<div class="item sub">Nenhum aluno ativo nesta turma.</div>')+'</div>'
  +'<div class="sec"><h2>Registro da aula</h2>'
  +'<label for="xb">Quantas Bíblias físicas?</label><input id="xb" type="number" min="0" inputmode="numeric" value="'+(e.biblias??'')+'">'
  +'<label for="xo">Contribuições arrecadadas (R$)</label><input id="xo" type="number" min="0" step="0.01" inputmode="decimal" value="'+(e.oferta??'')+'">'
@@ -386,8 +386,8 @@ function vAlunos(){
  return '<h2>Alunos</h2><p class="sub">Inativos não aparecem na chamada. Arquivados saem das listas, mas o histórico deles continua guardado. Excluir apaga o aluno de vez, inclusive das chamadas antigas.</p>'
  +(S.turmas.length?S.turmas.map(t=>{const vis=t.alunos.filter(a=>!a.arq),arq=t.alunos.filter(a=>a.arq),at=ativos(t).length;
   return '<div class="sec"><h2>'+esc(t.nome)+'</h2><p class="sub" style="margin:-8px 0 8px">'+at+' ativo(s) · '+(vis.length-at)+' inativo(s)</p><div class="list">'
-  +(vis.length?vis.map(a=>{if(editA===a.id)return edUi(a);const on=a.ativo!==false;return '<div class="item al'+(on?'':' off')+'"><span>'+esc(nm(a))+tags(a)+info(a)+'</span>'+delUi(a,'<button class="tg" data-fa="'+a.id+'">Frequência</button><button class="tg" data-tg="'+a.id+'" aria-pressed="'+on+'">'+(on?'Ativo':'Inativo')+'</button><button class="tg" data-arq="'+a.id+'">Arquivar</button>')+'</div>'+(viewA===a.id?acomp(a,t):'')}).join(''):'<div class="item sub">Nenhum aluno nesta turma ainda.</div>')
-  +(arq.length?'<details class="dt"><summary><span><b style="font-size:16px">Arquivados ('+arq.length+')</b></span></summary>'+arq.map(a=>editA===a.id?edUi(a):'<div class="item al off"><span>'+esc(nm(a))+tags(a)+info(a)+'</span>'+delUi(a,'<button class="tg" data-fa="'+a.id+'">Frequência</button><button class="tg" data-rest="'+a.id+'">Restaurar</button>')+'</div>'+(viewA===a.id?acomp(a,t):'')).join('')+'</details>':'')
+  +(vis.length?vis.map(a=>{if(editA===a.id)return edUi(a);const on=a.ativo!==false;return '<div class="item al'+(on?'':' off')+'"><span>'+esc(a.nome)+tags(a)+info(a)+'</span>'+delUi(a,'<button class="tg" data-fa="'+a.id+'">Frequência</button><button class="tg" data-tg="'+a.id+'" aria-pressed="'+on+'">'+(on?'Ativo':'Inativo')+'</button><button class="tg" data-arq="'+a.id+'">Arquivar</button>')+'</div>'+(viewA===a.id?acomp(a,t):'')}).join(''):'<div class="item sub">Nenhum aluno nesta turma ainda.</div>')
+  +(arq.length?'<details class="dt"><summary><span><b style="font-size:16px">Arquivados ('+arq.length+')</b></span></summary>'+arq.map(a=>editA===a.id?edUi(a):'<div class="item al off"><span>'+esc(a.nome)+tags(a)+info(a)+'</span>'+delUi(a,'<button class="tg" data-fa="'+a.id+'">Frequência</button><button class="tg" data-rest="'+a.id+'">Restaurar</button>')+'</div>'+(viewA===a.id?acomp(a,t):'')).join('')+'</details>':'')
   +'</div></div>'}).join(''):'<p class="sub">Nenhuma turma cadastrada.</p>');
 }
 function vCadastro(){
