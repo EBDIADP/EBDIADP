@@ -221,7 +221,7 @@ async function pullUsers(){const {data,error}=await sb.from('perfis').select('*'
  S.usuarios=data.map(u=>({id:u.id,nome:u.nome||u.email,login:u.email,perfil:u.perfil,ativo:u.ativo}))}
 const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
 let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null,workJ={},workHJ={};
-const expT=new Set();
+const expT=new Set();let profAll=false;
 const turma=id=>S.turmas.find(t=>t.id===id);
 const TITULOS=[['Pr.','Pr. (Pastor)'],['Pra.','Pra. (Pastora)'],['Miss.','Miss. (Missionário/a)'],['Pb.','Pb. (Presbítero)'],['Coop.','Coop. (Cooperador/a)'],['Dc.','Dc. (Diácono)'],['Membro','Membro']];
 const nm=a=>(a.titulo&&a.titulo!=='Membro'?a.titulo+' ':'')+a.nome;
@@ -444,7 +444,7 @@ function vProfessores(){
  const hoje=ymd(today),lista=[];
  S.turmas.forEach(t=>t.alunos.filter(a=>a.professor&&!a.arq).forEach(a=>lista.push({a,t})));
  lista.sort((x,y)=>nm(x.a).localeCompare(nm(y.a),'pt-BR',{sensitivity:'base'}));
- const semProf=S.aulas.filter(g=>g.data>=hoje&&!g.prof&&turma(g.turma)).length;
+ const semProf=S.aulas.filter(g=>g.data>=hoje&&!g.prof&&turma(g.turma)).length,LIM=3,mais=lista.length>LIM;
  const card=({a,t})=>{const n=nm(a),minhas=S.aulas.filter(g=>g.prof===n&&turma(g.turma)),
    prox=minhas.filter(g=>g.data>=hoje).sort((x,y)=>x.data.localeCompare(y.data)),dadas=minhas.filter(g=>g.data<hoje).length;
   return '<div class="item"><span class="tag">'+esc(t.nome)+'</span><b style="display:inline">'+esc(n)+'</b>'+(a.ativo===false?' <span class="tag">Inativo</span>':'')
@@ -454,7 +454,8 @@ function vProfessores(){
  return '<h2>Professores</h2><p class="sub">Alunos marcados como professor(a) no Cadastro. A turma indicada é a turma em que a pessoa é aluna; as aulas vêm da Agenda.</p>'
   +'<div class="bar"><b>Total de professores</b><b>'+lista.length+'</b></div>'
   +(semProf?'<p class="sub" style="margin:6px 0 0">'+semProf+' aula(s) agendada(s) ainda sem professor definido.</p>':'')
-  +'<div class="sec"><div class="list">'+(lista.length?lista.map(card).join(''):'<div class="item sub">Nenhum professor cadastrado. Marque "também é professor(a)" no Cadastro de aluno.</div>')+'</div></div>'}
+  +'<div class="sec"><div class="list">'+(lista.length?(mais&&!profAll?lista.slice(0,LIM):lista).map(card).join(''):'<div class="item sub">Nenhum professor cadastrado. Marque "também é professor(a)" no Cadastro de aluno.</div>')
+  +(mais?'<div class="item" style="text-align:center"><button class="tg" data-vp="1">'+(profAll?'Mostrar menos':'Ver todos ('+lista.length+')')+'</button></div>':'')+'</div></div>'}
 function vAgenda(){
  const hoje=ymd(today),P=profs();
  const prox=S.aulas.filter(x=>x.data>=hoje).sort((a,b)=>a.data.localeCompare(b.data)),ant=S.aulas.filter(x=>x.data<hoje).sort((a,b)=>b.data.localeCompare(a.data));
@@ -490,6 +491,8 @@ $('#sub').addEventListener('click',e=>{const b=e.target.closest('button');if(b){
 $('#app').addEventListener('click',e=>{
  const r=e.target.closest('.row[data-a]');
  if(r){const id=r.dataset.a;work.has(id)?work.delete(id):work.add(id);r.setAttribute('aria-pressed',work.has(id));updCount();return}
+ const vp=e.target.closest('[data-vp]');
+ if(vp){profAll=!profAll;render();return}
  const vt=e.target.closest('[data-vt]');
  if(vt){const id=vt.dataset.vt;expT.has(id)?expT.delete(id):expT.add(id);render();return}
  const fa=e.target.closest('[data-fa],[data-fe]');
