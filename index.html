@@ -221,6 +221,7 @@ async function pullUsers(){const {data,error}=await sb.from('perfis').select('*'
  S.usuarios=data.map(u=>({id:u.id,nome:u.nome||u.email,login:u.email,perfil:u.perfil,ativo:u.ativo}))}
 const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
 let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null,workJ={},workHJ={};
+const expT=new Set();
 const turma=id=>S.turmas.find(t=>t.id===id);
 const TITULOS=[['Pr.','Pr. (Pastor)'],['Pra.','Pra. (Pastora)'],['Miss.','Miss. (Missionário/a)'],['Pb.','Pb. (Presbítero)'],['Coop.','Coop. (Cooperador/a)'],['Dc.','Dc. (Diácono)'],['Membro','Membro']];
 const nm=a=>(a.titulo&&a.titulo!=='Membro'?a.titulo+' ':'')+a.nome;
@@ -392,9 +393,10 @@ function acomp(a,t){
   +'<div class="acts"><button class="tg" data-fe="1">Fechar</button></div></div>'}
 function vAlunos(){
  return '<h2>Alunos</h2><p class="sub">Inativos não aparecem na chamada. Arquivados saem das listas, mas o histórico deles continua guardado. Excluir apaga o aluno de vez, inclusive das chamadas antigas.</p>'
- +(S.turmas.length?S.turmas.map(t=>{const vis=t.alunos.filter(a=>!a.arq),arq=t.alunos.filter(a=>a.arq),at=ativos(t).length;
+ +(S.turmas.length?S.turmas.map(t=>{const vis=t.alunos.filter(a=>!a.arq),arq=t.alunos.filter(a=>a.arq),at=ativos(t).length,LIM=3,mais=vis.length>LIM,aberta=expT.has(t.id)||vis.slice(LIM).some(a=>a.id===editA||a.id===delA||a.id===viewA),mostra=mais&&!aberta?vis.slice(0,LIM):vis;
   return '<div class="sec"><h2>'+esc(t.nome)+'</h2><p class="sub" style="margin:-8px 0 8px">'+at+' ativo(s) · '+(vis.length-at)+' inativo(s)</p><div class="list">'
-  +(vis.length?vis.map(a=>{if(editA===a.id)return edUi(a);const on=a.ativo!==false;return '<div class="item al'+(on?'':' off')+'"><span>'+esc(a.nome)+tags(a)+info(a)+'</span>'+delUi(a,'<button class="tg" data-fa="'+a.id+'">Frequência</button><button class="tg" data-tg="'+a.id+'" aria-pressed="'+on+'">'+(on?'Ativo':'Inativo')+'</button><button class="tg" data-arq="'+a.id+'">Arquivar</button>')+'</div>'+(viewA===a.id?acomp(a,t):'')}).join(''):'<div class="item sub">Nenhum aluno nesta turma ainda.</div>')
+  +(vis.length?mostra.map(a=>{if(editA===a.id)return edUi(a);const on=a.ativo!==false;return '<div class="item al'+(on?'':' off')+'"><span>'+esc(a.nome)+tags(a)+info(a)+'</span>'+delUi(a,'<button class="tg" data-fa="'+a.id+'">Frequência</button><button class="tg" data-tg="'+a.id+'" aria-pressed="'+on+'">'+(on?'Ativo':'Inativo')+'</button><button class="tg" data-arq="'+a.id+'">Arquivar</button>')+'</div>'+(viewA===a.id?acomp(a,t):'')}).join(''):'<div class="item sub">Nenhum aluno nesta turma ainda.</div>')
+  +(mais?'<div class="item" style="text-align:center"><button class="tg" data-vt="'+t.id+'">'+(aberta?'Mostrar menos':'Ver todos ('+vis.length+')')+'</button></div>':'')
   +(arq.length?'<details class="dt"><summary><span><b style="font-size:16px">Arquivados ('+arq.length+')</b></span></summary>'+arq.map(a=>editA===a.id?edUi(a):'<div class="item al off"><span>'+esc(a.nome)+tags(a)+info(a)+'</span>'+delUi(a,'<button class="tg" data-fa="'+a.id+'">Frequência</button><button class="tg" data-rest="'+a.id+'">Restaurar</button>')+'</div>'+(viewA===a.id?acomp(a,t):'')).join('')+'</details>':'')
   +'</div></div>'}).join(''):'<p class="sub">Nenhuma turma cadastrada.</p>');
 }
@@ -488,6 +490,8 @@ $('#sub').addEventListener('click',e=>{const b=e.target.closest('button');if(b){
 $('#app').addEventListener('click',e=>{
  const r=e.target.closest('.row[data-a]');
  if(r){const id=r.dataset.a;work.has(id)?work.delete(id):work.add(id);r.setAttribute('aria-pressed',work.has(id));updCount();return}
+ const vt=e.target.closest('[data-vt]');
+ if(vt){const id=vt.dataset.vt;expT.has(id)?expT.delete(id):expT.add(id);render();return}
  const fa=e.target.closest('[data-fa],[data-fe]');
  if(fa){const id=fa.dataset.fa;viewA=(id&&viewA!==id)?id:'';render();return}
  const dt=e.target.closest('[data-delt],[data-deltok],[data-deltno]');
