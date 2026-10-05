@@ -219,7 +219,7 @@ async function pull(){const r={};for(const tab of TAB)r[tab]=await todos(tab);
  r.chamadas.forEach(x=>{S.pres[x.id]=x.dados.p||[];if(x.dados.e)S.extras[x.id]=x.dados.e});norm();remoto=snapAll()}
 async function pullUsers(){const {data,error}=await sb.from('perfis').select('*').order('criado_em');if(error)throw error;
  S.usuarios=data.map(u=>({id:u.id,nome:u.nome||u.email,login:u.email,perfil:u.perfil,ativo:u.ativo}))}
-const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['turmas','Turmas'],['alunos','Alunos'],['cadastro','Cadastro'],['usuarios','Usuários']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
+const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
 let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null;
 const turma=id=>S.turmas.find(t=>t.id===id);
 const TITULOS=[['Pr.','Pr. (Pastor)'],['Pra.','Pra. (Pastora)'],['Miss.','Miss. (Missionário/a)'],['Pb.','Pb. (Presbítero)'],['Coop.','Coop. (Cooperador/a)'],['Dc.','Dc. (Diácono)'],['Membro','Membro']];
@@ -430,6 +430,21 @@ function edUiG(x){const P=profs(),lock=!!S.pres[aulaKey(x)],dis=lock?' disabled'
  +'<label for="egp">Professor(a)</label><select id="egp"><option value="">A definir</option>'+L.map(n=>'<option value="'+esc(n)+'"'+(n===x.prof?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>'
  +'<label for="egm">Tema da aula</label><input id="egm" value="'+esc(x.tema)+'">'
  +'<div class="acts"><button class="btn" style="margin-top:0" data-egok="'+x.id+'">Salvar</button><button class="tg" data-egno="1">Cancelar</button></div></div>'}
+function vProfessores(){
+ const hoje=ymd(today),lista=[];
+ S.turmas.forEach(t=>t.alunos.filter(a=>a.professor&&!a.arq).forEach(a=>lista.push({a,t})));
+ lista.sort((x,y)=>nm(x.a).localeCompare(nm(y.a),'pt-BR',{sensitivity:'base'}));
+ const semProf=S.aulas.filter(g=>g.data>=hoje&&!g.prof&&turma(g.turma)).length;
+ const card=({a,t})=>{const n=nm(a),minhas=S.aulas.filter(g=>g.prof===n&&turma(g.turma)),
+   prox=minhas.filter(g=>g.data>=hoje).sort((x,y)=>x.data.localeCompare(y.data)),dadas=minhas.filter(g=>g.data<hoje).length;
+  return '<div class="item"><span class="tag">'+esc(t.nome)+'</span><b style="display:inline">'+esc(n)+'</b>'+(a.ativo===false?' <span class="tag">Inativo</span>':'')
+   +'<span class="sub" style="display:block">'+(prox.length?prox.length+' aula(s) agendada(s)':'Nenhuma aula agendada')+' · '+dadas+' aula(s) já ministrada(s)</span>'
+   +prox.slice(0,3).map(g=>'<div class="sub" style="margin-top:4px"><b style="display:inline;text-transform:capitalize">'+fmtD(g.data)+'</b> · '+esc(turma(g.turma).nome)+(g.tema?' · '+esc(g.tema):'')+'</div>').join('')
+   +(prox.length>3?'<div class="sub">e mais '+(prox.length-3)+'…</div>':'')+'</div>'};
+ return '<h2>Professores</h2><p class="sub">Alunos marcados como professor(a) no Cadastro. A turma indicada é a turma em que a pessoa é aluna; as aulas vêm da Agenda.</p>'
+  +'<div class="bar"><b>Total de professores</b><b>'+lista.length+'</b></div>'
+  +(semProf?'<p class="sub" style="margin:6px 0 0">'+semProf+' aula(s) agendada(s) ainda sem professor definido.</p>':'')
+  +'<div class="sec"><div class="list">'+(lista.length?lista.map(card).join(''):'<div class="item sub">Nenhum professor cadastrado. Marque "também é professor(a)" no Cadastro de aluno.</div>')+'</div></div>'}
 function vAgenda(){
  const hoje=ymd(today),P=profs();
  const prox=S.aulas.filter(x=>x.data>=hoje).sort((a,b)=>a.data.localeCompare(b.data)),ant=S.aulas.filter(x=>x.data<hoje).sort((a,b)=>b.data.localeCompare(a.data));
@@ -451,7 +466,7 @@ function render(){
  if(!me){nv.style.display='none';$('#sub').hidden=true;$('#hd').textContent=''+dateLabel;$('#app').innerHTML=vLogin();return}
  nv.style.display='';if(!can(view))view='painel';
  $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pNome(me.perfil)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
- $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():vAvisos();
+ $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():vAvisos();
  if(GROUP.includes(view))sub=view;
  const sn=$('#sub');sn.hidden=!GROUP.includes(view);
  sn.innerHTML=SUBS.filter(x=>can(x[0])).map(([v,l])=>'<button data-s="'+v+'" aria-current="'+(v===view?'page':'false')+'">'+l+'</button>').join('');
