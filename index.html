@@ -257,7 +257,7 @@ function vUsuarios(){
   +(delU===u.id?'<span class="acts" style="margin:0"><span class="sub">Excluir?</span><button class="tg bad" data-uok="'+u.id+'">Confirmar</button><button class="tg" data-uno="1">Cancelar</button></span>':'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-ue="'+u.id+'">Editar</button>'+(u.id===me.id?'':'<button class="tg bad" data-ud="'+u.id+'">Excluir</button>')+'</div></details>')+'</div>').join('')+'</div>'
  +'<div class="sec"><h2>Novas pessoas</h2><p class="sub">Quem precisa de acesso toca em <b>Criar conta</b> na tela de entrada. A conta aparece aqui como inativa: toque em ⋯ › Editar, escolha o perfil e marque <b>Ativo</b>. Para apagar o login por completo, exclua também em Authentication › Users no Supabase.</p></div>'}
 const aulaKey=x=>x.data+'|'+x.turma;
-const dom=d=>new Date(d+'T12:00:00').getDay()===0,msgDom='Só é possível agendar aulas aos domingos';
+const dom=d=>!!(me&&me.perfil==='admin')||new Date(d+'T12:00:00').getDay()===0,msgDom='Só é possível agendar aulas aos domingos';
 const fmtD=d=>new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'});
 function vChamada(){
  const hoje=ymd(today),A=S.aulas.find(x=>x.id===selA&&turma(x.turma));
@@ -311,7 +311,7 @@ function vFaltas(){
  const aten=[];all.forEach(x=>x.al.forEach(r=>{if(r.at)aten.push({...r,t:x.t})}));
  aten.sort((x,y)=>y.seg-x.seg||y.q-x.q);
  const motivo=r=>(r.seg>=LIM_SEG?r.seg+' faltas seguidas':'')+(r.seg>=LIM_SEG&&r.n>=3&&r.q>=LIM_IDX?' · ':'')+(r.n>=3&&r.q>=LIM_IDX?r.q+'% de faltas':'');
- return '<h2>Acompanhamento de faltas</h2><p class="sub">Índice de faltas = faltas ÷ presenças possíveis, nos domingos com chamada salva. O aluno entra em atenção com '+LIM_SEG+' ou mais faltas seguidas, ou com '+LIM_IDX+'% ou mais de faltas (a partir de 3 chamadas).</p>'
+ return '<h2>Acompanhamento de faltas</h2><p class="sub">Índice de faltas = faltas ÷ presenças possíveis, nas aulas com chamada salva. O aluno entra em atenção com '+LIM_SEG+' ou mais faltas seguidas, ou com '+LIM_IDX+'% ou mais de faltas (a partir de 3 chamadas).</p>'
  +'<div class="bar"><b>Índice geral de faltas</b><b>'+TQ+'%</b></div>'+meter(TQ)
  +'<p class="sub" style="margin-top:6px">'+TF+' falta(s) em '+TP+' presença(s) possíveis</p>'
  +'<div class="sec"><h2>Alunos em atenção</h2><div class="list">'+(aten.length?aten.map(r=>'<div class="item"><span class="tag">'+esc(r.t.nome)+'</span><b style="display:inline">'+esc(nm(r.a))+'</b><span class="sub" style="display:block">'+motivo(r)+' · '+r.f+' falta(s) em '+r.n+' chamada(s)</span></div>').join(''):'<div class="item sub">Nenhum aluno em atenção.</div>')+'</div></div>'
@@ -328,13 +328,13 @@ function vPainel(){
  const sm={pres:0,bib:0,of:0,vis:0};
  if(latest)S.turmas.forEach(t=>{const k=latest+'|'+t.id,e=ex(k)||{};sm.pres+=(S.pres[k]||[]).length;sm.bib+=e.biblias||0;sm.of+=e.oferta||0;sm.vis+=e.visitantes||0});
  const lbl=latest?new Date(latest+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long'}):'';
- return '<h2>Dashboard geral</h2><p class="sub">Frequência de cada turma, calculada sobre os domingos com chamada salva.</p>'
+ return '<h2>Dashboard geral</h2><p class="sub">Frequência de cada turma, calculada sobre as aulas com chamada salva.</p>'
  +'<div class="bar"><b>Todas as turmas</b><b>'+pc+'%</b></div><div class="meter"><i style="width:'+pc+'%"></i></div>'
- +(latest?'<div class="sec"><h2>Domingo, '+lbl+'</h2><div class="list">'+kv('Presentes',sm.pres)+kv('Bíblias físicas',sm.bib)+kv('Contribuições',brl(sm.of))+kv('Visitantes',sm.vis||'Nenhum')+'</div></div>':'')
+ +(latest?'<div class="sec"><h2>Última chamada: '+lbl+'</h2><div class="list">'+kv('Presentes',sm.pres)+kv('Bíblias físicas',sm.bib)+kv('Contribuições',brl(sm.of))+kv('Visitantes',sm.vis||'Nenhum')+'</div></div>':'')
  +'<div class="sec"><h2>Por turma</h2><div class="list">'+(all.length?all.map(({t,s})=>{
   const lk=s.keys[s.keys.length-1],le=ex(lk)||{},last=lk?S.pres[lk].length:0;
   const tof=s.keys.reduce((n,k)=>n+((ex(k)||{}).oferta||0),0),tvis=s.keys.reduce((n,k)=>n+((ex(k)||{}).visitantes||0),0);
-  return '<details class="dt"><summary><span><b>'+esc(t.nome)+'</b><span class="sub">'+(lk?'Último domingo: '+last+' de '+(lk?eleg(t,lk).length:0)+' presentes · '+(le.biblias||0)+' bíblias físicas · '+brl(le.oferta)+(le.visitantes?' · '+le.visitantes+' visitante(s)':''):'Sem chamada salva')+'</span></span><b>'+s.p+'%</b></summary>'
+  return '<details class="dt"><summary><span><b>'+esc(t.nome)+'</b><span class="sub">'+(lk?'Última chamada: '+last+' de '+(lk?eleg(t,lk).length:0)+' presentes · '+(le.biblias||0)+' bíblias físicas · '+brl(le.oferta)+(le.visitantes?' · '+le.visitantes+' visitante(s)':''):'Sem chamada salva')+'</span></span><b>'+s.p+'%</b></summary>'
   +'<div class="meter" style="margin:0 12px 8px"><i style="width:'+s.p+'%"></i></div>'
   +kv('Contribuições no período',brl(tof))+kv('Visitantes no período',tvis||'Nenhum')
   +(ativos(t).length?ativos(t).map(a=>{const r=rowsA(a,t),n=r.filter(x=>x.ok).length,q=r.length?Math.round(n/r.length*100):0;
@@ -454,7 +454,7 @@ function vAgenda(){
  return '<h2>Agenda de aulas</h2><div class="list">'+(prox.length?prox.map(card).join(''):'<div class="item sub">Nenhuma aula agendada.</div>')+'</div>'
  +(ant.length?'<div class="sec"><div class="list"><details class="dt"'+(ant.some(x=>x.id===editG||x.id===delG)?' open':'')+'><summary><span><b style="font-size:16px">Aulas anteriores ('+ant.length+')</b></span></summary>'+ant.map(card).join('')+'</details></div></div>':'')
  +(edita()?'<div class="sec"><h2>Agendar aula</h2><label for="gt">Turma</label><select id="gt">'+opts(cur)+'</select>'
- +'<label for="gd">Data</label><input id="gd" type="date" value="'+dateKey+'">'
+ +'<label for="gd">Data</label><input id="gd" type="date" value="'+dateKey+'"><p class="sub">'+(me&&me.perfil==='admin'?'Como administrador, você pode agendar em qualquer data.':'Aulas só podem ser agendadas aos domingos.')+'</p>'
  +'<label for="gp">Professor(a)</label><select id="gp"><option value="">A definir</option>'+P.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('')+'</select>'
  +'<p class="sub">'+(P.length?'Só aparecem aqui os alunos marcados como professor(a) no Cadastro.':'Nenhum professor cadastrado ainda. Marque "também é professor(a)" no Cadastro de aluno para ele aparecer aqui.')+'</p>'
  +'<label for="gm">Tema da aula</label><input id="gm"><button class="btn" id="addG">Agendar aula</button></div>':'');
