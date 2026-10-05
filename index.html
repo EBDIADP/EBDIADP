@@ -218,7 +218,7 @@ async function pull(){const r={};for(const tab of TAB)r[tab]=await todos(tab);
  const u=S.usuarios;S=vazio();S.usuarios=u;S.turmas=r.turmas.map(x=>x.dados);S.aulas=r.aulas.map(x=>x.dados);S.avisos=r.avisos.map(x=>x.dados);
  r.chamadas.forEach(x=>{S.pres[x.id]=x.dados.p||[];if(x.dados.e)S.extras[x.id]=x.dados.e});norm();remoto=snapAll()}
 async function pullUsers(){const {data,error}=await sb.from('perfis').select('*').order('criado_em');if(error)throw error;
- S.usuarios=data.map(u=>({id:u.id,nome:u.nome||u.email,login:u.email,perfil:u.perfil,ativo:u.ativo}))}
+ S.usuarios=data.map(u=>({id:u.id,nome:u.nome||u.email,login:u.email,perfil:u.perfil,ativo:u.ativo,aluno_id:u.aluno_id||null}))}
 const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
 let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null,workJ={},workHJ={};
 const expT=new Set();
@@ -242,9 +242,18 @@ function opts(sel,blank){return (blank?'<option value="">'+blank+'</option>':'')
 
 const PERFIS=[['admin','Administrador(a)'],['secretario','Secretário(a)'],['professor','Professor(a)']],pNome=p=>(PERFIS.find(x=>x[0]===p)||[0,p])[1];
 let me=null,editU='',delU='',modo=/type=recovery/.test(location.hash)?'nova':'entrar',acesso='carregando';
-const can=a=>!!me&&(me.perfil==='admin'||a!=='usuarios');
-const edita=()=>!!me;
+const PROF_OK=['chamada','registro','avisos'];
+const can=a=>!!me&&(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):a!=='usuarios'));
+const edita=()=>!!me&&me.perfil!=='professor';
+const ehProf=()=>!!me&&me.perfil==='professor';
+const alunoDe=id=>{if(!id)return null;for(const t of S.turmas){const a=t.alunos.find(x=>x.id===id);if(a)return {a,t}}return null};
+const meuAluno=()=>{const r=me&&alunoDe(me.alunoId);return r?r.a:null};
+const minha=x=>!ehProf()||(!!meuAluno()&&x.prof===nm(meuAluno()));
+const proprio=k=>{if(!ehProf())return true;const i=k.indexOf('|'),d=k.slice(0,i),tid=k.slice(i+1),au=S.aulas.find(x=>x.turma===tid&&x.data===d),pr=au?au.prof:((S.extras||{})[k]||{}).prof;return !!meuAluno()&&pr===nm(meuAluno())};
+const semAula=()=>ehProf()?(meuAluno()?'Nenhuma chamada liberada para você. A chamada abre no dia das aulas em que você é o(a) professor(a).':'Seu usuário ainda não está vinculado a um aluno(a) professor(a). Peça ao administrador para fazer o vínculo em Gerenciar › Usuários.'):'Nenhuma chamada liberada. Agende uma aula em Gerenciar › Agenda: a chamada abre no dia marcado.';
+const vinc=u=>{const r=alunoDe(u.aluno_id);return r?' · Vinculado a '+esc(nm(r.a))+' ('+esc(r.t.nome)+')':(u.perfil==='professor'?' · <span style="color:var(--bad);font-weight:700">sem vínculo com aluno</span>':'')};
 const admins=()=>S.usuarios.filter(u=>u.perfil==='admin'&&u.ativo!==false);
+const alOpts=sel=>'<option value="">Sem vínculo</option>'+S.turmas.map(t=>{const L=t.alunos.filter(a=>!a.arq&&(a.professor||a.id===sel));return L.length?'<optgroup label="'+esc(t.nome)+'">'+L.map(a=>'<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(nm(a))+'</option>').join('')+'</optgroup>':''}).join('');
 const pOpts=sel=>PERFIS.map(([v,l])=>'<option value="'+v+'"'+(v===sel?' selected':'')+'>'+l+'</option>').join('');
 function vLogin(){
  const L=(id,t,ty,ac)=>'<label for="'+id+'">'+t+'</label><input id="'+id+'" type="'+(ty||'text')+'" autocomplete="'+(ac||'off')+'"'+(ty==='email'?' autocapitalize="none"':'')+'>';
@@ -254,26 +263,26 @@ function vLogin(){
  if(modo==='nova')return '<h2>Nova senha</h2>'+L('ns','Nova senha (mín. 6 caracteres)','password','new-password')+'<button class="btn full" id="salvarSenha">Salvar nova senha</button>';
  if(modo==='criar')return '<h2>Criar conta</h2><p class="sub">Depois de criar, o administrador precisa liberar o seu acesso.</p>'+L('cn','Nome')+L('cl','E-mail','email','email')+L('cs','Senha (mín. 6 caracteres)','password','new-password')+L('cr','Repita a senha','password','new-password')+'<button class="btn full" id="criarConta">Criar conta</button><div class="acts"><button class="tg" id="irEntrar">Já tenho conta</button></div>';
  return '<h2>Entrar</h2>'+L('lg','E-mail','email','username')+L('ls','Senha','password','current-password')+'<button class="btn full" id="entrar">Entrar</button><div class="acts"><button class="tg" id="irCriar">Criar conta</button><button class="tg" id="esqueci">Esqueci a senha</button></div>'}
-function edUiU(u){return '<div class="item"><label for="eun" style="margin-top:0">Nome</label><input id="eun" value="'+esc(u.nome)+'"><label for="eup">Perfil</label><select id="eup">'+pOpts(u.perfil)+'</select><label class="chkl"><input type="checkbox" id="eua"'+(u.ativo!==false?' checked':'')+'>Ativo</label><div class="acts"><button class="btn" style="margin-top:0" data-uek="'+u.id+'">Salvar</button><button class="tg" data-uno="1">Cancelar</button></div></div>'}
+function edUiU(u){return '<div class="item"><label for="eun" style="margin-top:0">Nome</label><input id="eun" value="'+esc(u.nome)+'"><label for="eup">Perfil</label><select id="eup">'+pOpts(u.perfil)+'</select><label for="eul">Aluno(a) vinculado(a)</label><select id="eul">'+alOpts(u.aluno_id||'')+'</select><p class="sub">Só aparecem alunos marcados como professor(a). O vínculo faz o professor ver e fazer chamada apenas das aulas em que ele é o(a) professor(a).</p><label class="chkl"><input type="checkbox" id="eua"'+(u.ativo!==false?' checked':'')+'>Ativo</label><div class="acts"><button class="btn" style="margin-top:0" data-uek="'+u.id+'">Salvar</button><button class="tg" data-uno="1">Cancelar</button></div></div>'}
 function vUsuarios(){
  return '<h2>Usuários</h2><p class="sub">Administrador, secretário(a) e professor(a) têm as mesmas permissões no app, mas só o administrador cria, edita e exclui usuários.</p><div class="list">'
- +S.usuarios.map(u=>editU===u.id?edUiU(u):'<div class="item al'+(u.ativo===false?' off':'')+'"><span>'+esc(u.nome)+(u.id===me.id?' <span class="tag">Você</span>':'')+'<span class="sub" style="display:block">@'+esc(u.login)+' · '+pNome(u.perfil)+(u.ativo===false?' · Inativo ou aguardando aprovação':'')+'</span></span>'
+ +S.usuarios.map(u=>editU===u.id?edUiU(u):'<div class="item al'+(u.ativo===false?' off':'')+'"><span>'+esc(u.nome)+(u.id===me.id?' <span class="tag">Você</span>':'')+'<span class="sub" style="display:block">@'+esc(u.login)+' · '+pNome(u.perfil)+(u.ativo===false?' · Inativo ou aguardando aprovação':'')+vinc(u)+'</span></span>'
   +(delU===u.id?'<span class="acts" style="margin:0"><span class="sub">Excluir?</span><button class="tg bad" data-uok="'+u.id+'">Confirmar</button><button class="tg" data-uno="1">Cancelar</button></span>':'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-ue="'+u.id+'">Editar</button>'+(u.id===me.id?'':'<button class="tg bad" data-ud="'+u.id+'">Excluir</button>')+'</div></details>')+'</div>').join('')+'</div>'
  +'<div class="sec"><h2>Novas pessoas</h2><p class="sub">Quem precisa de acesso toca em <b>Criar conta</b> na tela de entrada. A conta aparece aqui como inativa: toque em ⋯ › Editar, escolha o perfil e marque <b>Ativo</b>. Para apagar o login por completo, exclua também em Authentication › Users no Supabase.</p></div>'}
 const aulaKey=x=>x.data+'|'+x.turma;
 const dom=d=>!!(me&&me.perfil==='admin')||new Date(d+'T12:00:00').getDay()===0,msgDom='Só é possível agendar aulas aos domingos';
 const fmtD=d=>new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'});
 function vChamada(){
- const hoje=ymd(today),A=S.aulas.find(x=>x.id===selA&&turma(x.turma));
+ const hoje=ymd(today),A=S.aulas.find(x=>x.id===selA&&turma(x.turma)&&minha(x));
  if(!A){selA='';
-  const ok=S.aulas.filter(x=>turma(x.turma)),
+  const ok=S.aulas.filter(x=>turma(x.turma)&&minha(x)),
    disp=ok.filter(x=>x.data<=hoje).sort((a,b)=>b.data.localeCompare(a.data)),
    fut=ok.filter(x=>x.data>hoje).sort((a,b)=>a.data.localeCompare(b.data));
   const card=(x,aberta)=>{const t=turma(x.turma),feita=!!S.pres[aulaKey(x)];
    return '<div class="item"><span class="tag">'+esc(t.nome)+'</span><b style="display:inline;text-transform:capitalize">'+fmtD(x.data)+'</b><div>'+esc(x.tema)+'</div><span class="sub">Professor(a): '+(x.prof?esc(x.prof):'a definir')+(feita?' · chamada salva':'')+'</span>'
    +(aberta?'<div class="acts"><button class="tg" data-ab="'+x.id+'">'+(feita?'Editar chamada':'Fazer chamada')+'</button></div>':'<div class="sub" style="margin-top:6px">Chamada disponível a partir de '+x.data.split('-').reverse().join('/')+'</div>')+'</div>'};
   return '<h2>Chamada</h2><p class="sub">A chamada é liberada conforme as aulas da Agenda e fica disponível a partir do dia da aula.</p>'
-   +'<div class="list">'+(disp.length?disp.map(x=>card(x,true)).join(''):'<div class="item sub">Nenhuma chamada liberada. Agende uma aula em Gerenciar › Agenda: a chamada abre no dia marcado.</div>')+'</div>'
+   +'<div class="list">'+(disp.length?disp.map(x=>card(x,true)).join(''):'<div class="item sub">'+semAula()+'</div>')+'</div>'
    +(fut.length?'<div class="sec"><h2>Próximas aulas</h2><div class="list">'+(expF?fut:fut.slice(0,1)).map(x=>card(x,false)).join('')+(fut.length>1?'<div class="item" style="text-align:center"><button class="tg" data-vf="1">'+(expF?'Mostrar menos':'Ver todos ('+fut.length+')')+'</button></div>':'')+'</div></div>':'');
  }
  const t=turma(A.turma),key=aulaKey(A),e=ex(key)||{};
@@ -359,9 +368,10 @@ function hForm(k,t){const list=t.alunos.filter(a=>workH.has(a.id)||(a.ativo!==fa
  +'<div class="item"><b>Faltas justificadas</b><span class="sub">Para quem faltou, escolha o motivo.</span><div class="list" id="jush" style="margin-top:8px"></div></div>'
  +'<div class="item"><label for="hb" style="margin-top:0">Quantas Bíblias físicas?</label><input id="hb" type="number" min="0" inputmode="numeric" value="'+(e.biblias??'')+'"><label for="ho">Contribuições arrecadadas (R$)</label><input id="ho" type="number" min="0" step="0.01" inputmode="decimal" value="'+(e.oferta??'')+'"><label for="hv">Visitantes (0 se não houve)</label><input id="hv" type="number" min="0" inputmode="numeric" value="'+(e.visitantes??'')+'">'+climaSel('hc',e.clima||'')+'<div class="acts"><button class="btn" style="margin-top:0" data-hok="1">Salvar alterações</button><button class="tg" data-hno="1">Cancelar</button></div></div>'}
 function vRegistro(){
- return '<h2>Histórico de chamadas</h2><p class="sub">Toda chamada salva fica guardada aqui, separada por turma.</p>'
+ return '<h2>Histórico de chamadas</h2><p class="sub">Toda chamada salva fica guardada aqui, separada por turma.</p>'+(ehProf()?'<p class="sub">'+(meuAluno()?'Você vê apenas as chamadas das suas aulas.':semAula())+'</p>':'')
  +(S.turmas.length?S.turmas.map(t=>{
-  const D=Object.keys(S.pres).filter(k=>k.endsWith('|'+t.id)).map(k=>k.split('|')[0]).sort().reverse();
+  const D=Object.keys(S.pres).filter(k=>k.endsWith('|'+t.id)&&proprio(k)).map(k=>k.split('|')[0]).sort().reverse();
+  if(ehProf()&&!D.length)return '';
   return '<div class="sec"><h2>'+esc(t.nome)+'</h2><div class="list">'+(D.length?D.map(d=>{
    const k=d+'|'+t.id,ids=S.pres[k],e=ex(k)||{},dl=new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'});
    const pr=S.turmas.flatMap(u=>u.alunos).filter(a=>ids.includes(a.id)),au=eleg(t,k).filter(a=>!ids.includes(a.id));
@@ -369,7 +379,7 @@ function vRegistro(){
     tTx=tema?esc(tema):'não registrado',pTx=prof?esc(prof):(aula?'a definir':'não registrado'),clTx=(CLIMAS.find(c=>c[0]===e.clima)||[0,'Não informado'])[1];
    return '<details class="dt"'+(editH===k||delH===k?' open':'')+'><summary><span><b style="text-transform:capitalize;font-size:16px">'+dl+'</b><span class="sub" style="display:block">Tema: '+tTx+' · Professor(a): '+pTx+'</span><span class="sub" style="display:block">'+ids.length+' de '+eleg(t,k).length+' presentes · '+(e.biblias||0)+' bíblias físicas · '+brl(e.oferta)+(e.visitantes?' · '+e.visitantes+' visitante(s)':' · sem visitantes')+climaTx(e.clima)+'</span></span></summary>'
    +(editH===k?hForm(k,t):'<div class="list" style="margin:12px">'+kv('Tema',tTx)+(topi?kv('Tópicos','<span style="white-space:pre-line">'+esc(topi)+'</span>'):'')+kv('Professor(a)',pTx)+kv('Clima do dia',clTx)+kv('Presentes',ids.length+' de '+eleg(t,k).length)+kv('Bíblias físicas',e.biblias||0)+kv('Contribuições',brl(e.oferta))+kv('Visitantes',e.visitantes||'Nenhum')+'</div><div class="item"><b>Presentes</b><span class="sub">'+(pr.map(a=>esc(nm(a))).join(', ')||'Ninguém')+'</span></div>'
-   +'<div class="item"><b>Ausentes</b><span class="sub">'+(au.map(a=>esc(nm(a))+((e.just||{})[a.id]?' ('+esc(e.just[a.id])+')':'')).join(', ')||'Ninguém')+'</span></div>'+(!edita()?'':'<div class="acts" style="margin:0;padding:12px;justify-content:flex-end">'+(delH===k?'<span class="sub">Excluir esta chamada?</span><button class="tg bad" data-hdelok="'+k+'">Confirmar</button><button class="tg" data-hdelno="1">Cancelar</button>':'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-hedit="'+k+'">Editar chamada</button><button class="tg bad" data-hdel="'+k+'">Excluir</button></div></details>')+'</div>'))+'</details>'}).join(''):'<div class="item sub">Nenhuma chamada salva ainda.</div>')+'</div>'+'</div>'}).join(''):'<p class="sub">Cadastre uma turma na aba Turmas.</p>');
+   +'<div class="item"><b>Ausentes</b><span class="sub">'+(au.map(a=>esc(nm(a))+((e.just||{})[a.id]?' ('+esc(e.just[a.id])+')':'')).join(', ')||'Ninguém')+'</span></div>'+(!me?'':'<div class="acts" style="margin:0;padding:12px;justify-content:flex-end">'+(delH===k?'<span class="sub">Excluir esta chamada?</span><button class="tg bad" data-hdelok="'+k+'">Confirmar</button><button class="tg" data-hdelno="1">Cancelar</button>':'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-hedit="'+k+'">Editar chamada</button>'+(ehProf()?'':'<button class="tg bad" data-hdel="'+k+'">Excluir</button>')+'</div></details>')+'</div>'))+'</details>'}).join(''):'<div class="item sub">Nenhuma chamada salva ainda.</div>')+'</div>'+'</div>'}).join(''):'<p class="sub">Cadastre uma turma na aba Turmas.</p>');
 }
 
 function edUi(a){const tt=S.turmas.find(x=>x.alunos.some(y=>y.id===a.id));return '<div class="item">'+(me&&me.perfil==='admin'&&S.turmas.length>1?'<label for="eat" style="margin-top:0">Turma</label><select id="eat">'+opts(tt?tt.id:'')+'</select>':'')+(tt&&tt.semProf?'':'<label for="et" style="margin-top:0">Título (opcional)</label><select id="et">'+tOpts(a.titulo||'')+'</select>')+'<label for="en"'+(tt&&tt.semProf?' style="margin-top:0"':'')+'>Nome</label><input id="en" value="'+esc(a.nome)+'"><label for="ed">Data de nascimento</label><input id="ed" type="date" value="'+esc(a.nasc||'')+'">'+(semBat(tt)?'':'<label for="eb">Batizado?</label><select id="eb">'+bOpts(a.batizado||'')+'</select>')+(tt&&tt.exigeResp?'<label for="er">Responsável pelo aluno</label><input id="er" value="'+esc(a.resp||'')+'">':'')+(tt&&tt.semProf?'':'<label class="chkl"><input type="checkbox" id="ep"'+(a.professor?' checked':'')+'>Também é professor(a)</label>')+'<div class="acts"><button class="btn" style="margin-top:0" data-edok="'+a.id+'">Salvar</button><button class="tg" data-edno="1">Cancelar</button></div></div>'}
@@ -477,7 +487,7 @@ function render(){
  S.turmas.forEach(t=>t.alunos.sort((x,y)=>String(x.nome||'').localeCompare(String(y.nome||''),'pt-BR',{sensitivity:'base'})));
  const nv=document.querySelector('nav');
  if(!me){nv.style.display='none';$('#sub').hidden=true;$('#hd').textContent=''+dateLabel;$('#app').innerHTML=vLogin();return}
- nv.style.display='';if(!can(view))view='painel';
+ nv.style.display='';nv.querySelector('[data-v="painel"]').hidden=!can('painel');if(!can(view))view=can('painel')?'painel':'chamada';
  $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pNome(me.perfil)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
  $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():vAvisos();
  if(GROUP.includes(view))sub=view;
@@ -510,7 +520,7 @@ $('#app').addEventListener('click',e=>{
  const ab=e.target.closest('[data-ab],[data-av]');
  if(ab){selA=ab.dataset.ab||'';work=null;render();scrollTo(0,0);return}
  const hd=e.target.closest('[data-hdel],[data-hdelok],[data-hdelno]');
- if(hd){const D=hd.dataset;
+ if(hd){if(ehProf())return;const D=hd.dataset;
   if(D.hdel)delH=D.hdel;
   else if(D.hdelok){const k=D.hdelok;delete S.pres[k];if(S.extras)delete S.extras[k];delH='';editH='';save();toast('Chamada excluída')}
   else delH='';
@@ -518,8 +528,8 @@ $('#app').addEventListener('click',e=>{
  const he=e.target.closest('[data-hedit],[data-hok],[data-hno],[data-ha]');
  if(he){const D=he.dataset;
   if(D.ha){workH.has(D.ha)?workH.delete(D.ha):workH.add(D.ha);he.setAttribute('aria-pressed',workH.has(D.ha));he.querySelector('.st').textContent=workH.has(D.ha)?'Presente':'Ausente';jusH();return}
-  if(D.hedit){editH=D.hedit;workH=new Set(S.pres[editH]||[]);workHJ=Object.assign({},(ex(editH)||{}).just||{})}
-  else if(D.hok){S.pres[editH]=[...workH];S.extras[editH]={...(S.extras[editH]||{}),biblias:Math.max(0,+$('#hb').value||0),oferta:Math.max(0,+$('#ho').value||0),visitantes:Math.max(0,+$('#hv').value||0),clima:$('#hc').value,just:jOnly(workHJ,workH)};editH='';work=null;workHJ={};save();toast('Chamada atualizada')}
+  if(D.hedit){if(!proprio(D.hedit))return;editH=D.hedit;workH=new Set(S.pres[editH]||[]);workHJ=Object.assign({},(ex(editH)||{}).just||{})}
+  else if(D.hok){if(!proprio(editH))return;S.pres[editH]=[...workH];S.extras[editH]={...(S.extras[editH]||{}),biblias:Math.max(0,+$('#hb').value||0),oferta:Math.max(0,+$('#ho').value||0),visitantes:Math.max(0,+$('#hv').value||0),clima:$('#hc').value,just:jOnly(workHJ,workH)};editH='';work=null;workHJ={};save();toast('Chamada atualizada')}
   else{editH=''}
   render();return}
  const ed=e.target.closest('[data-eda],[data-edok],[data-edno],[data-edt],[data-etok],[data-etno]');
@@ -536,7 +546,7 @@ $('#app').addEventListener('click',e=>{
   else editT='';
   render();return}
  const ev=e.target.closest('[data-ev],[data-evok],[data-evno]');
- if(ev){const D=ev.dataset;
+ if(ev){if(ehProf())return;const D=ev.dataset;
   if(D.ev){editV=D.ev;delV=''}
   else if(D.evok){const v=S.avisos.find(z=>z.id===D.evok),t=$('#evt').value.trim(),x=$('#evx').value.trim();if(!v)return;if(!t||!x){toast('Preencha título e mensagem');return}v.titulo=t;v.texto=x;v.turma=$('#evs').value;editV='';save();toast('Aviso atualizado')}
   else editV='';
@@ -560,11 +570,11 @@ $('#app').addEventListener('click',e=>{
  const ar=e.target.closest('[data-arq],[data-rest]');
  if(ar){const al=S.turmas.flatMap(t=>t.alunos).find(x=>x.id===(ar.dataset.arq||ar.dataset.rest));if(al){al.arq=ar.hasAttribute('data-arq');work=null;save();toast(al.arq?'Aluno arquivado':'Aluno restaurado');render()}return}
  const dv=e.target.closest('[data-delv],[data-delok],[data-delno]');
- if(dv){if(dv.dataset.delv){delV=dv.dataset.delv}else if(dv.dataset.delok){S.avisos=S.avisos.filter(v=>v.id!==dv.dataset.delok);delV='';save();toast('Aviso excluído')}else{delV=''}render();return}
+ if(dv){if(ehProf())return;if(dv.dataset.delv){delV=dv.dataset.delv}else if(dv.dataset.delok){S.avisos=S.avisos.filter(v=>v.id!==dv.dataset.delok);delV='';save();toast('Aviso excluído')}else{delV=''}render();return}
  const tg=e.target.closest('[data-tg]');
  if(tg){const al=S.turmas.flatMap(t=>t.alunos).find(x=>x.id===tg.dataset.tg);if(al){al.ativo=al.ativo===false;work=null;save();render()}return}
  const id=e.target.id;
- if(id==='salvar'){const A=S.aulas.find(x=>x.id===selA);if(!A)return;const key=aulaKey(A);
+ if(id==='salvar'){const A=S.aulas.find(x=>x.id===selA);if(!A||!minha(A))return;const key=aulaKey(A);
   S.pres[key]=[...work];S.extras[key]={biblias:Math.max(0,+$('#xb').value||0),oferta:Math.max(0,+$('#xo').value||0),visitantes:Math.max(0,+$('#xv').value||0),clima:$('#xc').value,tema:A.tema,prof:A.prof,topicos:A.topicos||'',just:jOnly(workJ,work)};
   selA='';work=null;workJ={};save();toast('Chamada salva');view='registro';render();scrollTo(0,0)}
  if(id==='addT'){if(!me||me.perfil!=='admin')return;const n=$('#tn').value.trim();if(!n){toast('Informe o nome da turma');return}
@@ -578,7 +588,7 @@ $('#app').addEventListener('click',e=>{
   const conf=pr&&S.aulas.some(x=>x.data===d&&x.prof===pr&&x.turma!==tid);
   S.aulas.push({id:uid(),turma:tid,data:d,prof:pr,tema:tm,topicos:$('#gtp').value.trim()});save();toast(conf?'Aula agendada. Atenção: esse professor já tem aula em outra turma nesse dia':'Aula agendada');render()}
  if(id==='expB'&&me&&me.perfil==='admin'){const bl=new Blob([JSON.stringify({...S,usuarios:undefined},null,1)],{type:'application/json'}),lk=document.createElement('a');lk.href=URL.createObjectURL(bl);lk.download='ebd-backup-'+ymd(new Date())+'.json';document.body.appendChild(lk);lk.click();lk.remove();setTimeout(()=>URL.revokeObjectURL(lk.href),1000);toast('Backup exportado')}
- if(id==='addV'){const t=$('#vt').value.trim(),x=$('#vx').value.trim();if(!t||!x){toast('Preencha título e mensagem');return}
+ if(id==='addV'){if(ehProf())return;const t=$('#vt').value.trim(),x=$('#vx').value.trim();if(!t||!x){toast('Preencha título e mensagem');return}
   S.avisos.push({id:uid(),titulo:t,texto:x,turma:$('#vs').value,data:ymd(new Date())});save();toast('Aviso publicado');render()}
 });
 $('#app').addEventListener('change',e=>{
@@ -602,9 +612,9 @@ async function boot(){
  const {data:p,error}=await sb.from('perfis').select('*').eq('id',session.user.id).maybeSingle();
  if(error){toast('Erro ao conectar. Tente novamente.');me=null;acesso='';render();return}
  if(!p||!p.ativo){me=null;acesso='pendente';render();return}
- me={id:p.id,nome:p.nome||p.email,login:p.email,perfil:p.perfil,ativo:true};acesso='';
+ me={id:p.id,nome:p.nome||p.email,login:p.email,perfil:p.perfil,ativo:true,alunoId:p.aluno_id||null};acesso='';
  try{await pull();if(me.perfil==='admin'){await pullUsers();if(!S.turmas.length){S.turmas=seed().turmas;norm();save()}}}catch(e){toast('Erro ao carregar os dados')}
- view='painel';render();scrollTo(0,0)}
+ view=can('painel')?'painel':'chamada';render();scrollTo(0,0)}
 $('#app').addEventListener('click',async e=>{
  const id=e.target.id,B=e.target.closest('[data-ue],[data-ud],[data-uok],[data-uno],[data-uek]'),D=B?B.dataset:{};
  if(id==='irCriar'||id==='irEntrar'){modo=id==='irCriar'?'criar':'entrar';render();return}
@@ -628,12 +638,13 @@ $('#app').addEventListener('click',async e=>{
   if(u.perfil==='admin'&&u.ativo!==false&&admins().length<2){toast('Precisa existir ao menos um administrador ativo');return}
   const {error}=await sb.from('perfis').delete().eq('id',u.id);if(error){toast('Não foi possível excluir');return}
   S.usuarios=S.usuarios.filter(x=>x.id!==u.id);delU='';toast('Usuário excluído');render();return}
- if(D.uek){const u=S.usuarios.find(x=>x.id===D.uek);if(!u)return;const n=$('#eun').value.trim(),pf=$('#eup').value,at=$('#eua').checked;
+ if(D.uek){const u=S.usuarios.find(x=>x.id===D.uek);if(!u)return;const n=$('#eun').value.trim(),pf=$('#eup').value,at=$('#eua').checked,al=$('#eul').value||null;
   if(!n){toast('Informe o nome');return}
   if(u.id===me.id&&!at){toast('Você não pode desativar a si mesmo');return}
   if(u.perfil==='admin'&&u.ativo!==false&&!(pf==='admin'&&at)&&admins().length<2){toast('Precisa existir ao menos um administrador ativo');return}
-  const {error}=await sb.from('perfis').update({nome:n,perfil:pf,ativo:at}).eq('id',u.id);if(error){toast('Não foi possível salvar: '+error.message);return}
-  u.nome=n;u.perfil=pf;u.ativo=at;editU='';toast('Usuário atualizado');render();return}
+  if(al){const dup=S.usuarios.find(x=>x.id!==u.id&&x.aluno_id===al);if(dup){toast('Esse aluno já está vinculado a '+dup.nome);return}}
+  const {error}=await sb.from('perfis').update({nome:n,perfil:pf,ativo:at,aluno_id:al}).eq('id',u.id);if(error){toast('Não foi possível salvar: '+error.message);return}
+  u.nome=n;u.perfil=pf;u.ativo=at;u.aluno_id=al;editU='';toast('Usuário atualizado');render();return}
 });
 if(sb)sb.auth.onAuthStateChange((ev)=>{if(ev==='PASSWORD_RECOVERY'){modo='nova';me=null;render()}});
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!me||pend)return;
