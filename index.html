@@ -395,11 +395,11 @@ function edUi(a){const tt=S.turmas.find(x=>x.alunos.some(y=>y.id===a.id));return
 const CARGOS=[['Primeiro(a) líder','lider1','el1'],['Segundo(a) líder','lider2','el2'],['Primeiro(a) secretário(a)','sec1','es1'],['Segundo(a) secretário(a)','sec2','es2']];
 const pessoaT=(t,k)=>{const x=S.turmas.find(u=>u.alunos.some(a=>a.id===t[k]));if(!x)return '';const a=x.alunos.find(a=>a.id===t[k]);return esc(nm(a))+(x.id!==t.id?' ('+esc(x.nome)+')':'')};
 function cargosSel(t){
- const op=(a,k)=>'<option value="'+a.id+'"'+(a.id===t[k]?' selected':'')+'>'+esc(nm(a))+'</option>',own=t.alunos.filter(a=>!a.arq);
- return CARGOS.map(([l,k,i])=>{const lider=k.startsWith('lider');
+ const op=(a,k)=>'<option value="'+a.id+'"'+(a.id===t[k]?' selected':'')+'>'+esc(nm(a))+'</option>';
+ return CARGOS.map(([l,k,i])=>{
   return '<label for="'+i+'">'+l+'</label><select id="'+i+'"><option value="">Não definido</option>'
-   +(lider?S.turmas.map(x=>{const L=x.alunos.filter(a=>!a.arq);return L.length?'<optgroup label="'+esc(x.nome)+'">'+L.map(a=>op(a,k)).join('')+'</optgroup>':''}).join(''):own.map(a=>op(a,k)).join(''))+'</select>'}).join('')
-  +'<p class="sub">Líderes podem ser qualquer aluno cadastrado. Os secretários precisam ser alunos desta turma'+(own.length?'.':': cadastre alunos da turma na aba Alunos para escolhê-los.')+'</p>'}
+   +S.turmas.map(x=>{const L=x.alunos.filter(a=>!a.arq);return L.length?'<optgroup label="'+esc(x.nome)+'">'+L.map(a=>op(a,k)).join('')+'</optgroup>':''}).join('')+'</select>'}).join('')
+  +'<p class="sub">Líderes e secretários podem ser qualquer aluno cadastrado, de qualquer turma.</p>'}
 function edUiT(t){return '<div class="item"><label for="etn" style="margin-top:0">Nome da turma</label><input id="etn" value="'+esc(t.nome)+'"><label class="chkl"><input type="checkbox" id="etr"'+(t.exigeResp?' checked':'')+'>Exige responsável no cadastro dos alunos</label><label class="chkl"><input type="checkbox" id="etsp"'+(t.semProf?' checked':'')+'>Sem título nem marcação de professor(a) nos alunos</label>'+cargosSel(t)+'<div class="acts"><button class="btn" style="margin-top:0" data-etok="'+t.id+'">Salvar</button><button class="tg" data-etno="1">Cancelar</button></div></div>'}
 function delUi(a,extra){return delA===a.id?'<span class="acts" style="margin:0"><span class="sub">Excluir de vez?</span><button class="tg bad" data-delaok="'+a.id+'">Confirmar</button><button class="tg" data-delano="1">Cancelar</button></span>':'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu">'+extra+'<button class="tg" data-eda="'+a.id+'">Editar</button><button class="tg bad" data-dela="'+a.id+'">Excluir</button></div></details>'}
 function acomp(a,t){
