@@ -235,6 +235,8 @@ const info=a=>{const p=[];if(a.nasc)p.push('Nasc. '+a.nasc.split('-').reverse().
  else if(tt&&tt.exigeResp)p.push('<span style="color:var(--bad);font-weight:700">Sem responsável informado</span>');
  return p.length?'<span class="sub" style="display:block">'+p.join(' · ')+'</span>':''};
 const tags=a=>(a.titulo?' <span class="tag">'+esc(a.titulo)+'</span>':'')+(a.professor?' <span class="tag">Professor(a)</span>':'');
+const tOptsReq=()=>'<option value="">Selecione o título</option>'+TITULOS.map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('');
+const bOptsReq=()=>[['','Selecione'],['sim','Sim'],['nao','Não']].map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('');
 const tOpts=sel=>'<option value="">Sem título</option>'+TITULOS.map(([v,l])=>'<option value="'+v+'"'+(v===sel?' selected':'')+'>'+l+'</option>').join('');
 const ativos=t=>t.alunos.filter(a=>a.ativo!==false&&!a.arq);
 function toast(m){const t=$('#toast');if(saveErr)m='Atenção: não foi possível salvar no servidor. Verifique a conexão e tente de novo.'+(m?' ('+m+')':'');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),saveErr?6000:1800)}
@@ -414,7 +416,7 @@ function vAlunos(){
   +'</div></div>'}).join(''):'<p class="sub">Nenhuma turma cadastrada.</p>');
 }
 function vCadastro(){
- return '<h2>Cadastro</h2><p class="sub">Cadastre aqui novos alunos'+(me&&me.perfil==='admin'?' e novas turmas':'')+'. Para ver, editar, arquivar ou excluir, use Gerenciar › Alunos'+(me&&me.perfil==='admin'?' e Gerenciar › Turmas':'')+'.</p><div class="sec" style="margin-top:12px"><h2>Novo aluno</h2><label for="as">Turma</label><select id="as">'+opts(cur)+'</select><div id="atw"'+(turma(cur)&&turma(cur).semProf?' hidden':'')+'><label for="at">Título (opcional)</label><select id="at">'+tOpts('')+'</select></div><label for="an">Nome do aluno</label><input id="an"><label for="ad">Data de nascimento</label><input id="ad" type="date"><div id="abw"'+(semBat(turma(cur))?' hidden':'')+'><label for="ab">Batizado?</label><select id="ab">'+bOpts('')+'</select></div><div id="rsp"'+(turma(cur)&&turma(cur).exigeResp?'':' hidden')+'><label for="ar">Responsável pelo aluno</label><input id="ar"></div><div id="apw"'+(turma(cur)&&turma(cur).semProf?' hidden':'')+'><label class="chkl"><input type="checkbox" id="ap">Este aluno também é professor(a)</label></div><button class="btn" id="addA">Adicionar aluno</button></div>'
+ return '<h2>Cadastro</h2><p class="sub">Cadastre aqui novos alunos'+(me&&me.perfil==='admin'?' e novas turmas':'')+'. Para ver, editar, arquivar ou excluir, use Gerenciar › Alunos'+(me&&me.perfil==='admin'?' e Gerenciar › Turmas':'')+'.</p><div class="sec" style="margin-top:12px"><h2>Novo aluno</h2><p class="sub">Todos os campos são obrigatórios. Escolha a turma primeiro.</p><label for="as">Turma</label><select id="as">'+opts('','Selecione a turma')+'</select><div id="afw" hidden><div id="atw"'+(turma(cur)&&turma(cur).semProf?' hidden':'')+'><label for="at">Título</label><select id="at">'+tOptsReq()+'</select></div><label for="an">Nome do aluno</label><input id="an"><label for="ad">Data de nascimento</label><input id="ad" type="date"><div id="abw"'+(semBat(turma(cur))?' hidden':'')+'><label for="ab">Batizado?</label><select id="ab">'+bOptsReq()+'</select></div><div id="rsp"'+(turma(cur)&&turma(cur).exigeResp?'':' hidden')+'><label for="ar">Responsável pelo aluno</label><input id="ar"></div><div id="apw"'+(turma(cur)&&turma(cur).semProf?' hidden':'')+'><label class="chkl"><input type="checkbox" id="ap">Este aluno também é professor(a)</label></div><button class="btn" id="addA">Adicionar aluno</button></div></div>'
  +(me&&me.perfil==='admin'?'<div class="sec"><h2>Nova turma</h2><label for="tn">Nome da turma</label><input id="tn" placeholder="Ex.: Casais"><button class="btn" id="addT">Adicionar turma</button></div>':'');
 }
 function totalCard(){
@@ -579,7 +581,7 @@ $('#app').addEventListener('click',e=>{
   selA='';work=null;workJ={};save();toast('Chamada salva');view='registro';render();scrollTo(0,0)}
  if(id==='addT'){if(!me||me.perfil!=='admin')return;const n=$('#tn').value.trim();if(!n){toast('Informe o nome da turma');return}
   const t={id:uid(),nome:n,alunos:[]};S.turmas.push(t);if(!cur)cur=t.id;save();toast('Turma adicionada');render()}
- if(id==='addA'){const n=$('#an').value.trim(),t=turma($('#as').value);if(!t||!n){toast('Escolha a turma e informe o nome');return}if(t.exigeResp&&!$('#ar').value.trim()){toast('Informe o responsável pelo aluno');return}if($('#ad').value>ymd(new Date())){toast('A data de nascimento não pode estar no futuro');return}
+ if(id==='addA'){const n=$('#an').value.trim(),t=turma($('#as').value);if(!t){toast('Escolha a turma');return}if(!t.semProf&&!$('#at').value){toast('Escolha o título');return}if(!n){toast('Informe o nome do aluno');return}if(!$('#ad').value){toast('Informe a data de nascimento');return}if(!semBat(t)&&!$('#ab').value){toast('Informe se o aluno é batizado');return}if(t.exigeResp&&!$('#ar').value.trim()){toast('Informe o responsável pelo aluno');return}if($('#ad').value>ymd(new Date())){toast('A data de nascimento não pode estar no futuro');return}
   t.alunos.push({id:uid(),nome:n,titulo:t.semProf?'':$('#at').value,professor:t.semProf?false:$('#ap').checked,nasc:$('#ad').value,batizado:semBat(t)?'':$('#ab').value,resp:t.exigeResp?$('#ar').value.trim():'',desde:ymd(new Date())});cur=t.id;work=null;save();toast('Aluno adicionado');render()}
  if(id==='addG'){if(ehProf())return;const tm=$('#gm').value.trim(),d=$('#gd').value,tid=$('#gt').value;let pr=$('#gp').value;if(pr&&!profs().includes(pr)){toast('Escolha um professor cadastrado');return}
   if(!tid||!d||!tm){toast('Informe turma, data e tema');return}
@@ -593,7 +595,7 @@ $('#app').addEventListener('click',e=>{
 });
 $('#app').addEventListener('change',e=>{
  if(e.target.id==='rf'){regF=e.target.value;render()}
- if(e.target.id==='as'){const tt=turma(e.target.value);$('#rsp').hidden=!(tt&&tt.exigeResp);$('#apw').hidden=!!(tt&&tt.semProf);$('#atw').hidden=!!(tt&&tt.semProf);$('#abw').hidden=semBat(tt)}
+ if(e.target.id==='as'){const tt=turma(e.target.value);$('#afw').hidden=!tt;$('#rsp').hidden=!(tt&&tt.exigeResp);$('#apw').hidden=!!(tt&&tt.semProf);$('#atw').hidden=!!(tt&&tt.semProf);$('#abw').hidden=semBat(tt)}
  if(e.target.dataset.jc!==undefined){const v=e.target.value,i=e.target.dataset.jc;v?workJ[i]=v:delete workJ[i];return}
  if(e.target.dataset.jh!==undefined){const v=e.target.value,i=e.target.dataset.jh;v?workHJ[i]=v:delete workHJ[i];return}
  if((e.target.id==='gd'||e.target.id==='egd')&&e.target.value&&!dom(e.target.value)){const d=new Date(e.target.value+'T12:00:00');d.setDate(d.getDate()+(7-d.getDay())%7);e.target.value=ymd(d);toast(msgDom+': ajustei para o próximo domingo')}
