@@ -220,7 +220,7 @@ async function pull(){const r={};for(const tab of TAB)r[tab]=await todos(tab);
 async function pullUsers(){const {data,error}=await sb.from('perfis').select('*').order('criado_em');if(error)throw error;
  S.usuarios=data.map(u=>({id:u.id,nome:u.nome||u.email,login:u.email,perfil:u.perfil,ativo:u.ativo}))}
 const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
-let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null;
+let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null,workJ={},workHJ={};
 const turma=id=>S.turmas.find(t=>t.id===id);
 const TITULOS=[['Pr.','Pr. (Pastor)'],['Pra.','Pra. (Pastora)'],['Miss.','Miss. (Missionário/a)'],['Pb.','Pb. (Presbítero)'],['Coop.','Coop. (Cooperador/a)'],['Dc.','Dc. (Diácono)'],['Membro','Membro']];
 const nm=a=>(a.titulo&&a.titulo!=='Membro'?a.titulo+' ':'')+a.nome;
@@ -273,14 +273,15 @@ function vChamada(){
    +(fut.length?'<div class="sec"><h2>Próximas aulas</h2><div class="list">'+fut.map(x=>card(x,false)).join('')+'</div></div>':'');
  }
  const t=turma(A.turma),key=aulaKey(A),e=ex(key)||{};
- if(!work)work=new Set(S.pres[key]||[]);
+ if(!work){work=new Set(S.pres[key]||[]);workJ=Object.assign({},e.just||{})}
  const list=t.alunos.filter(a=>work.has(a.id)||(a.ativo!==false&&!a.arq&&!emAula(a,t,A.data))),fora=t.alunos.filter(a=>a.ativo!==false&&!a.arq&&!work.has(a.id)&&emAula(a,t,A.data));
  return '<button class="tg" data-av="1">Voltar às aulas</button>'
  +'<h2 style="margin-top:14px">'+esc(t.nome)+'</h2><p class="sub" style="margin:-8px 0 0;text-transform:capitalize">'+fmtD(A.data)+'</p>'
  +'<p class="sub" style="margin:6px 0 0"><b>Tema:</b> '+esc(A.tema)+' · Professor(a): '+(A.prof?esc(A.prof):'a definir')+'</p>'
  +(fora.length?'<p class="sub" style="margin:6px 0 0"><b>Dando aula em outra turma neste dia</b> (fora da chamada, sem falta): '+fora.map(a=>esc(nm(a))).join(', ')+'.</p>':'')
  +'<div class="bar"><b>Presença</b><span class="sub" id="cnt"></span></div>'
- +'<div class="list">'+(list.length?list.map(a=>'<button class="row" data-a="'+a.id+'" aria-pressed="'+work.has(a.id)+'"><span class="chk">✓</span>'+esc(a.nome)+tags(a)+'<span class="st"></span></button>').join(''):'<div class="item sub">Nenhum aluno ativo nesta turma.</div>')+'</div>'
+ +'<div class="list">'+(list.length?list.map(a=>'<button class="row" data-a="'+a.id+'" data-n="'+esc(a.nome)+'" aria-pressed="'+work.has(a.id)+'"><span class="chk">✓</span>'+esc(a.nome)+tags(a)+'<span class="st"></span></button>').join(''):'<div class="item sub">Nenhum aluno ativo nesta turma.</div>')+'</div>'
+ +'<div class="sec"><h2>Faltas justificadas</h2><p class="sub">Para quem faltou, escolha o motivo. A falta justificada não entra no índice de faltas.</p><div class="list" id="jus"></div></div>'
  +'<div class="sec"><h2>Registro da aula</h2>'
  +'<label for="xb">Quantas Bíblias físicas?</label><input id="xb" type="number" min="0" inputmode="numeric" value="'+(e.biblias??'')+'">'
  +'<label for="xo">Contribuições arrecadadas (R$)</label><input id="xo" type="number" min="0" step="0.01" inputmode="decimal" value="'+(e.oferta??'')+'">'
@@ -288,37 +289,43 @@ function vChamada(){
  +'<button class="btn full" id="salvar">Salvar chamada</button>';
 }
 function updCount(){const c=$('#cnt'),rows=document.querySelectorAll('.row[data-a]');if(c)c.textContent=work.size+' de '+rows.length+' presentes';
- rows.forEach(r=>{r.querySelector('.st').textContent=work.has(r.dataset.a)?'Presente':'Ausente'})}
+ rows.forEach(r=>{r.querySelector('.st').textContent=work.has(r.dataset.a)?'Presente':'Ausente'});
+ jusRender('jus',[...rows].filter(r=>!work.has(r.dataset.a)).map(r=>({id:r.dataset.a,n:r.dataset.n})),workJ,'data-jc')}
 
 const keysT=t=>Object.keys(S.pres).filter(k=>k.endsWith('|'+t.id)).sort();
 // aluno marcado como professor(a) que dá aula em OUTRA turma naquele dia: fora da chamada e sem falta
 const emAula=(a,t,d)=>!!a.professor&&S.aulas.some(g=>g.data===d&&g.prof===nm(a)&&g.turma!==t.id);
 // alunos que contam numa chamada: quem estava presente + ativos (e já cadastrados) naquela data
-const eleg=(t,k)=>{const d=k.split('|')[0],ids=S.pres[k]||[];return t.alunos.filter(a=>ids.includes(a.id)||(a.ativo!==false&&!a.arq&&(!a.desde||d>=a.desde)&&!emAula(a,t,d)))};
-const rowsA=(a,t)=>keysT(t).filter(k=>{const d=k.split('|')[0];const ok=S.pres[k].includes(a.id);return (!a.desde||d>=a.desde||ok)&&(ok||!emAula(a,t,d))}).map(k=>({d:k.split('|')[0],ok:S.pres[k].includes(a.id)}));
-function stats(t){const keys=keysT(t);let tot=0,poss=0;
- keys.forEach(k=>{tot+=S.pres[k].length;poss+=eleg(t,k).length});
- return {keys,tot,poss,p:poss?Math.round(tot/poss*100):0}}
-const LIM_IDX=30,LIM_SEG=2;
-function faltasAluno(a,t){const r=rowsA(a,t),f=r.filter(x=>!x.ok).length;let seg=0;for(let i=r.length-1;i>=0&&!r[i].ok;i--)seg++;
- const q=r.length?Math.round(f/r.length*100):0;return {n:r.length,f,q,seg,at:(r.length>=3&&q>=LIM_IDX)||seg>=LIM_SEG}}
+// inclui também quem já esteve nesta turma (aluno transferido: a.ant) enquanto valia a transferência
+const eleg=(t,k)=>{const d=k.split('|')[0],ids=S.pres[k]||[];return S.turmas.flatMap(u=>u.alunos.filter(a=>ids.includes(a.id)||(a.ant||[]).some(x=>x.turma===t.id&&d>=(x.desde||'')&&d<=x.ate)||(u.id===t.id&&a.ativo!==false&&!a.arq&&(!a.desde||d>=a.desde)&&!emAula(a,t,d))))};
+const rowsA=(a,t)=>keysT(t).filter(k=>{const d=k.split('|')[0];const ok=S.pres[k].includes(a.id);return (!a.desde||d>=a.desde||ok)&&(ok||!emAula(a,t,d))}).map(k=>{const ok=S.pres[k].includes(a.id);return {d:k.split('|')[0],ok,j:ok?'':(((S.extras||{})[k]||{}).just||{})[a.id]||''}});
+function stats(t){const keys=keysT(t);let tot=0,poss=0,jus=0;
+ keys.forEach(k=>{tot+=S.pres[k].length;const E=eleg(t,k),J=((S.extras||{})[k]||{}).just||{};poss+=E.length;jus+=E.filter(a=>!S.pres[k].includes(a.id)&&J[a.id]).length});
+ return {keys,tot,poss,jus,p:poss?Math.round(tot/poss*100):0}}
+const LIM_IDX=30,LIM_SEG=2,MOTIVOS=['Trabalho','Evento externo','Doença','Outro'];
+const jOnly=(J,W)=>Object.fromEntries(Object.entries(J).filter(([id,v])=>v&&!W.has(id)));
+function jusRender(box,abs,J,attr){const b=$('#'+box);if(!b)return;
+ b.innerHTML=abs.length?abs.map(x=>'<div class="item"><b style="display:inline">'+esc(x.n)+'</b><select '+attr+'="'+x.id+'" aria-label="Motivo da falta"><option value="">Sem justificativa</option>'+MOTIVOS.map(m=>'<option'+(J[x.id]===m?' selected':'')+'>'+m+'</option>').join('')+'</select></div>').join(''):'<div class="item sub">Ninguém faltou.</div>'}
+function jusH(){jusRender('jush',[...document.querySelectorAll('.row[data-ha]')].filter(r=>!workH.has(r.dataset.ha)).map(r=>({id:r.dataset.ha,n:r.dataset.n})),workHJ,'data-jh')}
+function faltasAluno(a,t){const r=rowsA(a,t),f=r.filter(x=>!x.ok&&!x.j).length,fj=r.filter(x=>!x.ok&&x.j).length;let seg=0;for(let i=r.length-1;i>=0&&!r[i].ok;i--)if(!r[i].j)seg++;
+ const q=r.length?Math.round(f/r.length*100):0;return {n:r.length,f,fj,q,seg,at:(r.length>=3&&q>=LIM_IDX)||seg>=LIM_SEG}}
 function vFaltas(){
  const meter=q=>'<div class="meter"><i style="width:'+q+'%;background:var(--bad)"></i></div>';
- const all=S.turmas.map(t=>{const s=stats(t),faltas=s.poss-s.tot,q=s.poss?Math.round(faltas/s.poss*100):0;
+ const all=S.turmas.map(t=>{const s=stats(t),faltas=s.poss-s.tot-s.jus,q=s.poss?Math.round(faltas/s.poss*100):0;
   const al=ativos(t).map(a=>({a,...faltasAluno(a,t)})).sort((x,y)=>y.q-x.q||y.f-x.f||String(x.a.nome).localeCompare(String(y.a.nome),'pt-BR',{sensitivity:'base'}));
   return {t,s,faltas,q,al}});
  const TP=all.reduce((n,x)=>n+x.s.poss,0),TF=all.reduce((n,x)=>n+x.faltas,0),TQ=TP?Math.round(TF/TP*100):0;
  const aten=[];all.forEach(x=>x.al.forEach(r=>{if(r.at)aten.push({...r,t:x.t})}));
  aten.sort((x,y)=>y.seg-x.seg||y.q-x.q);
  const motivo=r=>(r.seg>=LIM_SEG?r.seg+' faltas seguidas':'')+(r.seg>=LIM_SEG&&r.n>=3&&r.q>=LIM_IDX?' · ':'')+(r.n>=3&&r.q>=LIM_IDX?r.q+'% de faltas':'');
- return '<h2>Acompanhamento de faltas</h2><p class="sub">Índice de faltas = faltas ÷ presenças possíveis, nas aulas com chamada salva. O aluno entra em atenção com '+LIM_SEG+' ou mais faltas seguidas, ou com '+LIM_IDX+'% ou mais de faltas (a partir de 3 chamadas).</p>'
+ return '<h2>Acompanhamento de faltas</h2><p class="sub">Índice de faltas = faltas ÷ presenças possíveis, nas aulas com chamada salva. O aluno entra em atenção com '+LIM_SEG+' ou mais faltas seguidas, ou com '+LIM_IDX+'% ou mais de faltas (a partir de 3 chamadas). Faltas justificadas ficam fora do índice e das faltas seguidas.</p>'
  +'<div class="bar"><b>Índice geral de faltas</b><b>'+TQ+'%</b></div>'+meter(TQ)
  +'<p class="sub" style="margin-top:6px">'+TF+' falta(s) em '+TP+' presença(s) possíveis</p>'
  +'<div class="sec"><h2>Alunos em atenção</h2><div class="list">'+(aten.length?aten.map(r=>'<div class="item"><span class="tag">'+esc(r.t.nome)+'</span><b style="display:inline">'+esc(nm(r.a))+'</b><span class="sub" style="display:block">'+motivo(r)+' · '+r.f+' falta(s) em '+r.n+' chamada(s)</span></div>').join(''):'<div class="item sub">Nenhum aluno em atenção.</div>')+'</div></div>'
  +'<div class="sec"><h2>Por turma</h2><div class="list">'+(all.length?all.map(x=>{
-  return '<details class="dt"><summary><span><b>'+esc(x.t.nome)+'</b><span class="sub">'+(x.s.keys.length?x.faltas+' falta(s) em '+x.s.poss+' presença(s) possíveis · '+x.s.keys.length+' chamada(s)':'Sem chamada salva')+'</span></span><b>'+x.q+'%</b></summary>'
+  return '<details class="dt"><summary><span><b>'+esc(x.t.nome)+'</b><span class="sub">'+(x.s.keys.length?x.faltas+' falta(s)'+(x.s.jus?' (+'+x.s.jus+' justificada(s))':'')+' em '+x.s.poss+' presença(s) possíveis · '+x.s.keys.length+' chamada(s)':'Sem chamada salva')+'</span></span><b>'+x.q+'%</b></summary>'
   +'<div class="meter" style="margin:0 12px 8px"><i style="width:'+x.q+'%;background:var(--bad)"></i></div>'
-  +(x.al.length?x.al.map(r=>'<div class="freq"><div><span>'+esc(nm(r.a))+(r.at?' <span class="tag">Atenção</span>':'')+'</span><b>'+r.q+'%</b></div><span class="sub">'+(r.n?r.f+' falta(s) em '+r.n+' chamada(s)'+(r.seg?' · '+r.seg+' seguida(s) no fim':''):'Sem chamadas')+'</span>'+meter(r.q)+'</div>').join(''):'<div class="item sub">Sem alunos.</div>')
+  +(x.al.length?x.al.map(r=>'<div class="freq"><div><span>'+esc(nm(r.a))+(r.at?' <span class="tag">Atenção</span>':'')+'</span><b>'+r.q+'%</b></div><span class="sub">'+(r.n?r.f+' falta(s)'+(r.fj?' (+'+r.fj+' justificada(s))':'')+' em '+r.n+' chamada(s)'+(r.seg?' · '+r.seg+' seguida(s) no fim':''):'Sem chamadas')+'</span>'+meter(r.q)+'</div>').join(''):'<div class="item sub">Sem alunos.</div>')
   +'</details>'}).join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>')+'</div></div>';
 }
 function vPainel(){
@@ -344,7 +351,8 @@ function vPainel(){
 
 function hForm(k,t){const list=t.alunos.filter(a=>workH.has(a.id)||(a.ativo!==false&&!a.arq&&!emAula(a,t,k.split('|')[0]))),e=ex(k)||{};
  return '<div class="item"><b>Editando esta chamada</b><span class="sub">Toque no nome para marcar presente ou ausente.</span></div><div class="list" style="margin:0 12px 12px">'
- +list.map(a=>'<button class="row" data-ha="'+a.id+'" aria-pressed="'+workH.has(a.id)+'"><span class="chk">✓</span>'+esc(nm(a))+'<span class="st">'+(workH.has(a.id)?'Presente':'Ausente')+'</span></button>').join('')+'</div>'
+ +list.map(a=>'<button class="row" data-ha="'+a.id+'" data-n="'+esc(a.nome)+'" aria-pressed="'+workH.has(a.id)+'"><span class="chk">✓</span>'+esc(nm(a))+'<span class="st">'+(workH.has(a.id)?'Presente':'Ausente')+'</span></button>').join('')+'</div>'
+ +'<div class="item"><b>Faltas justificadas</b><span class="sub">Para quem faltou, escolha o motivo.</span><div class="list" id="jush" style="margin-top:8px"></div></div>'
  +'<div class="item"><label for="hb" style="margin-top:0">Quantas Bíblias físicas?</label><input id="hb" type="number" min="0" inputmode="numeric" value="'+(e.biblias??'')+'"><label for="ho">Contribuições arrecadadas (R$)</label><input id="ho" type="number" min="0" step="0.01" inputmode="decimal" value="'+(e.oferta??'')+'"><label for="hv">Visitantes (0 se não houve)</label><input id="hv" type="number" min="0" inputmode="numeric" value="'+(e.visitantes??'')+'">'+climaSel('hc',e.clima||'')+'<div class="acts"><button class="btn" style="margin-top:0" data-hok="1">Salvar alterações</button><button class="tg" data-hno="1">Cancelar</button></div></div>'}
 function vRegistro(){
  return '<h2>Histórico de chamadas</h2><p class="sub">Toda chamada salva fica guardada aqui, separada por turma.</p>'
@@ -352,15 +360,15 @@ function vRegistro(){
   const D=Object.keys(S.pres).filter(k=>k.endsWith('|'+t.id)).map(k=>k.split('|')[0]).sort().reverse();
   return '<div class="sec"><h2>'+esc(t.nome)+'</h2><div class="list">'+(D.length?D.map(d=>{
    const k=d+'|'+t.id,ids=S.pres[k],e=ex(k)||{},dl=new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'});
-   const pr=t.alunos.filter(a=>ids.includes(a.id)),au=eleg(t,k).filter(a=>!ids.includes(a.id));
+   const pr=S.turmas.flatMap(u=>u.alunos).filter(a=>ids.includes(a.id)),au=eleg(t,k).filter(a=>!ids.includes(a.id));
    const aula=S.aulas.find(x=>x.turma===t.id&&x.data===d),tema=aula?aula.tema:e.tema,prof=aula?aula.prof:e.prof,
     tTx=tema?esc(tema):'não registrado',pTx=prof?esc(prof):(aula?'a definir':'não registrado'),clTx=(CLIMAS.find(c=>c[0]===e.clima)||[0,'Não informado'])[1];
    return '<details class="dt"'+(editH===k||delH===k?' open':'')+'><summary><span><b style="text-transform:capitalize;font-size:16px">'+dl+'</b><span class="sub" style="display:block">Tema: '+tTx+' · Professor(a): '+pTx+'</span><span class="sub" style="display:block">'+ids.length+' de '+eleg(t,k).length+' presentes · '+(e.biblias||0)+' bíblias físicas · '+brl(e.oferta)+(e.visitantes?' · '+e.visitantes+' visitante(s)':' · sem visitantes')+climaTx(e.clima)+'</span></span></summary>'
    +(editH===k?hForm(k,t):'<div class="list" style="margin:12px">'+kv('Tema',tTx)+kv('Professor(a)',pTx)+kv('Clima do dia',clTx)+kv('Presentes',ids.length+' de '+eleg(t,k).length)+kv('Bíblias físicas',e.biblias||0)+kv('Contribuições',brl(e.oferta))+kv('Visitantes',e.visitantes||'Nenhum')+'</div><div class="item"><b>Presentes</b><span class="sub">'+(pr.map(a=>esc(nm(a))).join(', ')||'Ninguém')+'</span></div>'
-   +'<div class="item"><b>Ausentes</b><span class="sub">'+(au.map(a=>esc(nm(a))).join(', ')||'Ninguém')+'</span></div>'+(!edita()?'':'<div class="acts" style="margin:0;padding:12px;justify-content:flex-end">'+(delH===k?'<span class="sub">Excluir esta chamada?</span><button class="tg bad" data-hdelok="'+k+'">Confirmar</button><button class="tg" data-hdelno="1">Cancelar</button>':'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-hedit="'+k+'">Editar chamada</button><button class="tg bad" data-hdel="'+k+'">Excluir</button></div></details>')+'</div>'))+'</details>'}).join(''):'<div class="item sub">Nenhuma chamada salva ainda.</div>')+'</div>'+'</div>'}).join(''):'<p class="sub">Cadastre uma turma na aba Turmas.</p>');
+   +'<div class="item"><b>Ausentes</b><span class="sub">'+(au.map(a=>esc(nm(a))+((e.just||{})[a.id]?' ('+esc(e.just[a.id])+')':'')).join(', ')||'Ninguém')+'</span></div>'+(!edita()?'':'<div class="acts" style="margin:0;padding:12px;justify-content:flex-end">'+(delH===k?'<span class="sub">Excluir esta chamada?</span><button class="tg bad" data-hdelok="'+k+'">Confirmar</button><button class="tg" data-hdelno="1">Cancelar</button>':'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-hedit="'+k+'">Editar chamada</button><button class="tg bad" data-hdel="'+k+'">Excluir</button></div></details>')+'</div>'))+'</details>'}).join(''):'<div class="item sub">Nenhuma chamada salva ainda.</div>')+'</div>'+'</div>'}).join(''):'<p class="sub">Cadastre uma turma na aba Turmas.</p>');
 }
 
-function edUi(a){const tt=S.turmas.find(x=>x.alunos.some(y=>y.id===a.id));return '<div class="item">'+(tt&&tt.semProf?'':'<label for="et" style="margin-top:0">Título (opcional)</label><select id="et">'+tOpts(a.titulo||'')+'</select>')+'<label for="en"'+(tt&&tt.semProf?' style="margin-top:0"':'')+'>Nome</label><input id="en" value="'+esc(a.nome)+'"><label for="ed">Data de nascimento</label><input id="ed" type="date" value="'+esc(a.nasc||'')+'"><label for="eb">Batizado?</label><select id="eb">'+bOpts(a.batizado||'')+'</select>'+(tt&&tt.exigeResp?'<label for="er">Responsável pelo aluno</label><input id="er" value="'+esc(a.resp||'')+'"><label for="etl">Telefone do responsável (opcional)</label><input id="etl" type="tel" inputmode="tel" value="'+esc(a.respTel||'')+'">':'')+(tt&&tt.semProf?'':'<label class="chkl"><input type="checkbox" id="ep"'+(a.professor?' checked':'')+'>Também é professor(a)</label>')+'<div class="acts"><button class="btn" style="margin-top:0" data-edok="'+a.id+'">Salvar</button><button class="tg" data-edno="1">Cancelar</button></div></div>'}
+function edUi(a){const tt=S.turmas.find(x=>x.alunos.some(y=>y.id===a.id));return '<div class="item">'+(me&&me.perfil==='admin'&&S.turmas.length>1?'<label for="eat" style="margin-top:0">Turma</label><select id="eat">'+opts(tt?tt.id:'')+'</select>':'')+(tt&&tt.semProf?'':'<label for="et" style="margin-top:0">Título (opcional)</label><select id="et">'+tOpts(a.titulo||'')+'</select>')+'<label for="en"'+(tt&&tt.semProf?' style="margin-top:0"':'')+'>Nome</label><input id="en" value="'+esc(a.nome)+'"><label for="ed">Data de nascimento</label><input id="ed" type="date" value="'+esc(a.nasc||'')+'"><label for="eb">Batizado?</label><select id="eb">'+bOpts(a.batizado||'')+'</select>'+(tt&&tt.exigeResp?'<label for="er">Responsável pelo aluno</label><input id="er" value="'+esc(a.resp||'')+'"><label for="etl">Telefone do responsável (opcional)</label><input id="etl" type="tel" inputmode="tel" value="'+esc(a.respTel||'')+'">':'')+(tt&&tt.semProf?'':'<label class="chkl"><input type="checkbox" id="ep"'+(a.professor?' checked':'')+'>Também é professor(a)</label>')+'<div class="acts"><button class="btn" style="margin-top:0" data-edok="'+a.id+'">Salvar</button><button class="tg" data-edno="1">Cancelar</button></div></div>'}
 const CARGOS=[['Primeiro(a) líder','lider1','el1'],['Segundo(a) líder','lider2','el2'],['Primeiro(a) secretário(a)','sec1','es1'],['Segundo(a) secretário(a)','sec2','es2']];
 const pessoaT=(t,k)=>{const x=S.turmas.find(u=>u.alunos.some(a=>a.id===t[k]));if(!x)return '';const a=x.alunos.find(a=>a.id===t[k]);return esc(nm(a))+(x.id!==t.id?' ('+esc(x.nome)+')':'')};
 function cargosSel(t){
@@ -374,13 +382,13 @@ function delUi(a,extra){return delA===a.id?'<span class="acts" style="margin:0">
 function acomp(a,t){
  const rows=rowsA(a,t);
  const n=rows.filter(r=>r.ok).length,p=rows.length?Math.round(n/rows.length*100):0;
- let seq=0;for(let i=rows.length-1;i>=0&&!rows[i].ok;i--)seq++;
+ let seq=0;for(let i=rows.length-1;i>=0&&!rows[i].ok;i--)if(!rows[i].j)seq++;
  const ult=rows.slice().reverse().find(r=>r.ok);
  return '<div class="item"><b>Acompanhamento de '+esc(nm(a))+'</b><span class="sub">'+esc(t.nome)+'</span>'+info(a)
   +'<div class="bar"><b style="font-size:22px">'+p+'%</b><span class="sub">'+n+' presença(s) em '+rows.length+' aula(s)</span></div><div class="meter"><i style="width:'+p+'%"></i></div>'
   +'<div class="sub" style="margin-top:8px">Faltas seguidas: '+seq+' · Última presença: <span style="text-transform:capitalize">'+(ult?fmtD(ult.d):'nenhuma')+'</span></div>'
   +'<div class="list" style="margin-top:10px">'+(rows.length?rows.slice().reverse().map(r=>{const au=S.aulas.find(x=>x.turma===t.id&&x.data===r.d);
-    return '<div class="kv"><span style="text-transform:capitalize">'+fmtD(r.d)+(au?' · '+esc(au.tema):'')+'</span><b style="color:var('+(r.ok?'--ok':'--bad')+')">'+(r.ok?'Presente':'Falta')+'</b></div>'}).join(''):'<div class="item sub">Nenhuma chamada registrada ainda.</div>')+'</div>'
+    return '<div class="kv"><span style="text-transform:capitalize">'+fmtD(r.d)+(au?' · '+esc(au.tema):'')+'</span><b style="color:'+(r.ok?'var(--ok)':r.j?'inherit':'var(--bad)')+'">'+(r.ok?'Presente':r.j?'Falta justificada ('+esc(r.j)+')':'Falta')+'</b></div>'}).join(''):'<div class="item sub">Nenhuma chamada registrada ainda.</div>')+'</div>'
   +'<div class="acts"><button class="tg" data-fe="1">Fechar</button></div></div>'}
 function vAlunos(){
  return '<h2>Alunos</h2><p class="sub">Inativos não aparecem na chamada. Arquivados saem das listas, mas o histórico deles continua guardado. Excluir apaga o aluno de vez, inclusive das chamadas antigas.</p>'
@@ -473,6 +481,7 @@ function render(){
  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===(GROUP.includes(view)?'grupo':view)?'page':'false'));
  try{document.querySelector('nav button[aria-current="page"]').scrollIntoView({inline:'center',block:'nearest'})}catch(e){}
  if(view==='chamada'&&selA)updCount();
+ if(view==='registro'&&editH)jusH();
 }
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b){view=b.dataset.v==='grupo'?(can(sub)?sub:'chamada'):b.dataset.v;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
 $('#sub').addEventListener('click',e=>{const b=e.target.closest('button');if(b){view=b.dataset.s;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
@@ -497,15 +506,19 @@ $('#app').addEventListener('click',e=>{
   render();return}
  const he=e.target.closest('[data-hedit],[data-hok],[data-hno],[data-ha]');
  if(he){const D=he.dataset;
-  if(D.ha){workH.has(D.ha)?workH.delete(D.ha):workH.add(D.ha);he.setAttribute('aria-pressed',workH.has(D.ha));he.querySelector('.st').textContent=workH.has(D.ha)?'Presente':'Ausente';return}
-  if(D.hedit){editH=D.hedit;workH=new Set(S.pres[editH]||[])}
-  else if(D.hok){S.pres[editH]=[...workH];S.extras[editH]={...(S.extras[editH]||{}),biblias:Math.max(0,+$('#hb').value||0),oferta:Math.max(0,+$('#ho').value||0),visitantes:Math.max(0,+$('#hv').value||0),clima:$('#hc').value};editH='';work=null;save();toast('Chamada atualizada')}
+  if(D.ha){workH.has(D.ha)?workH.delete(D.ha):workH.add(D.ha);he.setAttribute('aria-pressed',workH.has(D.ha));he.querySelector('.st').textContent=workH.has(D.ha)?'Presente':'Ausente';jusH();return}
+  if(D.hedit){editH=D.hedit;workH=new Set(S.pres[editH]||[]);workHJ=Object.assign({},(ex(editH)||{}).just||{})}
+  else if(D.hok){S.pres[editH]=[...workH];S.extras[editH]={...(S.extras[editH]||{}),biblias:Math.max(0,+$('#hb').value||0),oferta:Math.max(0,+$('#ho').value||0),visitantes:Math.max(0,+$('#hv').value||0),clima:$('#hc').value,just:jOnly(workHJ,workH)};editH='';work=null;workHJ={};save();toast('Chamada atualizada')}
   else{editH=''}
   render();return}
  const ed=e.target.closest('[data-eda],[data-edok],[data-edno],[data-edt],[data-etok],[data-etno]');
  if(ed){const D=ed.dataset;
   if(D.eda)editA=D.eda;
-  else if(D.edok){const al=S.turmas.flatMap(t=>t.alunos).find(x=>x.id===D.edok),n=$('#en').value.trim();if(!n){toast('Informe o nome');return}if($('#ed').value>ymd(new Date())){toast('A data de nascimento não pode estar no futuro');return}const tt=S.turmas.find(x=>x.alunos.some(y=>y.id===al.id));if(tt&&tt.exigeResp&&!$('#er').value.trim()){toast('Informe o responsável pelo aluno');return}if(tt&&tt.exigeResp){al.resp=$('#er').value.trim();al.respTel=$('#etl').value.trim()}al.nome=n;al.nasc=$('#ed').value;al.batizado=$('#eb').value;al.titulo=tt&&tt.semProf?'':$('#et').value;al.professor=tt&&tt.semProf?false:$('#ep').checked;editA='';save();toast('Cadastro atualizado')}
+  else if(D.edok){const al=S.turmas.flatMap(t=>t.alunos).find(x=>x.id===D.edok),n=$('#en').value.trim();if(!n){toast('Informe o nome');return}if($('#ed').value>ymd(new Date())){toast('A data de nascimento não pode estar no futuro');return}const tt=S.turmas.find(x=>x.alunos.some(y=>y.id===al.id));if(tt&&tt.exigeResp&&!$('#er').value.trim()){toast('Informe o responsável pelo aluno');return}if(tt&&tt.exigeResp){al.resp=$('#er').value.trim();al.respTel=$('#etl').value.trim()}al.nome=n;al.nasc=$('#ed').value;al.batizado=$('#eb').value;al.titulo=tt&&tt.semProf?'':$('#et').value;al.professor=tt&&tt.semProf?false:$('#ep').checked;
+   let msg='Cadastro atualizado';const sel=$('#eat'),nt=sel&&me.perfil==='admin'?turma(sel.value):null;
+   if(nt&&tt&&nt.id!==tt.id){const am=new Date(today);am.setDate(am.getDate()+1);tt.alunos=tt.alunos.filter(y=>y.id!==al.id);al.ant=(al.ant||[]).concat({turma:tt.id,desde:al.desde||'',ate:ymd(today)});al.desde=ymd(am);
+    if(nt.semProf){al.titulo='';al.professor=false}nt.alunos.push(al);msg='Aluno movido para '+nt.nome+(nt.exigeResp&&!al.resp?'. Edite o aluno para informar o responsável':'')}
+   editA='';save();toast(msg)}
   else if(D.edno)editA='';
   else if(D.edt)editT=D.edt;
   else if(D.etok){const t=turma(D.etok),n=$('#etn').value.trim();if(!n){toast('Informe o nome da turma');return}const l1=$('#el1').value,l2=$('#el2').value,s1=$('#es1').value,s2=$('#es2').value;if(l1&&l1===l2){toast('A mesma pessoa não pode ser primeiro(a) e segundo(a) líder');return}if(s1&&s1===s2){toast('A mesma pessoa não pode ser primeiro(a) e segundo(a) secretário(a)');return}t.lider1=l1;t.lider2=l2;t.sec1=s1;t.sec2=s2;t.exigeResp=$('#etr').checked;t.semProf=$('#etsp').checked;if(t.semProf)t.alunos.forEach(a=>{a.professor=false;a.titulo=''});t.nome=n;editT='';save();toast('Turma atualizada')}
@@ -541,8 +554,8 @@ $('#app').addEventListener('click',e=>{
  if(tg){const al=S.turmas.flatMap(t=>t.alunos).find(x=>x.id===tg.dataset.tg);if(al){al.ativo=al.ativo===false;work=null;save();render()}return}
  const id=e.target.id;
  if(id==='salvar'){const A=S.aulas.find(x=>x.id===selA);if(!A)return;const key=aulaKey(A);
-  S.pres[key]=[...work];S.extras[key]={biblias:Math.max(0,+$('#xb').value||0),oferta:Math.max(0,+$('#xo').value||0),visitantes:Math.max(0,+$('#xv').value||0),clima:$('#xc').value,tema:A.tema,prof:A.prof};
-  selA='';work=null;save();toast('Chamada salva');view='registro';render();scrollTo(0,0)}
+  S.pres[key]=[...work];S.extras[key]={biblias:Math.max(0,+$('#xb').value||0),oferta:Math.max(0,+$('#xo').value||0),visitantes:Math.max(0,+$('#xv').value||0),clima:$('#xc').value,tema:A.tema,prof:A.prof,just:jOnly(workJ,work)};
+  selA='';work=null;workJ={};save();toast('Chamada salva');view='registro';render();scrollTo(0,0)}
  if(id==='addT'){if(!me||me.perfil!=='admin')return;const n=$('#tn').value.trim();if(!n){toast('Informe o nome da turma');return}
   const t={id:uid(),nome:n,alunos:[]};S.turmas.push(t);if(!cur)cur=t.id;save();toast('Turma adicionada');render()}
  if(id==='addA'){const n=$('#an').value.trim(),t=turma($('#as').value);if(!t||!n){toast('Escolha a turma e informe o nome');return}if(t.exigeResp&&!$('#ar').value.trim()){toast('Informe o responsável pelo aluno');return}if($('#ad').value>ymd(new Date())){toast('A data de nascimento não pode estar no futuro');return}
@@ -560,6 +573,8 @@ $('#app').addEventListener('click',e=>{
 $('#app').addEventListener('change',e=>{
  if(e.target.id==='rf'){regF=e.target.value;render()}
  if(e.target.id==='as'){const tt=turma(e.target.value);$('#rsp').hidden=!(tt&&tt.exigeResp);$('#apw').hidden=!!(tt&&tt.semProf);$('#atw').hidden=!!(tt&&tt.semProf)}
+ if(e.target.dataset.jc!==undefined){const v=e.target.value,i=e.target.dataset.jc;v?workJ[i]=v:delete workJ[i];return}
+ if(e.target.dataset.jh!==undefined){const v=e.target.value,i=e.target.dataset.jh;v?workHJ[i]=v:delete workHJ[i];return}
  if((e.target.id==='gd'||e.target.id==='egd')&&e.target.value&&!dom(e.target.value)){const d=new Date(e.target.value+'T12:00:00');d.setDate(d.getDate()+(7-d.getDay())%7);e.target.value=ymd(d);toast(msgDom+': ajustei para o próximo domingo')}
  if(e.target.id==='impF'&&me&&me.perfil==='admin'){const inp=e.target,f=inp.files[0];if(!f)return;const rd=new FileReader();
   rd.onload=()=>{let d;try{d=JSON.parse(rd.result);if(!d||!Array.isArray(d.turmas)||!Array.isArray(d.avisos)||!d.pres||typeof d.pres!=='object'||d.turmas.some(t=>!t||!Array.isArray(t.alunos)))throw 0}catch(x){inp.value='';toast('Arquivo de backup inválido');return}
