@@ -242,7 +242,7 @@ function opts(sel,blank){return (blank?'<option value="">'+blank+'</option>':'')
 
 const PERFIS=[['admin','Administrador(a)'],['secretario','Secretário(a)'],['professor','Professor(a)']],pNome=p=>(PERFIS.find(x=>x[0]===p)||[0,p])[1];
 let me=null,editU='',delU='',modo=/type=recovery/.test(location.hash)?'nova':'entrar',acesso='carregando';
-const PROF_OK=['chamada','registro','avisos'];
+const PROF_OK=['chamada','agenda','registro','avisos'];
 const can=a=>!!me&&(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):a!=='usuarios'));
 const edita=()=>!!me&&me.perfil!=='professor';
 const ehProf=()=>!!me&&me.perfil==='professor';
@@ -470,7 +470,7 @@ function vProfessores(){
   +'<div class="sec"><div class="list">'+(lista.length?vis.map(card).join('')+(mais?'<div class="item" style="text-align:center"><button class="tg" data-vp="1">'+(aberta?'Mostrar menos':'Ver todos ('+lista.length+')')+'</button></div>':''):'<div class="item sub">Nenhum professor cadastrado. Marque "também é professor(a)" no Cadastro de aluno.</div>')+'</div></div>'}
 function vAgenda(){
  const hoje=ymd(today),P=profs();
- const prox=S.aulas.filter(x=>x.data>=hoje).sort((a,b)=>a.data.localeCompare(b.data)),ant=S.aulas.filter(x=>x.data<hoje).sort((a,b)=>b.data.localeCompare(a.data));
+ const prox=S.aulas.filter(x=>minha(x)&&x.data>=hoje).sort((a,b)=>a.data.localeCompare(b.data)),ant=S.aulas.filter(x=>minha(x)&&x.data<hoje).sort((a,b)=>b.data.localeCompare(a.data));
  const card=x=>{if(editG===x.id)return edUiG(x);const t=turma(x.turma),dl=new Date(x.data+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'});
   return '<div class="item"><span class="tag">'+esc(t?t.nome:'Turma removida')+'</span><b style="display:inline;text-transform:capitalize">'+dl+'</b><div>'+esc(x.tema)+'</div>'+(x.topicos?'<div class="sub" style="white-space:pre-line">'+esc(x.topicos)+'</div>':'')+'<span class="sub">Professor(a): '+(x.prof?esc(x.prof):'a definir')+'</span>'
   +(!edita()?'':delG===x.id?'<div class="acts"><span class="sub">Excluir esta aula?</span><button class="tg bad" data-delgok="'+x.id+'">Confirmar exclusão</button><button class="tg" data-delgno="1">Cancelar</button></div>':'<div class="acts" style="justify-content:flex-end"><details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-eg="'+x.id+'">Editar</button><button class="tg bad" data-delg="'+x.id+'">Excluir</button></div></details></div>')+'</div>'};
@@ -479,7 +479,7 @@ function vAgenda(){
  +'<label for="gp">Professor(a)</label><select id="gp"><option value="">A definir</option>'+P.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('')+'</select>'
  +'<p class="sub">'+(P.length?'Só aparecem aqui os alunos marcados como professor(a) no Cadastro.':'Nenhum professor cadastrado ainda. Marque "também é professor(a)" no Cadastro de aluno para ele aparecer aqui.')+'</p>'
  +'<label for="gm">Tema da aula</label><input id="gm"><label for="gtp">Tópicos (opcional)</label><textarea id="gtp" placeholder="Um tópico por linha"></textarea><button class="btn" id="addG">Agendar aula</button></div>':'');
- return form+'<div class="sec"><h2>Agenda de aulas</h2><div class="list">'+(prox.length?prox.map(card).join(''):'<div class="item sub">Nenhuma aula agendada.</div>')+'</div></div>'
+ return form+'<div class="sec"><h2>Agenda de aulas</h2>'+(ehProf()?'<p class="sub">'+(meuAluno()?'Você vê apenas as aulas em que é o(a) professor(a).':'Seu usuário ainda não está vinculado a um aluno(a) professor(a). Peça ao administrador para fazer o vínculo em Gerenciar › Usuários.')+'</p>':'')+'<div class="list">'+(prox.length?prox.map(card).join(''):'<div class="item sub">Nenhuma aula agendada.</div>')+'</div></div>'
  +(ant.length?'<div class="sec"><div class="list"><details class="dt"'+(ant.some(x=>x.id===editG||x.id===delG)?' open':'')+'><summary><span><b style="font-size:16px">Aulas anteriores ('+ant.length+')</b></span></summary>'+ant.map(card).join('')+'</details></div></div>':'');
 }
 
@@ -552,7 +552,7 @@ $('#app').addEventListener('click',e=>{
   else editV='';
   render();return}
  const eg=e.target.closest('[data-eg],[data-egok],[data-egno]');
- if(eg){const D=eg.dataset;
+ if(eg){if(ehProf())return;const D=eg.dataset;
   if(D.eg){editG=D.eg;delG=''}
   else if(D.egok){const A=S.aulas.find(z=>z.id===D.egok);if(!A)return;
    const lock=!!S.pres[aulaKey(A)],tid=lock?A.turma:$('#egt').value,d=lock?A.data:$('#egd').value,tm=$('#egm').value.trim();let pr=$('#egp').value;if(pr&&pr!==A.prof&&!profs().includes(pr)){toast('Escolha um professor cadastrado');return}
@@ -564,7 +564,7 @@ $('#app').addEventListener('click',e=>{
   else editG='';
   render();return}
  const dg=e.target.closest('[data-delg],[data-delgok],[data-delgno]');
- if(dg){if(dg.dataset.delg){delG=dg.dataset.delg}else if(dg.dataset.delgok){S.aulas=S.aulas.filter(x=>x.id!==dg.dataset.delgok);delG='';save();toast('Aula excluída')}else{delG=''}render();return}
+ if(dg){if(ehProf())return;if(dg.dataset.delg){delG=dg.dataset.delg}else if(dg.dataset.delgok){S.aulas=S.aulas.filter(x=>x.id!==dg.dataset.delgok);delG='';save();toast('Aula excluída')}else{delG=''}render();return}
  const da=e.target.closest('[data-dela],[data-delaok],[data-delano]');
  if(da){if(da.dataset.dela){delA=da.dataset.dela}else if(da.dataset.delaok){const id=da.dataset.delaok;S.turmas.forEach(t=>{t.alunos=t.alunos.filter(x=>x.id!==id)});Object.keys(S.pres).forEach(k=>{S.pres[k]=S.pres[k].filter(i=>i!==id)});delA='';work=null;save();toast('Aluno excluído')}else{delA=''}render();return}
  const ar=e.target.closest('[data-arq],[data-rest]');
@@ -581,7 +581,7 @@ $('#app').addEventListener('click',e=>{
   const t={id:uid(),nome:n,alunos:[]};S.turmas.push(t);if(!cur)cur=t.id;save();toast('Turma adicionada');render()}
  if(id==='addA'){const n=$('#an').value.trim(),t=turma($('#as').value);if(!t||!n){toast('Escolha a turma e informe o nome');return}if(t.exigeResp&&!$('#ar').value.trim()){toast('Informe o responsável pelo aluno');return}if($('#ad').value>ymd(new Date())){toast('A data de nascimento não pode estar no futuro');return}
   t.alunos.push({id:uid(),nome:n,titulo:t.semProf?'':$('#at').value,professor:t.semProf?false:$('#ap').checked,nasc:$('#ad').value,batizado:semBat(t)?'':$('#ab').value,resp:t.exigeResp?$('#ar').value.trim():'',desde:ymd(new Date())});cur=t.id;work=null;save();toast('Aluno adicionado');render()}
- if(id==='addG'){const tm=$('#gm').value.trim(),d=$('#gd').value,tid=$('#gt').value;let pr=$('#gp').value;if(pr&&!profs().includes(pr)){toast('Escolha um professor cadastrado');return}
+ if(id==='addG'){if(ehProf())return;const tm=$('#gm').value.trim(),d=$('#gd').value,tid=$('#gt').value;let pr=$('#gp').value;if(pr&&!profs().includes(pr)){toast('Escolha um professor cadastrado');return}
   if(!tid||!d||!tm){toast('Informe turma, data e tema');return}
   if(!dom(d)){toast(msgDom);return}
   if(S.aulas.some(x=>x.turma===tid&&x.data===d)){toast('Essa turma já tem aula agendada nesse dia');return}
