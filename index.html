@@ -240,27 +240,28 @@ const bOptsReq=()=>[['','Selecione'],['sim','Sim'],['nao','Não']].map(([v,l])=>
 const tOpts=sel=>'<option value="">Sem título</option>'+TITULOS.map(([v,l])=>'<option value="'+v+'"'+(v===sel?' selected':'')+'>'+l+'</option>').join('');
 const ativos=t=>t.alunos.filter(a=>a.ativo!==false&&!a.arq);
 function toast(m){const t=$('#toast');if(saveErr)m='Atenção: não foi possível salvar no servidor. Verifique a conexão e tente de novo.'+(m?' ('+m+')':'');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),saveErr?6000:1800)}
-function opts(sel,blank){return (blank?'<option value="">'+blank+'</option>':'')+S.turmas.map(t=>'<option value="'+t.id+'"'+(t.id===sel?' selected':'')+'>'+esc(t.nome)+'</option>').join('')}
+function opts(sel,blank){return (blank?'<option value="">'+blank+'</option>':'')+TV().map(t=>'<option value="'+t.id+'"'+(t.id===sel?' selected':'')+'>'+esc(t.nome)+'</option>').join('')}
 
 const PERFIS=[['admin','Administrador(a)'],['secretario','Secretário(a)'],['lider','Líder'],['professor','Professor(a)']],pNome=p=>(PERFIS.find(x=>x[0]===p)||[0,p])[1];
 let me=null,editU='',delU='',modo=/type=recovery/.test(location.hash)?'nova':'entrar',acesso='carregando';
 const PROF_OK=['chamada','agenda','registro','avisos'];
-const LIDER_OK=['painel','chamada','agenda','registro','faltas','avisos'];
-const can=a=>!!me&&(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):me.perfil==='lider'?LIDER_OK.includes(a):a!=='usuarios'));
-const edita=()=>!!me&&me.perfil!=='professor'&&me.perfil!=='lider';
-const ehLider=()=>!!me&&me.perfil==='lider';
-const soLeitura=()=>ehProf()||ehLider();
-const tOk=id=>!ehLider()||(!!me.turmaId&&id===me.turmaId);
+const EQUIPE_OK=['painel','chamada','agenda','registro','faltas','avisos','cadastro'];
+const can=a=>!!me&&(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):ehEquipe()?EQUIPE_OK.includes(a):a!=='usuarios'));
+const edita=()=>!!me&&me.perfil!=='professor'&&!ehEquipe();
+const podeAgendar=()=>edita()||(ehEquipe()&&!!minhaT());
+const ehEquipe=()=>!!me&&(me.perfil==='lider'||me.perfil==='secretario');
+const soLeitura=()=>ehProf()||ehEquipe();
+const tOk=id=>!ehEquipe()||(!!me.turmaId&&id===me.turmaId);
 const TV=()=>S.turmas.filter(t=>tOk(t.id));
-const minhaT=()=>ehLider()?turma(me.turmaId)||null:null;
+const minhaT=()=>ehEquipe()?turma(me.turmaId)||null:null;
 const semTurma='Seu usuário ainda não está vinculado a uma turma. Peça ao administrador para fazer o vínculo em Gerenciar › Usuários.';
 const ehProf=()=>!!me&&me.perfil==='professor';
 const alunoDe=id=>{if(!id)return null;for(const t of S.turmas){const a=t.alunos.find(x=>x.id===id);if(a)return {a,t}}return null};
 const meuAluno=()=>{const r=me&&alunoDe(me.alunoId);return r?r.a:null};
-const minha=x=>ehLider()?tOk(x.turma):(!ehProf()||(!!meuAluno()&&x.prof===nm(meuAluno())));
-const proprio=k=>{if(ehLider())return tOk(k.slice(k.indexOf('|')+1));if(!ehProf())return true;const i=k.indexOf('|'),d=k.slice(0,i),tid=k.slice(i+1),au=S.aulas.find(x=>x.turma===tid&&x.data===d),pr=au?au.prof:((S.extras||{})[k]||{}).prof;return !!meuAluno()&&pr===nm(meuAluno())};
-const semAula=()=>ehLider()?(minhaT()?'Nenhuma chamada liberada para a sua turma. A chamada abre no dia das aulas agendadas.':semTurma):ehProf()?(meuAluno()?'Nenhuma chamada liberada para você. A chamada abre no dia das aulas em que você é o(a) professor(a).':'Seu usuário ainda não está vinculado a um aluno(a) professor(a). Peça ao administrador para fazer o vínculo em Gerenciar › Usuários.'):'Nenhuma chamada liberada. Agende uma aula em Gerenciar › Agenda: a chamada abre no dia marcado.';
-const vinc=u=>{const bad=t=>' · <span style="color:var(--bad);font-weight:700">'+t+'</span>',r=alunoDe(u.aluno_id);let x=r?' · Aluno(a): '+esc(nm(r.a))+' ('+esc(r.t.nome)+')':(u.perfil==='professor'||u.perfil==='lider'?bad('sem vínculo com aluno'):'');if(u.perfil==='lider'){const t=turma(u.turma_id);x=(t?' · Líder da turma '+esc(t.nome):bad('sem vínculo com turma'))+x}return x};
+const minha=x=>ehEquipe()?tOk(x.turma):(!ehProf()||(!!meuAluno()&&x.prof===nm(meuAluno())));
+const proprio=k=>{if(ehEquipe())return tOk(k.slice(k.indexOf('|')+1));if(!ehProf())return true;const i=k.indexOf('|'),d=k.slice(0,i),tid=k.slice(i+1),au=S.aulas.find(x=>x.turma===tid&&x.data===d),pr=au?au.prof:((S.extras||{})[k]||{}).prof;return !!meuAluno()&&pr===nm(meuAluno())};
+const semAula=()=>ehEquipe()?(minhaT()?'Nenhuma chamada liberada para a sua turma. A chamada abre no dia das aulas agendadas.':semTurma):ehProf()?(meuAluno()?'Nenhuma chamada liberada para você. A chamada abre no dia das aulas em que você é o(a) professor(a).':'Seu usuário ainda não está vinculado a um aluno(a) professor(a). Peça ao administrador para fazer o vínculo em Gerenciar › Usuários.'):'Nenhuma chamada liberada. Agende uma aula em Gerenciar › Agenda: a chamada abre no dia marcado.';
+const vinc=u=>{const bad=t=>' · <span style="color:var(--bad);font-weight:700">'+t+'</span>',r=alunoDe(u.aluno_id);let x=r?' · Aluno(a): '+esc(nm(r.a))+' ('+esc(r.t.nome)+')':(u.perfil==='professor'||u.perfil==='lider'?bad('sem vínculo com aluno'):'');if(u.perfil==='lider'||u.perfil==='secretario'){const t=turma(u.turma_id);x=(t?' · '+(u.perfil==='lider'?'Líder':'Secretário(a)')+' da turma '+esc(t.nome):bad('sem vínculo com turma'))+x}return x};
 const admins=()=>S.usuarios.filter(u=>u.perfil==='admin'&&u.ativo!==false);
 const alOpts=sel=>'<option value="">Sem vínculo</option>'+S.turmas.map(t=>{const L=t.alunos.filter(a=>!a.arq);return L.length?'<optgroup label="'+esc(t.nome)+'">'+L.map(a=>'<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(nm(a))+(a.professor?' (professor)':'')+'</option>').join('')+'</optgroup>':''}).join('');
 const pOpts=sel=>PERFIS.map(([v,l])=>'<option value="'+v+'"'+(v===sel?' selected':'')+'>'+l+'</option>').join('');
@@ -272,9 +273,9 @@ function vLogin(){
  if(modo==='nova')return '<h2>Nova senha</h2>'+L('ns','Nova senha (mín. 6 caracteres)','password','new-password')+'<button class="btn full" id="salvarSenha">Salvar nova senha</button>';
  if(modo==='criar')return '<h2>Criar conta</h2><p class="sub">Depois de criar, o administrador precisa liberar o seu acesso.</p>'+L('cn','Nome')+L('cl','E-mail','email','email')+L('cs','Senha (mín. 6 caracteres)','password','new-password')+L('cr','Repita a senha','password','new-password')+'<button class="btn full" id="criarConta">Criar conta</button><div class="acts"><button class="tg" id="irEntrar">Já tenho conta</button></div>';
  return '<h2>Entrar</h2>'+L('lg','E-mail','email','username')+L('ls','Senha','password','current-password')+'<button class="btn full" id="entrar">Entrar</button><div class="acts"><button class="tg" id="irCriar">Criar conta</button><button class="tg" id="esqueci">Esqueci a senha</button></div>'}
-function edUiU(u){return '<div class="item"><label for="eun" style="margin-top:0">Nome</label><input id="eun" value="'+esc(u.nome)+'"><label for="eup">Perfil</label><select id="eup">'+pOpts(u.perfil)+'</select><div id="eulw"><label for="eul">Aluno(a) vinculado(a)</label><select id="eul">'+alOpts(u.aluno_id||'')+'</select><p class="sub">O vínculo vale para administrador, secretário(a) e professor(a). Um líder também deve ser vinculado ao seu cadastro de aluno. No perfil professor(a), a pessoa passa a ver e fazer chamada apenas das aulas em que é o(a) professor(a).</p></div><div id="eutw"'+(u.perfil==='lider'?'':' hidden')+'><label for="eut">Turma vinculada</label><select id="eut">'+opts(u.turma_id||'','Sem vínculo')+'</select><p class="sub">O líder vê e acompanha apenas esta turma: dashboard, chamada, agenda, histórico e faltas.</p></div><label class="chkl"><input type="checkbox" id="eua"'+(u.ativo!==false?' checked':'')+'>Ativo</label><div class="acts"><button class="btn" style="margin-top:0" data-uek="'+u.id+'">Salvar</button><button class="tg" data-uno="1">Cancelar</button></div></div>'}
+function edUiU(u){return '<div class="item"><label for="eun" style="margin-top:0">Nome</label><input id="eun" value="'+esc(u.nome)+'"><label for="eup">Perfil</label><select id="eup">'+pOpts(u.perfil)+'</select><div id="eulw"><label for="eul">Aluno(a) vinculado(a)</label><select id="eul">'+alOpts(u.aluno_id||'')+'</select><p class="sub">O vínculo vale para administrador, secretário(a) e professor(a). Um líder também deve ser vinculado ao seu cadastro de aluno. No perfil professor(a), a pessoa passa a ver e fazer chamada apenas das aulas em que é o(a) professor(a).</p></div><div id="eutw"'+(u.perfil==='lider'||u.perfil==='secretario'?'':' hidden')+'><label for="eut">Turma vinculada</label><select id="eut">'+opts(u.turma_id||'','Sem vínculo')+'</select><p class="sub">Líder e secretário(a) veem e acompanham apenas esta turma: dashboard, chamada, agenda, histórico e faltas. Também podem agendar aulas e cadastrar novos alunos nela.</p></div><label class="chkl"><input type="checkbox" id="eua"'+(u.ativo!==false?' checked':'')+'>Ativo</label><div class="acts"><button class="btn" style="margin-top:0" data-uek="'+u.id+'">Salvar</button><button class="tg" data-uno="1">Cancelar</button></div></div>'}
 function vUsuarios(){
- return '<h2>Usuários</h2><p class="sub">Só o administrador cria, edita e exclui usuários e faz os vínculos. Administrador e secretário(a) acessam tudo (exceto Usuários, que é só do administrador). Professor(a), vinculado a um aluno, vê e faz chamada só das próprias aulas. Líder, vinculado a uma turma, acompanha apenas essa turma.</p><div class="list">'
+ return '<h2>Usuários</h2><p class="sub">Só o administrador cria, edita e exclui usuários e faz os vínculos. O administrador acessa tudo. Professor(a), vinculado a um aluno, vê e faz chamada só das próprias aulas. Líder e secretário(a), vinculados a uma turma, acompanham essa turma, agendam aulas e cadastram novos alunos nela.</p><div class="list">'
  +S.usuarios.map(u=>editU===u.id?edUiU(u):'<div class="item al'+(u.ativo===false?' off':'')+'"><span>'+esc(u.nome)+(u.id===me.id?' <span class="tag">Você</span>':'')+'<span class="sub" style="display:block">@'+esc(u.login)+' · '+pNome(u.perfil)+(u.ativo===false?' · Inativo ou aguardando aprovação':'')+vinc(u)+'</span></span>'
   +(delU===u.id?'<span class="acts" style="margin:0"><span class="sub">Excluir?</span><button class="tg bad" data-uok="'+u.id+'">Confirmar</button><button class="tg" data-uno="1">Cancelar</button></span>':'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-ue="'+u.id+'">Editar</button>'+(u.id===me.id?'':'<button class="tg bad" data-ud="'+u.id+'">Excluir</button>')+'</div></details>')+'</div>').join('')+'</div>'
  +'<div class="sec"><h2>Novas pessoas</h2><p class="sub">Quem precisa de acesso toca em <b>Criar conta</b> na tela de entrada. A conta aparece aqui como inativa: toque em ⋯ › Editar, escolha o perfil e marque <b>Ativo</b>. Para apagar o login por completo, exclua também em Authentication › Users no Supabase.</p></div>'}
@@ -358,7 +359,7 @@ function vPainel(){
  if(latest)TV().forEach(t=>{const k=latest+'|'+t.id,e=ex(k)||{};sm.pres+=(S.pres[k]||[]).length;sm.bib+=e.biblias||0;sm.of+=e.oferta||0;sm.vis+=e.visitantes||0});
  const lbl=latest?new Date(latest+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long'}):'';
  return '<h2>Dashboard geral</h2><p class="sub">Frequência de cada turma, calculada sobre as aulas com chamada salva.</p>'
- +'<div class="bar"><b>'+(ehLider()?'Sua turma':'Todas as turmas')+'</b><b>'+pc+'%</b></div><div class="meter"><i style="width:'+pc+'%"></i></div>'
+ +'<div class="bar"><b>'+(ehEquipe()?'Sua turma':'Todas as turmas')+'</b><b>'+pc+'%</b></div><div class="meter"><i style="width:'+pc+'%"></i></div>'
  +(latest?'<div class="sec"><h2>Última chamada: '+lbl+'</h2><div class="list">'+kv('Presentes',sm.pres)+kv('Bíblias físicas',sm.bib)+kv('Contribuições',brl(sm.of))+kv('Visitantes',sm.vis||'Nenhum')+'</div></div>':'')
  +'<div class="sec"><h2>Por turma</h2><div class="list">'+(all.length?all.map(({t,s})=>{
   const lk=s.keys[s.keys.length-1],le=ex(lk)||{},last=lk?S.pres[lk].length:0;
@@ -377,10 +378,10 @@ function hForm(k,t){const list=t.alunos.filter(a=>workH.has(a.id)||(a.ativo!==fa
  +'<div class="item"><b>Faltas justificadas</b><span class="sub">Para quem faltou, escolha o motivo.</span><div class="list" id="jush" style="margin-top:8px"></div></div>'
  +'<div class="item"><label for="hb" style="margin-top:0">Quantas Bíblias físicas?</label><input id="hb" type="number" min="0" inputmode="numeric" value="'+(e.biblias??'')+'"><label for="ho">Contribuições arrecadadas (R$)</label><input id="ho" type="number" min="0" step="0.01" inputmode="decimal" value="'+(e.oferta??'')+'"><label for="hv">Visitantes (0 se não houve)</label><input id="hv" type="number" min="0" inputmode="numeric" value="'+(e.visitantes??'')+'">'+climaSel('hc',e.clima||'')+'<div class="acts"><button class="btn" style="margin-top:0" data-hok="1">Salvar alterações</button><button class="tg" data-hno="1">Cancelar</button></div></div>'}
 function vRegistro(){
- return '<h2>Histórico de chamadas</h2><p class="sub">Toda chamada salva fica guardada aqui, separada por turma.</p>'+(ehProf()?'<p class="sub">'+(meuAluno()?'Você vê apenas as chamadas das suas aulas.':semAula())+'</p>':'')+(ehLider()?'<p class="sub">'+(minhaT()?'Você vê apenas as chamadas da sua turma.':semTurma)+'</p>':'')
+ return '<h2>Histórico de chamadas</h2><p class="sub">Toda chamada salva fica guardada aqui, separada por turma.</p>'+(ehProf()?'<p class="sub">'+(meuAluno()?'Você vê apenas as chamadas das suas aulas.':semAula())+'</p>':'')+(ehEquipe()?'<p class="sub">'+(minhaT()?'Você vê apenas as chamadas da sua turma.':semTurma)+'</p>':'')
  +(S.turmas.length?S.turmas.map(t=>{
   const D=Object.keys(S.pres).filter(k=>k.endsWith('|'+t.id)&&proprio(k)).map(k=>k.split('|')[0]).sort().reverse();
-  if((ehProf()&&!D.length)||(ehLider()&&!tOk(t.id)))return '';
+  if((ehProf()&&!D.length)||(ehEquipe()&&!tOk(t.id)))return '';
   return '<div class="sec"><h2>'+esc(t.nome)+'</h2><div class="list">'+(D.length?D.map(d=>{
    const k=d+'|'+t.id,ids=S.pres[k],e=ex(k)||{},dl=new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'});
    const pr=S.turmas.flatMap(u=>u.alunos).filter(a=>ids.includes(a.id)),au=eleg(t,k).filter(a=>!ids.includes(a.id));
@@ -423,7 +424,7 @@ function vAlunos(){
   +'</div></div>'}).join(''):'<p class="sub">Nenhuma turma cadastrada.</p>');
 }
 function vCadastro(){
- return '<h2>Cadastro</h2><p class="sub">Cadastre aqui novos alunos'+(me&&me.perfil==='admin'?' e novas turmas':'')+'. Para ver, editar, arquivar ou excluir, use Gerenciar › Alunos'+(me&&me.perfil==='admin'?' e Gerenciar › Turmas':'')+'.</p><div class="sec" style="margin-top:12px"><h2>Novo aluno</h2><p class="sub">Todos os campos são obrigatórios. Escolha a turma primeiro.</p><label for="as">Turma</label><select id="as">'+opts('','Selecione a turma')+'</select><div id="afw" hidden><div id="atw"'+(turma(cur)&&turma(cur).semProf?' hidden':'')+'><label for="at">Título</label><select id="at">'+tOptsReq()+'</select></div><label for="an">Nome do aluno</label><input id="an"><label for="ad">Data de nascimento</label><input id="ad" type="date"><div id="abw"'+(semBat(turma(cur))?' hidden':'')+'><label for="ab">Batizado?</label><select id="ab">'+bOptsReq()+'</select></div><div id="rsp"'+(turma(cur)&&turma(cur).exigeResp?'':' hidden')+'><label for="ar">Responsável pelo aluno</label><input id="ar"></div><div id="apw"'+(turma(cur)&&turma(cur).semProf?' hidden':'')+'><label class="chkl"><input type="checkbox" id="ap">Este aluno também é professor(a)</label></div><button class="btn" id="addA">Adicionar aluno</button></div></div>'
+ return '<h2>Cadastro</h2><p class="sub">Cadastre aqui novos alunos'+(me&&me.perfil==='admin'?' e novas turmas':'')+'. '+(ehEquipe()?'':'Para ver, editar, arquivar ou excluir, use Gerenciar › Alunos'+(me&&me.perfil==='admin'?' e Gerenciar › Turmas':'')+'.')+'</p><div class="sec" style="margin-top:12px"><h2>Novo aluno</h2><p class="sub">'+(ehEquipe()?(minhaT()?'Todos os campos são obrigatórios. O aluno será cadastrado na sua turma.':semTurma):'Todos os campos são obrigatórios. Escolha a turma primeiro.')+'</p><label for="as">Turma</label><select id="as"'+(ehEquipe()?' disabled':'')+'>'+(ehEquipe()?opts(me.turmaId):opts('','Selecione a turma'))+'</select><div id="afw"'+(ehEquipe()&&minhaT()?'':' hidden')+'><div id="atw"'+(turma(cur)&&turma(cur).semProf?' hidden':'')+'><label for="at">Título</label><select id="at">'+tOptsReq()+'</select></div><label for="an">Nome do aluno</label><input id="an"><label for="ad">Data de nascimento</label><input id="ad" type="date"><div id="abw"'+(semBat(turma(cur))?' hidden':'')+'><label for="ab">Batizado?</label><select id="ab">'+bOptsReq()+'</select></div><div id="rsp"'+(turma(cur)&&turma(cur).exigeResp?'':' hidden')+'><label for="ar">Responsável pelo aluno</label><input id="ar"></div><div id="apw"'+(turma(cur)&&turma(cur).semProf?' hidden':'')+'><label class="chkl"><input type="checkbox" id="ap">Este aluno também é professor(a)</label></div><button class="btn" id="addA">Adicionar aluno</button></div></div>'
  +(me&&me.perfil==='admin'?'<div class="sec"><h2>Nova turma</h2><label for="tn">Nome da turma</label><input id="tn" placeholder="Ex.: Casais"><button class="btn" id="addT">Adicionar turma</button></div>':'');
 }
 function totalCard(){
@@ -483,12 +484,12 @@ function vAgenda(){
  const card=x=>{if(editG===x.id)return edUiG(x);const t=turma(x.turma),dl=new Date(x.data+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'});
   return '<div class="item"><span class="tag">'+esc(t?t.nome:'Turma removida')+'</span><b style="display:inline;text-transform:capitalize">'+dl+'</b><div>'+esc(x.tema)+'</div>'+(x.topicos?'<div class="sub" style="white-space:pre-line">'+esc(x.topicos)+'</div>':'')+'<span class="sub">Professor(a): '+(x.prof?esc(x.prof):'a definir')+'</span>'
   +(!edita()?'':delG===x.id?'<div class="acts"><span class="sub">Excluir esta aula?</span><button class="tg bad" data-delgok="'+x.id+'">Confirmar exclusão</button><button class="tg" data-delgno="1">Cancelar</button></div>':'<div class="acts" style="justify-content:flex-end"><details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-eg="'+x.id+'">Editar</button><button class="tg bad" data-delg="'+x.id+'">Excluir</button></div></details></div>')+'</div>'};
- const form=(edita()?'<div class="sec"><h2>Agendar aula</h2><label for="gt">Turma</label><select id="gt">'+opts(cur)+'</select>'
+ const form=(podeAgendar()?'<div class="sec"><h2>Agendar aula</h2><label for="gt">Turma</label><select id="gt"'+(ehEquipe()?' disabled':'')+'>'+opts(ehEquipe()?me.turmaId:cur)+'</select>'
  +'<label for="gd">Data</label><input id="gd" type="date" value="'+dateKey+'"><p class="sub">'+(me&&me.perfil==='admin'?'Como administrador, você pode agendar em qualquer data.':'Aulas só podem ser agendadas aos domingos.')+'</p>'
  +'<label for="gp">Professor(a)</label><select id="gp"><option value="">A definir</option>'+P.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('')+'</select>'
  +'<p class="sub">'+(P.length?'Só aparecem aqui os alunos marcados como professor(a) no Cadastro.':'Nenhum professor cadastrado ainda. Marque "também é professor(a)" no Cadastro de aluno para ele aparecer aqui.')+'</p>'
  +'<label for="gm">Tema da aula</label><input id="gm"><label for="gtp">Tópicos (opcional)</label><textarea id="gtp" placeholder="Um tópico por linha"></textarea><button class="btn" id="addG">Agendar aula</button></div>':'');
- return form+'<div class="sec"><h2>Agenda de aulas</h2>'+(ehLider()?'<p class="sub">'+(minhaT()?'Você vê apenas as aulas da sua turma.':semTurma)+'</p>':'')+(ehProf()?'<p class="sub">'+(meuAluno()?'Você vê apenas as aulas em que é o(a) professor(a).':'Seu usuário ainda não está vinculado a um aluno(a) professor(a). Peça ao administrador para fazer o vínculo em Gerenciar › Usuários.')+'</p>':'')+'<div class="list">'+(prox.length?prox.map(card).join(''):'<div class="item sub">Nenhuma aula agendada.</div>')+'</div></div>'
+ return form+'<div class="sec"><h2>Agenda de aulas</h2>'+(ehEquipe()?'<p class="sub">'+(minhaT()?'Você vê apenas as aulas da sua turma.':semTurma)+'</p>':'')+(ehProf()?'<p class="sub">'+(meuAluno()?'Você vê apenas as aulas em que é o(a) professor(a).':'Seu usuário ainda não está vinculado a um aluno(a) professor(a). Peça ao administrador para fazer o vínculo em Gerenciar › Usuários.')+'</p>':'')+'<div class="list">'+(prox.length?prox.map(card).join(''):'<div class="item sub">Nenhuma aula agendada.</div>')+'</div></div>'
  +(ant.length?'<div class="sec"><div class="list"><details class="dt"'+(ant.some(x=>x.id===editG||x.id===delG)?' open':'')+'><summary><span><b style="font-size:16px">Aulas anteriores ('+ant.length+')</b></span></summary>'+ant.map(card).join('')+'</details></div></div>':'');
 }
 
@@ -588,9 +589,9 @@ $('#app').addEventListener('click',e=>{
   selA='';work=null;workJ={};save();toast('Chamada salva');view='registro';render();scrollTo(0,0)}
  if(id==='addT'){if(!me||me.perfil!=='admin')return;const n=$('#tn').value.trim();if(!n){toast('Informe o nome da turma');return}
   const t={id:uid(),nome:n,alunos:[]};S.turmas.push(t);if(!cur)cur=t.id;save();toast('Turma adicionada');render()}
- if(id==='addA'){const n=$('#an').value.trim(),t=turma($('#as').value);if(!t){toast('Escolha a turma');return}if(!t.semProf&&!$('#at').value){toast('Escolha o título');return}if(!n){toast('Informe o nome do aluno');return}if(!$('#ad').value){toast('Informe a data de nascimento');return}if(!semBat(t)&&!$('#ab').value){toast('Informe se o aluno é batizado');return}if(t.exigeResp&&!$('#ar').value.trim()){toast('Informe o responsável pelo aluno');return}if($('#ad').value>ymd(new Date())){toast('A data de nascimento não pode estar no futuro');return}
+ if(id==='addA'){if(ehProf())return;const n=$('#an').value.trim(),t=turma(ehEquipe()?me.turmaId:$('#as').value);if(!t){toast(ehEquipe()?'Seu usuário não está vinculado a uma turma':'Escolha a turma');return}if(!t.semProf&&!$('#at').value){toast('Escolha o título');return}if(!n){toast('Informe o nome do aluno');return}if(!$('#ad').value){toast('Informe a data de nascimento');return}if(!semBat(t)&&!$('#ab').value){toast('Informe se o aluno é batizado');return}if(t.exigeResp&&!$('#ar').value.trim()){toast('Informe o responsável pelo aluno');return}if($('#ad').value>ymd(new Date())){toast('A data de nascimento não pode estar no futuro');return}
   t.alunos.push({id:uid(),nome:n,titulo:t.semProf?'':$('#at').value,professor:t.semProf?false:$('#ap').checked,nasc:$('#ad').value,batizado:semBat(t)?'':$('#ab').value,resp:t.exigeResp?$('#ar').value.trim():'',desde:ymd(new Date())});cur=t.id;work=null;save();toast('Aluno adicionado');render()}
- if(id==='addG'){if(soLeitura())return;const tm=$('#gm').value.trim(),d=$('#gd').value,tid=$('#gt').value;let pr=$('#gp').value;if(pr&&!profs().includes(pr)){toast('Escolha um professor cadastrado');return}
+ if(id==='addG'){if(ehProf()||!podeAgendar())return;const tm=$('#gm').value.trim(),d=$('#gd').value,tid=ehEquipe()?me.turmaId:$('#gt').value;let pr=$('#gp').value;if(pr&&!profs().includes(pr)){toast('Escolha um professor cadastrado');return}
   if(!tid||!d||!tm){toast('Informe turma, data e tema');return}
   if(!dom(d)){toast(msgDom);return}
   if(S.aulas.some(x=>x.turma===tid&&x.data===d)){toast('Essa turma já tem aula agendada nesse dia');return}
@@ -602,7 +603,7 @@ $('#app').addEventListener('click',e=>{
 });
 $('#app').addEventListener('change',e=>{
  if(e.target.id==='rf'){regF=e.target.value;render()}
- if(e.target.id==='eup'){const l=e.target.value==='lider';$('#eutw').hidden=!l}
+ if(e.target.id==='eup'){const l=e.target.value==='lider'||e.target.value==='secretario';$('#eutw').hidden=!l}
  if(e.target.id==='as'){const tt=turma(e.target.value);$('#afw').hidden=!tt;$('#rsp').hidden=!(tt&&tt.exigeResp);$('#apw').hidden=!!(tt&&tt.semProf);$('#atw').hidden=!!(tt&&tt.semProf);$('#abw').hidden=semBat(tt)}
  if(e.target.dataset.jc!==undefined){const v=e.target.value,i=e.target.dataset.jc;v?workJ[i]=v:delete workJ[i];return}
  if(e.target.dataset.jh!==undefined){const v=e.target.value,i=e.target.dataset.jh;v?workHJ[i]=v:delete workHJ[i];return}
@@ -624,7 +625,7 @@ async function boot(){
  if(!p||!p.ativo){me=null;acesso='pendente';render();return}
  me={id:p.id,nome:p.nome||p.email,login:p.email,perfil:p.perfil,ativo:true,alunoId:p.aluno_id||null,turmaId:p.turma_id||null};acesso='';
  try{await pull();if(me.perfil==='admin'){await pullUsers();if(!S.turmas.length){S.turmas=seed().turmas;norm();save()}}}catch(e){toast('Erro ao carregar os dados')}
- view=can('painel')?'painel':'chamada';render();scrollTo(0,0)}
+ if(ehEquipe()&&me.turmaId)cur=me.turmaId;view=can('painel')?'painel':'chamada';render();scrollTo(0,0)}
 $('#app').addEventListener('click',async e=>{
  const id=e.target.id,B=e.target.closest('[data-ue],[data-ud],[data-uok],[data-uno],[data-uek]'),D=B?B.dataset:{};
  if(id==='irCriar'||id==='irEntrar'){modo=id==='irCriar'?'criar':'entrar';render();return}
@@ -648,7 +649,7 @@ $('#app').addEventListener('click',async e=>{
   if(u.perfil==='admin'&&u.ativo!==false&&admins().length<2){toast('Precisa existir ao menos um administrador ativo');return}
   const {error}=await sb.from('perfis').delete().eq('id',u.id);if(error){toast('Não foi possível excluir');return}
   S.usuarios=S.usuarios.filter(x=>x.id!==u.id);delU='';toast('Usuário excluído');render();return}
- if(D.uek){const u=S.usuarios.find(x=>x.id===D.uek);if(!u)return;const n=$('#eun').value.trim(),pf=$('#eup').value,at=$('#eua').checked,al=$('#eul').value||null,tu=pf==='lider'?($('#eut').value||null):null;
+ if(D.uek){const u=S.usuarios.find(x=>x.id===D.uek);if(!u)return;const n=$('#eun').value.trim(),pf=$('#eup').value,at=$('#eua').checked,al=$('#eul').value||null,tu=(pf==='lider'||pf==='secretario')?($('#eut').value||null):null;
   if(!n){toast('Informe o nome');return}
   if(u.id===me.id&&!at){toast('Você não pode desativar a si mesmo');return}
   if(u.perfil==='admin'&&u.ativo!==false&&!(pf==='admin'&&at)&&admins().length<2){toast('Precisa existir ao menos um administrador ativo');return}
