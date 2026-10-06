@@ -16,8 +16,9 @@ Os nomes dos menus dos sites podem mudar um pouco com o tempo.
 
 - O banco já está criado no Supabase e as regras de acesso já foram aplicadas.
 - O `index.html` já está configurado com a URL e a chave pública desse projeto.
-- O site é publicado no GitHub Pages: `https://brncompany.github.io/EBDIADP/`. Confira em **Settings › Pages** do repositório qual repositório e qual branch publicam o site.
+- O site é publicado no GitHub Pages: `https://ebdiadp.github.io/EBDIADP/`. Esse é o endereço que deve estar em **Site URL** no Supabase.
 - O código fica no repositório `github.com/EBDIADP/EBDIADP` (branch `main`).
+- A **confirmação de e-mail está desligada** e o **envio de e-mails (SMTP próprio) ainda não funciona**. Por isso o botão **Esqueci a senha** foi **desativado** no app: na tela de login aparece a orientação de falar com o administrador. Veja a seção **Recuperação de senha e envio de e-mails**.
 
 Se você só vai **atualizar** o app, vá direto para a seção **Atualizar o app depois**. O restante deste guia descreve a instalação completa, para refazer ou copiar o sistema para outro projeto.
 
@@ -41,10 +42,10 @@ Aviso: o arquivo original foi perdido e este foi reconstruído a partir do banco
 
 1. Abra **Authentication** e procure as configurações do provedor **Email**.
 2. Deixe o login por e-mail e senha **ligado**.
-3. Escolha sobre **Confirm email** (confirmação por e-mail):
-   - **Desligado:** a pessoa cria a conta e já entra na fila de aprovação. É mais simples.
-   - **Ligado:** ela precisa clicar no link do e-mail antes. É mais seguro, mas o e-mail padrão do Supabase tem limite de envios.
-4. Depois de publicar o site (passo 6), volte em **Authentication › URL Configuration** e coloque o endereço do site em **Site URL**. Isso faz o link de "Esqueci a senha" voltar para o seu site.
+3. Em **Authentication › Sign In / Providers**, na seção "Cadastros de usuários" (em português, "Entrar / Fornecedores"), deixe **Permitir que novos usuários se cadastrem** ligado e **desligue** **Confirm email** (Confirmar e-mail). Clique em **Salvar alterações**.
+   - **Desligado (recomendado):** a pessoa cria a conta e já entra na fila de aprovação, sem depender de e-mail. Como o administrador aprova cada conta, a confirmação por e-mail faz pouca falta.
+   - **Ligado:** cada cadastro envia um e-mail de confirmação. O envio padrão do Supabase permite só **2 e-mails por hora no projeto inteiro** e logo aparece o erro **"email rate limit exceeded"** (o app mostra "Não foi possível criar a conta"). Só ligue depois de ter um SMTP próprio funcionando.
+4. Depois de publicar o site (passo 6), volte em **Authentication › URL Configuration** e coloque `https://ebdiadp.github.io/EBDIADP/` em **Site URL**. Isso faz o link de "Esqueci a senha" voltar para o seu site.
 
 ## 4. Copiar as chaves do projeto
 
@@ -130,6 +131,72 @@ O banco (Supabase) recusa gravações fora destas regras, mesmo que alguém tent
 
 Por isso, libere acesso só a quem precisa e desative quem sair da equipe.
 
+## Recuperação de senha e envio de e-mails
+
+**Situação atual:** o botão **Esqueci a senha** envia um e-mail, e isso **não funciona** hoje. Por isso ele foi **desativado** no app e a tela de login mostra "Esqueceu a senha? Fale com o administrador da EBD." Quem esquecer a senha precisa do administrador (veja "Enquanto o e-mail não funciona: redefinir a senha manualmente", mais abaixo). O envio padrão do Supabase é limitado a 2 e-mails por hora e não serve para uso real. Foi tentado um SMTP com o **Brevo** usando um Gmail como remetente, e o envio falhou (o cadastro com confirmação ligada deu erro 500). A causa exata não foi confirmada.
+
+### Como fazer o "Esqueci a senha" funcionar (e reativar o botão)
+
+É preciso configurar um SMTP próprio no Supabase (**Authentication › Emails › SMTP Settings**, marcando **Enable Custom SMTP**). Com ele, o limite padrão passa a ser de 30 e-mails por hora (ajustável em **Authentication › Rate Limits**).
+
+**Opção recomendada: Resend (exige um domínio próprio)**
+
+O Resend só envia para outras pessoas depois que você verifica um domínio que é seu (por exemplo `igrejaiadp.com.br`). Um Gmail não serve como domínio.
+
+1. Crie uma conta em **resend.com** e vá em **Domains › Add Domain**. O Resend recomenda usar um subdomínio, como `updates.seudominio.com.br`.
+2. Cadastre os registros DNS (SPF e DKIM) que o Resend mostra, no site onde o domínio está registrado. Espere o domínio aparecer como **Verified**.
+3. Em **API Keys**, crie uma chave com permissão de envio e guarde-a.
+4. No Supabase, em **SMTP Settings**, preencha:
+
+| Campo | Valor |
+|---|---|
+| Sender email | um endereço do domínio verificado, ex.: `nao-responder@updates.seudominio.com.br` |
+| Sender name | `EBD IADP` |
+| Host | `smtp.resend.com` |
+| Port | `465` |
+| Username | `resend` |
+| Password | a chave de API criada no passo 3 |
+
+**Alternativa: Brevo (já tentada)**
+
+O Brevo permite verificar um e-mail como remetente (**Senders**) e usa `smtp-relay.brevo.com`, porta `587`, com o **SMTP login** (parecido com `xxxx@smtp-brevo.com`) como usuário e uma **SMTP key** como senha (não é a chave de API). Porém ele exige autenticação do domínio do remetente por causa das regras do Gmail, Yahoo e Microsoft. Com um remetente `@gmail.com`, o envio pode falhar ou os e-mails podem cair no spam. Se quiser tentar de novo, confira antes se a senha é a SMTP key (começa com `xsmtpsib-`) e se o remetente aparece como verificado.
+
+**Para descobrir por que o envio falha:** no Supabase, abra **Logs › Auth** e procure a linha do momento do teste. Mensagens como "535 Authentication failed" indicam senha errada, e "sender is invalid" indica remetente recusado. No Brevo, **Transactional › Logs** mostra se a mensagem chegou lá.
+
+**Como testar:** toque em **Esqueci a senha** no app com um e-mail real e confira a caixa de entrada e o spam (teste também com um provedor diferente). O link leva de volta ao app, que abre a tela de **Nova senha**. Para isso, o **Site URL** precisa estar correto (passo 3.4).
+
+**Como reativar o botão:** quando o SMTP estiver funcionando e testado, no `index.html` procure o trecho abaixo (tela de login):
+
+```
+<div class="acts"><button class="tg" id="irCriar">Criar conta</button></div><p style="margin:12px 0 0;font-size:.85rem;opacity:.7">Esqueceu a senha? Fale com o administrador da EBD.</p>
+```
+
+e troque por:
+
+```
+<div class="acts"><button class="tg" id="irCriar">Criar conta</button><button class="tg" id="esqueci">Esqueci a senha</button></div>
+```
+
+O restante do código do botão continua no arquivo, então só essa troca é necessária. Depois faça o commit e teste.
+
+**Cuidados:** a chave do Resend ou a SMTP key do Brevo é um segredo. Ela fica só no Supabase, nunca no `index.html` nem no GitHub. Se vazar, apague a chave no serviço e gere outra.
+
+### Enquanto o e-mail não funciona: redefinir a senha manualmente
+
+Atenção: o botão **Send password recovery** do painel do Supabase também envia e-mail, então não funciona sem SMTP.
+
+**Opção A: o administrador define uma senha temporária pelo SQL.** No Supabase, abra **SQL Editor**, troque o e-mail e a senha e clique em **Run**:
+
+```sql
+update auth.users
+set encrypted_password = extensions.crypt('SenhaTemporaria123', extensions.gen_salt('bf'))
+where email = 'pessoa@exemplo.com';
+```
+
+Teste primeiro com uma conta de teste. Entregue a senha temporária à pessoa por um canal seguro. Pelo que consta no código, o app só mostra a tela de nova senha pelo link do e-mail, então a pessoa continuará usando essa senha. Use uma senha diferente para cada pessoa.
+
+**Opção B: excluir e recadastrar.** Exclua a conta em **Authentication › Users** e peça para a pessoa criar a conta de novo. Depois o administrador a aprova e refaz o perfil e os vínculos em **Gerenciar › Usuários**.
+
 ## Mensagens de erro ao salvar
 
 - **"Sem permissão para essa alteração. Os dados foram recarregados do servidor."** O banco recusou a gravação pelas regras acima. A alteração foi descartada e a tela voltou ao que está salvo. Se acontecer com alguém que deveria poder, confira o perfil e os vínculos dessa pessoa (principalmente a **turma** de líder e secretário(a)).
@@ -137,13 +204,18 @@ Por isso, libere acesso só a quem precisa e desative quem sair da equipe.
 
 Depois de uma gravação importante, vale recarregar a página e conferir.
 
+**Mensagens no cadastro e no login:**
+
+- **"Não foi possível criar a conta: email rate limit exceeded"**: o limite de e-mails do Supabase foi atingido. Desligue o **Confirm email** (passo 3) e espere até 1 hora.
+- **"Não foi possível enviar o e-mail"**: só aparece se o botão **Esqueci a senha** for reativado e o envio de e-mail não estiver funcionando. Veja a seção **Recuperação de senha e envio de e-mails**.
+
 ## Cuidados
 
 - **Dados de menores e LGPD:** o app guarda nascimento de crianças e telefone de responsáveis. Libere acesso só a quem precisa, desative quem sair da equipe e avise os responsáveis sobre o uso dos dados.
 - **Cópia de segurança:** exporte o backup (Gerenciar › Turmas, como administrador) de tempos em tempos e guarde o arquivo. Confira também as regras de backup do seu plano no Supabase.
 - **Projeto pausado:** projetos gratuitos podem ser pausados depois de um período sem uso. Confira as regras atuais do plano. Se pausar, basta reativar no painel.
 - **Atualização dos dados:** o app busca os dados ao entrar e quando você volta para a aba. Se duas pessoas editarem o mesmo registro ao mesmo tempo, vale a última gravação.
-- **E-mails de redefinição de senha:** o envio padrão do Supabase tem limite. Se muita gente precisar, configure um servidor de e-mail próprio nas configurações de Authentication.
+- **E-mails de redefinição de senha:** não funcionam com o envio padrão do Supabase (2 por hora). É preciso configurar um SMTP próprio. Veja a seção **Recuperação de senha e envio de e-mails**.
 - **Chaves:** a chave pública pode ficar no código. Se alguma vez a chave `service_role` ou `secret` for colada no `index.html` ou publicada, gere uma nova no Supabase imediatamente.
 
 ## Atualizar o app depois
