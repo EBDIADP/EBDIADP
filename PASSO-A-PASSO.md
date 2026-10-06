@@ -158,16 +158,15 @@ O banco (Supabase) recusa gravações fora destas regras, mesmo que alguém tent
 | Criar ou excluir turmas | Só o administrador |
 | Alterar alunos de uma turma | Administrador; líder e secretário(a) apenas da própria turma |
 | Criar, alterar e excluir aulas e avisos | Administrador; líder e secretário(a) apenas da própria turma |
-| Salvar chamadas | Administrador; líder e secretário(a) da própria turma; professor |
+| Salvar chamadas | Administrador; líder e secretário(a) da própria turma; professor(a), apenas das aulas em que é o(a) responsável |
 | Excluir chamadas | Administrador; líder e secretário(a) da própria turma |
 | Ver a lista de usuários, mudar perfil, ativar, excluir | Só o administrador |
 | Nunca ficar sem administrador ativo | Sempre |
 | Backup (exportar e importar) | Só o administrador (tela do app) |
 
-**Limites que ainda existem:**
+**Limite que ainda existe:**
 
 - **A leitura não é separada por turma.** A tela esconde as outras turmas de líder, secretário(a) e professor, mas o banco entrega todos os dados a qualquer usuário ativo. Isso inclui nascimento de crianças e telefone de responsáveis.
-- **O professor pode salvar a chamada de qualquer turma**, não só das aulas em que é o responsável. Só a tela impede isso.
 
 Por isso, libere acesso só a quem precisa e desative quem sair da equipe.
 

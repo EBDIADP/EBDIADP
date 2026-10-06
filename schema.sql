@@ -66,6 +66,32 @@ $$ select coalesce((
          or (perfil in ('lider','secretario') and coalesce(tid,'') <> '' and turma_id::text = tid)
      from public.perfis where id = auth.uid() and ativo), false) $$;
 
+-- true se o usuário logado é professor(a) ativo(a) e é o(a) responsável pela chamada da chave
+-- 'AAAA-MM-DD|idDaTurma'. O responsável é o professor da aula agendada (aulas.dados->>'prof');
+-- se a aula não existir mais, vale o professor guardado na própria chamada (dados->'e'->>'prof').
+-- O nome é montado como no app: título (exceto 'Membro') + espaço + nome do aluno vinculado.
+create or replace function public.professor_da_chamada(chave text, d jsonb) returns boolean
+  language sql stable security definer set search_path = public as
+$$ select coalesce((
+     select (case when exists (select 1 from public.aulas a
+                                where a.dados->>'turma' = split_part(chave,'|',2)
+                                  and a.dados->>'data'  = split_part(chave,'|',1))
+                  then (select a.dados->>'prof' from public.aulas a
+                         where a.dados->>'turma' = split_part(chave,'|',2)
+                           and a.dados->>'data'  = split_part(chave,'|',1) limit 1)
+                  else d->'e'->>'prof' end) = x.nome
+     from (
+       select (case when coalesce(al->>'titulo','') not in ('','Membro') then (al->>'titulo') || ' ' else '' end)
+              || (al->>'nome') as nome
+       from public.perfis p
+       cross join public.turmas t
+       cross join lateral jsonb_array_elements(
+         case when jsonb_typeof(t.dados->'alunos') = 'array' then t.dados->'alunos' else '[]'::jsonb end) al
+       where p.id = auth.uid() and p.ativo and p.perfil = 'professor'
+         and p.aluno_id is not null and al->>'id' = p.aluno_id
+       limit 1) x
+   ), false) $$;
+
 -- ---------- 3. Cadastro automático e proteção do administrador ----------
 -- A primeira conta criada vira administradora e já entra ativa.
 -- As demais entram como professor inativo, aguardando aprovação.
@@ -146,12 +172,13 @@ create policy avisos_alterar on public.avisos for update
   using (public.pode_gravar_turma(dados->>'turma')) with check (public.pode_gravar_turma(dados->>'turma'));
 create policy avisos_excluir on public.avisos for delete using (public.pode_gravar_turma(dados->>'turma'));
 
--- chamadas: professor insere e altera; excluir só admin ou líder/secretário da turma.
+-- chamadas: o professor insere e altera só as chamadas das aulas em que é o(a) responsável;
+-- admin e líder/secretário da turma gravam as da turma. Excluir: só admin ou líder/secretário da turma.
 create policy chamadas_inserir on public.chamadas for insert with check (
-  public.meu_perfil() = 'professor' or public.pode_gravar_turma(split_part(id::text,'|',2)));
+  public.professor_da_chamada(id::text, dados) or public.pode_gravar_turma(split_part(id::text,'|',2)));
 create policy chamadas_alterar on public.chamadas for update
-  using (public.meu_perfil() = 'professor' or public.pode_gravar_turma(split_part(id::text,'|',2)))
-  with check (public.meu_perfil() = 'professor' or public.pode_gravar_turma(split_part(id::text,'|',2)));
+  using (public.professor_da_chamada(id::text, dados) or public.pode_gravar_turma(split_part(id::text,'|',2)))
+  with check (public.professor_da_chamada(id::text, dados) or public.pode_gravar_turma(split_part(id::text,'|',2)));
 create policy chamadas_excluir on public.chamadas for delete
   using (public.pode_gravar_turma(split_part(id::text,'|',2)));
 
