@@ -90,8 +90,8 @@ Depois de publicar, volte ao passo 3.4 e coloque o endereço em **Site URL**.
 ## 8. Liberar os demais usuários
 
 1. Cada pessoa abre o site, toca em **Criar conta** e cadastra nome, e-mail e senha.
-2. Ela verá "Aguardando aprovação".
-3. O administrador abre **Gerenciar › Usuários**, toca em **⋯ › Editar**, escolhe o **Perfil**, faz os **vínculos** (veja abaixo), marca **Ativo** e salva.
+2. Ela verá "Aguardando aprovação" e o administrador é avisado dentro do app (veja **Aviso de novas contas** abaixo).
+3. O administrador abre **Gerenciar › Usuários**, toca em **Liberar** (ou **⋯ › Editar**), escolhe o **Perfil**, faz os **vínculos** (veja abaixo), confere se **Ativo** está marcado e salva.
 4. A pessoa sai, entra de novo e já usa o app.
 
 ### Perfis e vínculos
@@ -106,6 +106,46 @@ Depois de publicar, volte ao passo 3.4 e coloque o endereço em **Site URL**.
 **Importante:** líder e secretário(a) **sem turma vinculada não conseguem salvar nada**. O banco só aceita gravações de líder e secretário(a) na turma vinculada a eles.
 
 Para remover alguém por completo, desative-a no app. Para apagar o login dela, exclua também em **Authentication › Users** no Supabase.
+
+### Aviso de novas contas (administrador)
+
+Quando alguém cria uma conta, o administrador é avisado dentro do app:
+
+- Uma **faixa no Dashboard** mostra quantas contas aguardam liberação e os nomes, com o botão **Revisar agora**.
+- Um **número laranja** aparece no menu **Gerenciar** e na aba **Usuários**.
+- Ao entrar, ao voltar para o app e **a cada 60 segundos** (com o app aberto), aparece um aviso quando chega uma conta nova.
+- Em **Gerenciar › Usuários**, as contas pendentes ficam no topo, marcadas como **Aguardando aprovação**, com o botão **Liberar**. No formulário, **Ativo** já vem marcado.
+
+**Antes de publicar esta versão, rode este SQL no Supabase** (SQL Editor). Ele cria a coluna que diferencia conta nova de conta desativada e não altera nenhum dado existente, além de marcar como aprovados os usuários que já estão ativos:
+
+```sql
+alter table public.perfis add column if not exists aprovado_em timestamptz;
+
+update public.perfis set aprovado_em = coalesce(criado_em, now())
+where ativo is true and aprovado_em is null;
+
+create or replace function public.perfis_marca_aprovado() returns trigger
+language plpgsql as $$
+begin
+  if new.ativo is true and new.aprovado_em is null then
+    new.aprovado_em := now();
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists perfis_marca_aprovado on public.perfis;
+create trigger perfis_marca_aprovado
+before insert or update on public.perfis
+for each row execute function public.perfis_marca_aprovado();
+```
+
+Observações:
+
+- **Contas inativas que já existem hoje** passam a aparecer como "Aguardando aprovação". Se alguma for de quem foi desativado de propósito, marque-a como já aprovada (troque o e-mail): `update public.perfis set aprovado_em = criado_em where email = 'pessoa@exemplo.com';`
+- **Sem o SQL**, o app continua funcionando como antes, mas sem os avisos.
+- **Limite:** o aviso só chega se o administrador abrir o app. Não há e-mail nem notificação no celular, porque o envio de e-mails ainda não funciona (veja a seção de e-mails).
+- **WhatsApp (opcional):** no começo do script do `index.html`, preencha `const ADMIN_WHATSAPP='5511999999999';` (só números, com país e DDD). A tela "Aguardando aprovação" passa a mostrar o botão **Avisar o administrador no WhatsApp**, que abre uma mensagem pronta.
+- Depois de rodar o SQL, **atualize também o `schema.sql`** guardado.
 
 ## Como as permissões funcionam
 
