@@ -125,8 +125,12 @@ do $$ declare t text; begin
   end loop;
 end $$;
 
--- turmas: criar e excluir só admin; alterar (alunos) admin ou líder/secretário da turma.
-create policy turmas_inserir on public.turmas for insert with check (public.sou_admin());
+-- turmas: excluir só admin; alterar (alunos) admin ou líder/secretário da turma.
+-- O INSERT também usa pode_gravar_turma porque o app grava com UPSERT (INSERT ... ON CONFLICT
+-- DO UPDATE), e o Postgres confere a regra de INSERT antes de detectar a turma existente.
+-- Com sou_admin() aqui, líder e secretário(a) não conseguiam salvar alunos novos.
+-- Turma nova só nasce com id que nenhum perfil tem em turma_id, então só o admin cria turma.
+create policy turmas_inserir on public.turmas for insert with check (public.pode_gravar_turma(id::text));
 create policy turmas_excluir on public.turmas for delete using (public.sou_admin());
 create policy turmas_alterar on public.turmas for update
   using (public.pode_gravar_turma(id::text)) with check (public.pode_gravar_turma(id::text));
