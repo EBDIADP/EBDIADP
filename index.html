@@ -55,6 +55,10 @@ textarea{min-height:76px;resize:vertical}
 .item{padding:14px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
 .item:last-child{border-bottom:0}
 .item b{display:block}
+.nbadge{display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:var(--accent);color:#1B2B27;font-size:11px;font-weight:800;text-align:center;margin-left:6px;padding:0 5px;vertical-align:middle}
+.novas{background:var(--surface);border:1px solid var(--accent);border-left-width:6px;border-radius:12px;padding:12px 14px;margin:0 0 16px}
+.novas b{display:block}
+.novas .sub{display:block;margin-top:2px}
 .tag{display:inline-block;font-size:12px;font-weight:700;background:var(--accent);color:#1B2B27;border-radius:4px;padding:1px 7px;margin-right:6px}
 .sec{margin-top:28px;padding-top:6px}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -156,6 +160,8 @@ details.more[open]{z-index:10}
 function startEbd(){
 // ===== CONFIGURAÇÃO (veja o PASSO-A-PASSO.md) =====
 const SUPABASE_URL='https://rvxeemtvwgjxmxaljgfj.supabase.co',SUPABASE_KEY='sb_publishable_oZLsGNCrvZoirwjpw_NP2A_Omx8zQI1';
+// WhatsApp do administrador (opcional): só números, com país e DDD. Ex.: '5511999999999'. Deixe vazio para não mostrar o botão.
+const ADMIN_WHATSAPP='5511940417946';
 // ==================================================
 const sb=(!SUPABASE_URL.startsWith('COLE')&&window.supabase)?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 
@@ -220,8 +226,23 @@ async function todos(tab){let out=[],i=0;for(;;){const {data,error}=await sb.fro
 async function pull(){const r={};for(const tab of TAB)r[tab]=await todos(tab);
  const u=S.usuarios;S=vazio();S.usuarios=u;S.turmas=r.turmas.map(x=>x.dados);S.aulas=r.aulas.map(x=>x.dados);S.avisos=r.avisos.map(x=>x.dados);
  r.chamadas.forEach(x=>{S.pres[x.id]=x.dados.p||[];if(x.dados.e)S.extras[x.id]=x.dados.e});norm();remoto=snapAll()}
+let aprovCol=false;
 async function pullUsers(){const {data,error}=await sb.from('perfis').select('*').order('criado_em');if(error)throw error;
- S.usuarios=data.map(u=>({id:u.id,nome:u.nome||u.email,login:u.email,perfil:u.perfil,ativo:u.ativo,aluno_id:u.aluno_id||null,turma_id:u.turma_id||null}))}
+ aprovCol=data.length>0&&Object.prototype.hasOwnProperty.call(data[0],'aprovado_em');
+ S.usuarios=data.map(u=>({id:u.id,nome:u.nome||u.email,login:u.email,perfil:u.perfil,ativo:u.ativo,aluno_id:u.aluno_id||null,turma_id:u.turma_id||null,aprovado_em:u.aprovado_em||null}))}
+// Conta nova = inativa e nunca aprovada (só funciona depois do SQL do PASSO-A-PASSO; sem ele, aprovCol fica falso e não há avisos)
+const ehPend=u=>aprovCol&&u.ativo===false&&!u.aprovado_em;
+const pendentes=()=>(me&&me.perfil==='admin')?S.usuarios.filter(ehPend):[];
+const selo=n=>n?'<span class="nbadge" aria-label="'+n+' aguardando liberação">'+n+'</span>':'';
+let vistos=null,vendo=false;
+function avisaNovas(){const P=pendentes();
+ if(vistos===null){vistos=new Set(P.map(u=>u.id));if(P.length)toast(P.length===1?'1 conta aguardando liberação':P.length+' contas aguardando liberação',6000);return}
+ const novas=P.filter(u=>!vistos.has(u.id));P.forEach(u=>vistos.add(u.id));
+ if(novas.length)toast(novas.length===1?'Nova conta aguardando liberação: '+novas[0].nome:novas.length+' novas contas aguardando liberação',6000)}
+async function checaNovas(){if(vendo||!me||me.perfil!=='admin'||pend||document.visibilityState!=='visible')return;vendo=true;
+ try{const antes=pendentes().map(u=>u.id).join();await pullUsers();avisaNovas();
+  const ae=document.activeElement;if(pendentes().map(u=>u.id).join()!==antes&&!editU&&(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName)))render()}catch(x){}finally{vendo=false}}
+setInterval(checaNovas,60000);
 const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
 let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null,workJ={},workHJ={};
 const expT=new Set();
@@ -246,7 +267,7 @@ function toast(m,ms){const t=$('#toast');if(saveErr)m='Atenção: não foi poss�
 function opts(sel,blank){return (blank?'<option value="">'+blank+'</option>':'')+TV().map(t=>'<option value="'+t.id+'"'+(t.id===sel?' selected':'')+'>'+esc(t.nome)+'</option>').join('')}
 
 const PERFIS=[['admin','Administrador(a)'],['secretario','Secretário(a)'],['lider','Líder'],['professor','Professor(a)']],pNome=p=>(PERFIS.find(x=>x[0]===p)||[0,p])[1];
-let me=null,editU='',delU='',modo=/type=recovery/.test(location.hash)?'nova':'entrar',acesso='carregando';
+let me=null,pendNome='',editU='',delU='',modo=/type=recovery/.test(location.hash)?'nova':'entrar',acesso='carregando';
 const PROF_OK=['chamada','agenda','registro','avisos'];
 const can=a=>!!me&&(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):a!=='usuarios'));
 const edita=()=>!!me&&me.perfil!=='professor';
@@ -274,16 +295,17 @@ function vLogin(){
  const L=(id,t,ty,ac)=>'<label for="'+id+'">'+t+'</label><input id="'+id+'" type="'+(ty||'text')+'" autocomplete="'+(ac||'off')+'"'+(ty==='email'?' autocapitalize="none"':'')+'>';
  if(acesso==='carregando')return '<p class="sub">Carregando…</p>';
  if(acesso==='config')return '<h2>Configuração pendente</h2><p class="sub">Preencha SUPABASE_URL e SUPABASE_KEY no início do script do arquivo index.html (veja o PASSO-A-PASSO) e confira se há internet.</p>';
- if(acesso==='pendente')return '<h2>Aguardando aprovação</h2><p class="sub">Sua conta foi criada, mas ainda não foi liberada. Peça ao administrador para ativá-la em Gerenciar › Usuários e depois entre novamente.</p><button class="btn full" id="sairPend">Sair</button>';
+ if(acesso==='pendente'){const wa=String(ADMIN_WHATSAPP||'').replace(/\D/g,''),msg='Olá! Criei uma conta na EBD IADP'+(pendNome?' ('+pendNome+')':'')+' e estou aguardando a liberação do acesso.';
+  return '<h2>Aguardando aprovação</h2><p class="sub">Sua conta foi criada, mas ainda não foi liberada. O administrador é avisado dentro do app. Quando ele liberar, entre novamente.</p>'+(wa?'<a class="btn full" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box" target="_blank" rel="noopener" href="https://wa.me/'+wa+'?text='+encodeURIComponent(msg)+'">Avisar o administrador no WhatsApp</a>':'')+'<button class="btn full" id="sairPend">Sair</button>'}
  if(modo==='nova')return '<h2>Nova senha</h2>'+L('ns','Nova senha (mín. 6 caracteres)','password','new-password')+'<button class="btn full" id="salvarSenha">Salvar nova senha</button>';
  if(modo==='criar')return '<h2>Criar conta</h2><p class="sub">Depois de criar, o administrador precisa liberar o seu acesso.</p>'+L('cn','Nome')+L('cl','E-mail','email','email')+L('cs','Senha (mín. 6 caracteres)','password','new-password')+L('cr','Repita a senha','password','new-password')+'<button class="btn full" id="criarConta">Criar conta</button><div class="acts"><button class="tg" id="irEntrar">Já tenho conta</button></div>';
  return '<h2>Entrar</h2>'+L('lg','E-mail','email','username')+L('ls','Senha','password','current-password')+'<button class="btn full" id="entrar">Entrar</button><div class="acts"><button class="tg" id="irCriar">Criar conta</button></div><p style="margin:12px 0 0;font-size:.85rem;opacity:.7">Esqueceu a senha? Fale com o administrador da EBD.</p>'}
-function edUiU(u){return '<div class="item"><label for="eun" style="margin-top:0">Nome</label><input id="eun" value="'+esc(u.nome)+'"><label for="eup">Perfil</label><select id="eup">'+pOpts(u.perfil)+'</select><div id="eulw"><label for="eul">Aluno(a) vinculado(a)</label><select id="eul">'+alOpts(u.aluno_id||'')+'</select><p class="sub">O vínculo vale para administrador, secretário(a) e professor(a). Um líder também deve ser vinculado ao seu cadastro de aluno. No perfil professor(a), a pessoa passa a ver e fazer chamada apenas das aulas em que é o(a) professor(a).</p></div><div id="eutw"'+(u.perfil==='lider'||u.perfil==='secretario'?'':' hidden')+'><label for="eut">Turma vinculada</label><select id="eut">'+opts(u.turma_id||'','Sem vínculo')+'</select><p class="sub">Líder e secretário(a) veem e acompanham apenas esta turma: dashboard, chamada, agenda, histórico e faltas. Também podem agendar aulas e cadastrar novos alunos nela.</p></div><label class="chkl"><input type="checkbox" id="eua"'+(u.ativo!==false?' checked':'')+'>Ativo</label><div class="acts"><button class="btn" style="margin-top:0" data-uek="'+u.id+'">Salvar</button><button class="tg" data-uno="1">Cancelar</button></div></div>'}
+function edUiU(u){return '<div class="item"><label for="eun" style="margin-top:0">Nome</label><input id="eun" value="'+esc(u.nome)+'"><label for="eup">Perfil</label><select id="eup">'+pOpts(u.perfil)+'</select><div id="eulw"><label for="eul">Aluno(a) vinculado(a)</label><select id="eul">'+alOpts(u.aluno_id||'')+'</select><p class="sub">O vínculo vale para administrador, secretário(a) e professor(a). Um líder também deve ser vinculado ao seu cadastro de aluno. No perfil professor(a), a pessoa passa a ver e fazer chamada apenas das aulas em que é o(a) professor(a).</p></div><div id="eutw"'+(u.perfil==='lider'||u.perfil==='secretario'?'':' hidden')+'><label for="eut">Turma vinculada</label><select id="eut">'+opts(u.turma_id||'','Sem vínculo')+'</select><p class="sub">Líder e secretário(a) veem e acompanham apenas esta turma: dashboard, chamada, agenda, histórico e faltas. Também podem agendar aulas e cadastrar novos alunos nela.</p></div><label class="chkl"><input type="checkbox" id="eua"'+(u.ativo!==false||ehPend(u)?' checked':'')+'>Ativo</label><div class="acts"><button class="btn" style="margin-top:0" data-uek="'+u.id+'">Salvar</button><button class="tg" data-uno="1">Cancelar</button></div></div>'}
 function vUsuarios(){
- return '<h2>Usuários</h2><p class="sub">Só o administrador cria, edita e exclui usuários e faz os vínculos. O administrador acessa tudo. Professor(a), vinculado a um aluno, vê e faz chamada só das próprias aulas. Líder e secretário(a), vinculados a uma turma, têm acesso a tudo dessa turma (chamada, agenda, histórico, faltas, alunos, professores, cadastro e avisos), mas só dela.</p><div class="list">'
- +S.usuarios.map(u=>editU===u.id?edUiU(u):'<div class="item al'+(u.ativo===false?' off':'')+'"><span>'+esc(u.nome)+(u.id===me.id?' <span class="tag">Você</span>':'')+'<span class="sub" style="display:block">@'+esc(u.login)+' · '+pNome(u.perfil)+(u.ativo===false?' · Inativo ou aguardando aprovação':'')+vinc(u)+'</span></span>'
-  +(delU===u.id?'<span class="acts" style="margin:0"><span class="sub">Excluir?</span><button class="tg bad" data-uok="'+u.id+'">Confirmar</button><button class="tg" data-uno="1">Cancelar</button></span>':'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-ue="'+u.id+'">Editar</button>'+(u.id===me.id?'':'<button class="tg bad" data-ud="'+u.id+'">Excluir</button>')+'</div></details>')+'</div>').join('')+'</div>'
- +'<div class="sec"><h2>Novas pessoas</h2><p class="sub">Quem precisa de acesso toca em <b>Criar conta</b> na tela de entrada. A conta aparece aqui como inativa: toque em ⋯ › Editar, escolha o perfil e marque <b>Ativo</b>. Para apagar o login por completo, exclua também em Authentication › Users no Supabase.</p></div>'}
+ return '<h2>Usuários'+selo(pendentes().length)+'</h2><p class="sub">Só o administrador cria, edita e exclui usuários e faz os vínculos. O administrador acessa tudo. Professor(a), vinculado a um aluno, vê e faz chamada só das próprias aulas. Líder e secretário(a), vinculados a uma turma, têm acesso a tudo dessa turma (chamada, agenda, histórico, faltas, alunos, professores, cadastro e avisos), mas só dela.</p><div class="list">'
+ +S.usuarios.map((u,i)=>[u,i]).sort((a,b)=>(ehPend(b[0])-ehPend(a[0]))||a[1]-b[1]).map(x=>x[0]).map(u=>editU===u.id?edUiU(u):'<div class="item al'+(u.ativo===false&&!ehPend(u)?' off':'')+'"><span>'+esc(u.nome)+(ehPend(u)?' <span class="tag">Aguardando aprovação</span>':'')+(u.id===me.id?' <span class="tag">Você</span>':'')+'<span class="sub" style="display:block">@'+esc(u.login)+' · '+pNome(u.perfil)+(u.ativo===false&&!ehPend(u)?' · Inativo'+(aprovCol?'':' ou aguardando aprovação'):'')+vinc(u)+'</span></span>'
+  +(delU===u.id?'<span class="acts" style="margin:0"><span class="sub">Excluir?</span><button class="tg bad" data-uok="'+u.id+'">Confirmar</button><button class="tg" data-uno="1">Cancelar</button></span>':(ehPend(u)?'<button class="tg" data-ue="'+u.id+'">Liberar</button>':'')+'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-ue="'+u.id+'">Editar</button>'+(u.id===me.id?'':'<button class="tg bad" data-ud="'+u.id+'">Excluir</button>')+'</div></details>')+'</div>').join('')+'</div>'
+ +'<div class="sec"><h2>Novas pessoas</h2><p class="sub">Quem precisa de acesso toca em <b>Criar conta</b> na tela de entrada. A conta aparece aqui no topo, como <b>Aguardando aprovação</b>: toque em <b>Liberar</b> (ou ⋯ › Editar), escolha o perfil, faça os vínculos e confira se <b>Ativo</b> está marcado. Para apagar o login por completo, exclua também em Authentication › Users no Supabase.</p></div>'}
 const aulaKey=x=>x.data+'|'+x.turma;
 const dom=d=>!!(me&&me.perfil==='admin')||new Date(d+'T12:00:00').getDay()===0,msgDom='Só é possível agendar aulas aos domingos';
 const fmtD=d=>new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'});
@@ -363,7 +385,8 @@ function vPainel(){
  const sm={pres:0,bib:0,of:0,vis:0};
  if(latest)TV().forEach(t=>{const k=latest+'|'+t.id,e=ex(k)||{};sm.pres+=(S.pres[k]||[]).length;sm.bib+=e.biblias||0;sm.of+=e.oferta||0;sm.vis+=e.visitantes||0});
  const lbl=latest?new Date(latest+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long'}):'';
- return '<h2>Dashboard geral</h2><p class="sub">Frequência de cada turma, calculada sobre as aulas com chamada salva.</p>'
+ const PN=pendentes(),faixa=PN.length?'<div class="novas" role="alert"><b>'+(PN.length===1?'1 conta aguardando liberação':PN.length+' contas aguardando liberação')+'</b><span class="sub">'+PN.slice(0,5).map(u=>esc(u.nome)).join(', ')+(PN.length>5?' e mais '+(PN.length-5):'')+'</span><div class="acts"><button class="btn" style="margin-top:0" data-rev="1">Revisar agora</button></div></div>':'';
+ return faixa+'<h2>Dashboard geral</h2><p class="sub">Frequência de cada turma, calculada sobre as aulas com chamada salva.</p>'
  +'<div class="bar"><b>'+(ehEquipe()?'Sua turma':'Todas as turmas')+'</b><b>'+pc+'%</b></div><div class="meter"><i style="width:'+pc+'%"></i></div>'
  +(latest?'<div class="sec"><h2>Última chamada: '+lbl+'</h2><div class="list">'+kv('Presentes',sm.pres)+kv('Bíblias físicas',sm.bib)+kv('Contribuições',brl(sm.of))+kv('Visitantes',sm.vis||'Nenhum')+'</div></div>':'')
  +'<div class="sec"><h2>Por turma</h2><div class="list">'+(all.length?all.map(({t,s})=>{
@@ -502,12 +525,12 @@ function render(){
  S.turmas.forEach(t=>t.alunos.sort((x,y)=>String(x.nome||'').localeCompare(String(y.nome||''),'pt-BR',{sensitivity:'base'})));
  const nv=document.querySelector('nav');
  if(!me){nv.style.display='none';$('#sub').hidden=true;$('#hd').textContent=''+dateLabel;$('#app').innerHTML=vLogin();return}
- nv.style.display='';nv.querySelector('[data-v="painel"]').hidden=!can('painel');if(!can(view))view=can('painel')?'painel':'chamada';
+ nv.style.display='';nv.querySelector('[data-v="painel"]').hidden=!can('painel');nv.querySelector('[data-v="grupo"]').innerHTML='Gerenciar'+selo(pendentes().length);if(!can(view))view=can('painel')?'painel':'chamada';
  $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pNome(me.perfil)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
  $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():vAvisos();
  if(GROUP.includes(view))sub=view;
  const sn=$('#sub');sn.hidden=!GROUP.includes(view);
- sn.innerHTML=SUBS.filter(x=>can(x[0])).map(([v,l])=>'<button data-s="'+v+'" aria-current="'+(v===view?'page':'false')+'">'+l+'</button>').join('');
+ sn.innerHTML=SUBS.filter(x=>can(x[0])).map(([v,l])=>'<button data-s="'+v+'" aria-current="'+(v===view?'page':'false')+'">'+l+(v==='usuarios'?selo(pendentes().length):'')+'</button>').join('');
  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===(GROUP.includes(view)?'grupo':view)?'page':'false'));
  try{document.querySelector('nav button[aria-current="page"]').scrollIntoView({inline:'center',block:'nearest'})}catch(e){}
  if(view==='chamada'&&selA)updCount();
@@ -621,16 +644,17 @@ $('#app').addEventListener('change',e=>{
 $('#hd').addEventListener('click',async e=>{if(e.target.id==='sair'){try{await sb.auth.signOut()}catch(x){}me=null;S=vazio();acesso='';modo='entrar';view='painel';sub='chamada';render();scrollTo(0,0)}});
 $('#app').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'&&!me){const b=$('#entrar')||$('#criarConta')||$('#salvarSenha');if(b)b.click()}});
 async function boot(){
+ vistos=null;
  if(!sb){acesso='config';me=null;render();return}
  if(modo==='nova'){acesso='';me=null;render();return}
  const {data:{session}}=await sb.auth.getSession();
  if(!session){me=null;S=vazio();acesso='';render();return}
  const {data:p,error}=await sb.from('perfis').select('*').eq('id',session.user.id).maybeSingle();
  if(error){toast('Erro ao conectar. Tente novamente.');me=null;acesso='';render();return}
- if(!p||!p.ativo){me=null;acesso='pendente';render();return}
+ if(!p||!p.ativo){me=null;acesso='pendente';pendNome=(p&&(p.nome||p.email))||session.user.email||'';render();return}
  me={id:p.id,nome:p.nome||p.email,login:p.email,perfil:p.perfil,ativo:true,alunoId:p.aluno_id||null,turmaId:p.turma_id||null};acesso='';
  try{await pull();if(me.perfil==='admin'){await pullUsers();if(!S.turmas.length){S.turmas=seed().turmas;norm();save()}}}catch(e){toast('Erro ao carregar os dados')}
- if(ehEquipe()&&me.turmaId)cur=me.turmaId;view=can('painel')?'painel':'chamada';render();scrollTo(0,0)}
+ if(ehEquipe()&&me.turmaId)cur=me.turmaId;view=can('painel')?'painel':'chamada';render();scrollTo(0,0);if(me.perfil==='admin')avisaNovas()}
 $('#app').addEventListener('click',async e=>{
  const id=e.target.id,B=e.target.closest('[data-ue],[data-ud],[data-uok],[data-uno],[data-uek]'),D=B?B.dataset:{};
  if(id==='irCriar'||id==='irEntrar'){modo=id==='irCriar'?'criar':'entrar';render();return}
@@ -647,6 +671,7 @@ $('#app').addEventListener('click',async e=>{
   const {error}=await sb.auth.updateUser({password:sn});if(error){toast('Não foi possível salvar a senha');return}
   modo='entrar';history.replaceState(null,'',location.pathname);toast('Senha alterada');await boot();return}
  if(!me||me.perfil!=='admin')return;
+ if(e.target.closest('[data-rev]')){view='usuarios';sub='usuarios';editU='';delU='';render();scrollTo(0,0);return}
  if(D.ue){editU=D.ue;delU='';render();return}
  if(D.ud){delU=D.ud;editU='';render();return}
  if(D.uno){editU='';delU='';render();return}
@@ -660,11 +685,11 @@ $('#app').addEventListener('click',async e=>{
   if(u.perfil==='admin'&&u.ativo!==false&&!(pf==='admin'&&at)&&admins().length<2){toast('Precisa existir ao menos um administrador ativo');return}
   if(al){const dup=S.usuarios.find(x=>x.id!==u.id&&x.aluno_id===al);if(dup){toast('Esse aluno já está vinculado a '+dup.nome);return}}
   const {error}=await sb.from('perfis').update({nome:n,perfil:pf,ativo:at,aluno_id:al,turma_id:tu}).eq('id',u.id);if(error){toast('Não foi possível salvar: '+error.message);return}
-  u.nome=n;u.perfil=pf;u.ativo=at;u.aluno_id=al;u.turma_id=tu;editU='';toast('Usuário atualizado');render();return}
+  u.nome=n;u.perfil=pf;u.ativo=at;u.aluno_id=al;u.turma_id=tu;if(at&&!u.aprovado_em)u.aprovado_em=new Date().toISOString();editU='';toast('Usuário atualizado');render();return}
 });
 if(sb)sb.auth.onAuthStateChange((ev)=>{if(ev==='PASSWORD_RECOVERY'){modo='nova';me=null;render()}});
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!me||pend)return;
- try{await pull();if(me.perfil==='admin')await pullUsers();const ae=document.activeElement;if(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName))render()}catch(x){}});
+ try{await pull();if(me.perfil==='admin'){await pullUsers();avisaNovas()}const ae=document.activeElement;if(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName))render()}catch(x){}});
 
 render();
 boot();
