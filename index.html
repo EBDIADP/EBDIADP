@@ -402,13 +402,13 @@ function vPainel(){
  const all=TV().map(t=>({t,s:stats(t)}));
  const T=all.reduce((n,x)=>n+x.s.tot,0),P=all.reduce((n,x)=>n+x.s.poss,0),pc=P?Math.round(T/P*100):0;
  const latest=Object.keys(S.pres).filter(proprio).map(k=>k.split('|')[0]).sort().pop();
- const sm={pres:0,bib:0,of:0,vis:0};
- if(latest)TV().forEach(t=>{const k=latest+'|'+t.id,e=ex(k)||{};sm.pres+=(S.pres[k]||[]).length;sm.bib+=e.biblias||0;sm.of+=e.oferta||0;sm.vis+=e.visitantes||0});
+ const sm={pres:0,poss:0,bib:0,of:0,vis:0};
+ if(latest)TV().forEach(t=>{const k=latest+'|'+t.id,e=ex(k)||{};sm.pres+=(S.pres[k]||[]).length;if(S.pres[k])sm.poss+=eleg(t,k).length;sm.bib+=e.biblias||0;sm.of+=e.oferta||0;sm.vis+=e.visitantes||0});
  const lbl=latest?new Date(latest+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long'}):'';
  const PN=pendentes(),faixa=PN.length?'<div class="novas" role="alert"><b>'+(PN.length===1?'1 conta aguardando liberação':PN.length+' contas aguardando liberação')+'</b><span class="sub">'+PN.slice(0,5).map(u=>esc(u.nome)).join(', ')+(PN.length>5?' e mais '+(PN.length-5):'')+'</span><div class="acts"><button class="btn" style="margin-top:0" data-rev="1">Revisar agora</button></div></div>':'';
  return faixa+'<h2>Dashboard geral</h2><p class="sub">Frequência de cada turma, calculada sobre as aulas com chamada salva.</p>'
  +'<div class="bar"><b>'+(ehEquipe()?'Sua turma':'Todas as turmas')+'</b><b>'+pc+'%</b></div><div class="meter"><i style="width:'+pc+'%"></i></div>'
- +(latest?'<div class="sec"><h2>Última chamada: '+lbl+'</h2><div class="list">'+kv('Presentes',sm.pres)+kv('Bíblias físicas',sm.bib)+kv('Contribuições',brl(sm.of))+kv('Visitantes',sm.vis||'Nenhum')+'</div></div>':'')
+ +(latest?'<div class="sec"><h2>Última chamada: '+lbl+'</h2><div class="list">'+kv('Presentes',sm.pres+' de '+sm.poss)+kv('Bíblias físicas',sm.bib)+kv('Contribuições',brl(sm.of))+kv('Visitantes',sm.vis||'Nenhum')+'</div></div>':'')
  +'<div class="sec"><h2>Por turma</h2><div class="list">'+(all.length?all.map(({t,s})=>{
   const lk=s.keys[s.keys.length-1],le=ex(lk)||{},last=lk?S.pres[lk].length:0;
   const tof=s.keys.reduce((n,k)=>n+((ex(k)||{}).oferta||0),0),tvis=s.keys.reduce((n,k)=>n+((ex(k)||{}).visitantes||0),0);
