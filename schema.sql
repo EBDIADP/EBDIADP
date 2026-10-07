@@ -1,6 +1,7 @@
 -- =====================================================================
 -- EBD IADP - banco de dados (Supabase / PostgreSQL)
--- Estado atual, com as regras de gravação por perfil (out/2026).
+-- Estado atual, com as regras de gravação por perfil, aviso de novas contas,
+-- perfil adicional Tesoureiro(a) e módulo financeiro (out/2026).
 --
 -- COMO USAR: Supabase > SQL Editor > New query > cole tudo > Run.
 -- Pode ser executado de novo sem problema (não apaga dados).
@@ -31,8 +32,19 @@ create table if not exists public.perfis (
   ativo     boolean not null default false,
   aluno_id  text,   -- vínculo com o cadastro de aluno (professor, líder, secretário, admin)
   turma_id  text,   -- turma de líder e secretário
-  criado_em timestamptz not null default now()
+  criado_em timestamptz not null default now(),
+  aprovado_em timestamptz,                         -- quando a conta foi liberada (aviso de novas contas)
+  perfis_extra text[] not null default '{}'        -- perfis adicionais (hoje só 'tesoureiro')
 );
+-- Para bancos que já existiam antes dessas duas colunas (create table if not exists não as adiciona):
+alter table public.perfis add column if not exists aprovado_em timestamptz;
+alter table public.perfis add column if not exists perfis_extra text[] not null default '{}';
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'perfis_extra_valores') then
+    alter table public.perfis add constraint perfis_extra_valores
+      check (perfis_extra <@ array['tesoureiro']::text[]);
+  end if;
+end $$;
 
 alter table public.turmas   enable row level security;
 alter table public.aulas    enable row level security;
@@ -129,6 +141,39 @@ drop trigger if exists protege_admin on public.perfis;
 create trigger protege_admin before delete or update on public.perfis
   for each row execute function public.protege_ultimo_admin();
 
+-- Marca a data de aprovação quando a conta fica ativa (diferencia conta nova de conta desativada).
+create or replace function public.perfis_marca_aprovado() returns trigger
+  language plpgsql as
+$$
+begin
+  if new.ativo is true and new.aprovado_em is null then
+    new.aprovado_em := now();
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists perfis_marca_aprovado on public.perfis;
+create trigger perfis_marca_aprovado before insert or update on public.perfis
+  for each row execute function public.perfis_marca_aprovado();
+
+-- Só o administrador pode mudar o perfil adicional (ninguém se promove sozinho).
+create or replace function public.protege_perfis_extra() returns trigger
+  language plpgsql security definer set search_path = public as
+$$
+begin
+  if new.perfis_extra is distinct from old.perfis_extra
+     and auth.uid() is not null
+     and not exists (select 1 from public.perfis p
+                     where p.id = auth.uid() and p.perfil = 'admin' and p.ativo is true) then
+    raise exception 'Só o administrador pode alterar o perfil adicional';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists protege_perfis_extra on public.perfis;
+create trigger protege_perfis_extra before update on public.perfis
+  for each row execute function public.protege_perfis_extra();
+
 -- ---------- 4. Políticas de acesso (RLS) ----------
 -- Remove políticas antigas para poder reexecutar o arquivo.
 do $$ declare t text; p text; begin
@@ -188,5 +233,36 @@ create policy perfis_ver     on public.perfis for select using (id = auth.uid() 
 create policy perfis_alterar on public.perfis for update using (public.sou_admin()) with check (public.sou_admin());
 create policy perfis_excluir on public.perfis for delete using (public.sou_admin() and id <> auth.uid());
 
--- ---------- 5. Conferência (opcional) ----------
+-- ---------- 5. Financeiro (ofertas e despesas) ----------
+-- Acesso: administrador ativo ou usuário ativo com o perfil adicional 'tesoureiro'.
+create table if not exists public.financeiro (
+  id uuid primary key default gen_random_uuid(),
+  data date not null,
+  tipo text not null check (tipo in ('entrada','saida')),
+  categoria text not null,
+  descricao text not null default '',
+  valor_centavos integer not null check (valor_centavos > 0 and valor_centavos <= 1000000000),
+  turma_id text,
+  criado_por uuid default auth.uid(),
+  criado_por_nome text,
+  criado_em timestamptz not null default now()
+);
+create index if not exists financeiro_data_idx on public.financeiro (data);
+
+create or replace function public.pode_financeiro() returns boolean
+  language sql stable security definer set search_path = public as
+$$ select exists (select 1 from public.perfis p
+                  where p.id = auth.uid() and p.ativo is true
+                    and (p.perfil = 'admin' or 'tesoureiro' = any (p.perfis_extra))) $$;
+
+alter table public.financeiro enable row level security;
+revoke all on public.financeiro from anon;
+grant select, insert, update, delete on public.financeiro to authenticated;
+drop policy if exists financeiro_admin on public.financeiro;
+create policy financeiro_admin on public.financeiro for all to authenticated
+  using (public.pode_financeiro()) with check (public.pode_financeiro());
+
+-- O histórico de alterações (auditoria) fica no arquivo auditoria.sql.
+
+-- ---------- 6. Conferência (opcional) ----------
 -- select tablename, policyname, cmd, qual, with_check from pg_policies where schemaname = 'public' order by 1, 2;
