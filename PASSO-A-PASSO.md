@@ -112,6 +112,8 @@ Depois de publicar, volte ao passo 3.4 e coloque o endereço em **Site URL**.
 | **Líder** | Igual ao secretário(a) | **Turma** e **aluno** (ambos obrigatórios) |
 | **Professor(a)** | Vê e faz a chamada apenas das aulas em que é o(a) professor(a); só leitura nas demais telas | **Aluno** (obrigatório) |
 
+Na tela **Professores**, líder e secretário(a) veem **todos os professores cadastrados, de todas as turmas**, para saber quem é professor. As contagens de aulas de cada professor mostram só as aulas da turma deles.
+
 **Importante:** líder e secretário(a) **sem turma vinculada não conseguem salvar nada**. O banco só aceita gravações de líder e secretário(a) na turma vinculada a eles.
 
 Para remover alguém por completo, desative-a no app. Para apagar o login dela, exclua também em **Authentication › Users** no Supabase.

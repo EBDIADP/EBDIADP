@@ -513,14 +513,14 @@ function edUiG(x){const P=profs(),lock=!!S.pres[aulaKey(x)],dis=lock?' disabled'
  +'<div class="acts"><button class="btn" style="margin-top:0" data-egok="'+x.id+'">Salvar</button><button class="tg" data-egno="1">Cancelar</button></div></div>'}
 function vProfessores(){
  const hoje=ymd(today),lista=[];
- TV().forEach(t=>t.alunos.filter(a=>a.professor&&!a.arq).forEach(a=>lista.push({a,t})));
+ S.turmas.forEach(t=>t.alunos.filter(a=>a.professor&&!a.arq).forEach(a=>lista.push({a,t})));
  lista.sort((x,y)=>nm(x.a).localeCompare(nm(y.a),'pt-BR',{sensitivity:'base'}));
  const semProf=S.aulas.filter(g=>g.data>=hoje&&!g.prof&&turma(g.turma)&&minha(g)).length;
  const card=({a,t})=>{const n=nm(a),minhas=S.aulas.filter(g=>g.prof===n&&turma(g.turma)&&minha(g)),
    prox=minhas.filter(g=>g.data>=hoje).sort((x,y)=>x.data.localeCompare(y.data)),dadas=minhas.filter(g=>g.data<hoje).length;
   return '<details class="dt" data-pn="'+a.id+'"'+(opP.has(a.id)?' open':'')+'><summary><span>'+tagT(t)+' <b style="display:inline">'+esc(n)+'</b>'+(a.ativo===false?' <span class="tag">Inativo</span>':'')
-   +'<span class="sub" style="display:block">'+(prox.length?prox.length+' aula(s) agendada(s)':'Nenhuma aula agendada')+' · '+dadas+' aula(s) já ministrada(s)</span></span></summary>'
-   +(prox.length?prox.map(g=>'<div class="item"><b style="display:inline;text-transform:capitalize">'+fmtD(g.data)+'</b> · '+esc(turma(g.turma).nome)+'<div class="sub">'+esc(g.tema||'Sem tema')+'</div>'+(g.topicos?'<div class="sub" style="white-space:pre-line">'+esc(g.topicos)+'</div>':'')+'</div>').join(''):'<div class="item sub">Nenhuma aula agendada para este professor.</div>')+'</details>'};
+   +'<span class="sub" style="display:block">'+(prox.length?prox.length+' aula(s) agendada(s)':'Nenhuma aula agendada')+' · '+dadas+' aula(s) já ministrada(s)'+(ehEquipe()?' · contagem só da sua turma':'')+'</span></span></summary>'
+   +(prox.length?prox.map(g=>'<div class="item"><b style="display:inline;text-transform:capitalize">'+fmtD(g.data)+'</b> · '+esc(turma(g.turma).nome)+'<div class="sub">'+esc(g.tema||'Sem tema')+'</div>'+(g.topicos?'<div class="sub" style="white-space:pre-line">'+esc(g.topicos)+'</div>':'')+'</div>').join(''):'<div class="item sub">Nenhuma aula agendada para este professor'+(ehEquipe()?' na sua turma':'')+'.</div>')+'</details>'};
  const LIM=3,mais=lista.length>LIM,aberta=expP,vis=mais&&!aberta?lista.slice(0,LIM):lista;
  return '<h2>Professores</h2><p class="sub">Alunos marcados como professor(a) no Cadastro. A turma indicada é a turma em que a pessoa é aluna; as aulas vêm da Agenda.</p>'
   +'<div class="bar"><b>Total de professores</b><b>'+lista.length+'</b></div>'
