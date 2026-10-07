@@ -471,7 +471,7 @@ function vTurmas(){
  return '<h2>Turmas</h2><p class="sub">'+(ehEquipe()?(minhaT()?'Você vê e gerencia apenas a sua turma.':semTurma):'Para cadastrar turmas e alunos, use a aba Cadastro. Para gerenciar os alunos, use a aba Alunos.')+'</p>'+totalCard()
  +'<div class="list">'+(TV().length?TV().map(t=>{const vis=t.alunos.filter(a=>!a.arq),at=ativos(t).length,ar=t.alunos.length-vis.length;
   if(editT===t.id)return edUiT(t);return '<div class="item"><b>'+esc(t.nome)+'</b>'+CARGOS.map(([l,k])=>'<div class="sub">'+l+': '+(pessoaT(t,k)||'não definido')+'</div>').join('')+(t.exigeResp?'<div class="sub">Exige responsável no cadastro dos alunos</div>':'')+'<div class="sub">'+at+' ativo(s) · '+(vis.length-at)+' inativo(s) · '+ar+' arquivado(s)</div>'+(delT===t.id?'<div class="acts"><span class="sub">Excluir esta turma apaga '+t.alunos.length+' aluno(s), '+Object.keys(S.pres).filter(k=>k.endsWith('|'+t.id)).length+' chamada(s) salva(s) e as aulas agendadas dela.</span><button class="tg bad" data-deltok="'+t.id+'">Confirmar exclusão</button><button class="tg" data-deltno="1">Cancelar</button></div>':'<div class="acts" style="justify-content:flex-end"><details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-edt="'+t.id+'">Editar</button>'+(soAdmin()?'<button class="tg bad" data-delt="'+t.id+'">Excluir</button>':'')+'</div></details></div>')+'</div>'}).join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>')+'</div>'
- +(me&&me.perfil==='admin'?'<div class="sec"><h2>Backup dos dados</h2><p class="sub">Os dados ficam no servidor online. Exporte um arquivo de backup de tempos em tempos como cópia de segurança.</p><div class="acts"><button class="btn" style="margin-top:0" id="expB">Exportar backup</button></div><label for="impF">Importar backup (substitui os dados atuais)</label><input id="impF" type="file" accept="application/json,.json"></div>':'');
+ ;
 }
 
 function aniv(){
@@ -636,7 +636,6 @@ $('#app').addEventListener('click',e=>{
   if(S.aulas.some(x=>x.turma===tid&&x.data===d)){toast('Essa turma já tem aula agendada nesse dia');return}
   const conf=pr&&S.aulas.some(x=>x.data===d&&x.prof===pr&&x.turma!==tid);
   S.aulas.push({id:uid(),turma:tid,data:d,prof:pr,tema:tm,topicos:$('#gtp').value.trim()});save();toast(conf?'Aula agendada. Atenção: esse professor já tem aula em outra turma nesse dia':'Aula agendada');render()}
- if(id==='expB'&&me&&me.perfil==='admin'){const bl=new Blob([JSON.stringify({...S,usuarios:undefined},null,1)],{type:'application/json'}),lk=document.createElement('a');lk.href=URL.createObjectURL(bl);lk.download='ebd-backup-'+ymd(new Date())+'.json';document.body.appendChild(lk);lk.click();lk.remove();setTimeout(()=>URL.revokeObjectURL(lk.href),1000);toast('Backup exportado')}
  if(id==='addV'){if(soLeitura()||(ehEquipe()&&!me.turmaId))return;const t=$('#vt').value.trim(),x=$('#vx').value.trim();if(!t||!x){toast('Preencha título e mensagem');return}
   S.avisos.push({id:uid(),titulo:t,texto:x,turma:ehEquipe()?me.turmaId:$('#vs').value,data:ymd(new Date())});save();toast('Aviso publicado');render()}
 });
@@ -647,11 +646,7 @@ $('#app').addEventListener('change',e=>{
  if(e.target.dataset.jc!==undefined){const v=e.target.value,i=e.target.dataset.jc;v?workJ[i]=v:delete workJ[i];return}
  if(e.target.dataset.jh!==undefined){const v=e.target.value,i=e.target.dataset.jh;v?workHJ[i]=v:delete workHJ[i];return}
  if((e.target.id==='gd'||e.target.id==='egd')&&e.target.value&&!dom(e.target.value)){const d=new Date(e.target.value+'T12:00:00');d.setDate(d.getDate()+(7-d.getDay())%7);e.target.value=ymd(d);toast(msgDom+': ajustei para o próximo domingo')}
- if(e.target.id==='impF'&&me&&me.perfil==='admin'){const inp=e.target,f=inp.files[0];if(!f)return;const rd=new FileReader();
-  rd.onload=()=>{let d;try{d=JSON.parse(rd.result);if(!d||!Array.isArray(d.turmas)||!Array.isArray(d.avisos)||!d.pres||typeof d.pres!=='object'||d.turmas.some(t=>!t||!Array.isArray(t.alunos)))throw 0}catch(x){inp.value='';toast('Arquivo de backup inválido');return}
-   if(!confirm('Importar vai substituir todos os dados deste aparelho. Continuar?')){inp.value='';return}
-   S.turmas=d.turmas;S.avisos=d.avisos;S.pres=d.pres;S.extras=d.extras||{};S.aulas=d.aulas||[];norm();save();inp.value='';toast('Backup importado');render()};
-  rd.readAsText(f)}});
+});
 $('#hd').addEventListener('click',async e=>{if(e.target.id==='sair'){try{await sb.auth.signOut()}catch(x){}me=null;S=vazio();acesso='';modo='entrar';view='painel';sub='chamada';render();scrollTo(0,0)}});
 $('#app').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'&&!me){const b=$('#entrar')||$('#criarConta')||$('#salvarSenha');if(b)b.click()}});
 // ===== Relatório trimestral =====
@@ -760,7 +755,9 @@ async function bkCsv(){if(bkOcupado)return;bkOcupado=true;bkMsg='';
  catch(e){bkMsg='Não foi possível gerar a planilha. Verifique a conexão e tente de novo.'}
  bkOcupado=false;render()}
 async function bkLer(file){bkMsg='';BK=null;
- try{if(file.size>20e6)throw 0;const o=JSON.parse(await file.text());if(!o||o.app!=='ebd-iadp'||o.versao!==1)throw 0;
+ try{if(file.size>20e6)throw 0;let o=JSON.parse(await file.text());
+  if(o&&!o.app&&Array.isArray(o.turmas)&&o.pres&&typeof o.pres==='object'){const g=a=>(a||[]).map(x=>({id:x.id,dados:x}));o={app:'ebd-iadp',versao:1,geradoEm:null,turmas:g(o.turmas),aulas:g(o.aulas),avisos:g(o.avisos),chamadas:Object.keys(o.pres).map(k=>({id:k,dados:{p:o.pres[k],e:(o.extras||{})[k]||null}}))}}
+  if(!o||o.app!=='ebd-iadp'||o.versao!==1)throw 0;
   const ok=(a,f)=>Array.isArray(a)&&a.every(r=>r&&typeof r.id==='string'&&r.dados&&typeof r.dados==='object'&&(!f||f(r)));
   if(!ok(o.turmas,r=>Array.isArray(r.dados.alunos))||!ok(o.aulas)||!ok(o.avisos)||!ok(o.chamadas,r=>/^\d{4}-\d{2}-\d{2}\|.+$/.test(r.id)))throw 0;
   BK={o,nome:file.name}}
@@ -781,7 +778,7 @@ async function bkRestaurar(){if(bkOcupado||!BK)return;
  catch(e){bkMsg='A restauração parou no meio ('+((e&&e.message)||'erro')+'). Os dados podem estar parcialmente restaurados. Escolha o mesmo arquivo e restaure de novo.';try{await pull()}catch(x){}}
  bkOcupado=false;render()}
 function vBackup(){const dis=bkOcupado?' disabled':'',o=BK&&BK.o;
- const conf=o?'<div class="list"><div class="item"><b>'+esc(BK.nome)+'</b><span class="sub">Gerado em '+esc(fdt(o.geradoEm))+'</span></div>'
+ const conf=o?'<div class="list"><div class="item"><b>'+esc(BK.nome)+'</b><span class="sub">'+(o.geradoEm?'Gerado em '+esc(fdt(o.geradoEm)):'Backup no formato antigo')+'</span></div>'
   +kv('Turmas',o.turmas.length)+kv('Alunos',o.turmas.reduce((n,r)=>n+r.dados.alunos.length,0))+kv('Aulas',o.aulas.length)+kv('Chamadas',o.chamadas.length)+kv('Avisos',o.avisos.length)+'</div>'
   +'<label for="bkm">Como restaurar</label><select id="bkm"><option value="mesclar">Recuperar: grava o que está no arquivo e não apaga nada</option><option value="tudo">Substituir tudo: apaga o que não está no arquivo</option></select>'
   +'<p class="sub">Itens que existem no arquivo voltam ao estado dele, inclusive a lista de alunos de cada turma. Antes de gravar, o app baixa uma cópia do estado atual.</p>'
