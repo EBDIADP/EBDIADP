@@ -141,6 +141,15 @@ details.more[open]{z-index:10}
 .subnav button{padding:9px 4px;font-size:13px;min-width:0;text-align:center}
 }
 
+
+/* cores por turma (preenchido) e por título (contorno) */
+.tag.ct0{background:#A5F3FC;color:#164E63}.tag.ct1{background:#E9D5FF;color:#581C87}.tag.ct2{background:#BFDBFE;color:#1E3A8A}.tag.ct3{background:#FBCFE8;color:#831843}
+.tag.ct4{background:#BBF7D0;color:#14532D}.tag.ct5{background:#FDE68A;color:#78350F}.tag.ct6{background:#FECACA;color:#7F1D1D}.tag.ct7{background:#E2E8F0;color:#1E293B}
+:root[data-theme="dark"] .tag.ct0{background:#164E63;color:#A5F3FC}:root[data-theme="dark"] .tag.ct1{background:#581C87;color:#E9D5FF}:root[data-theme="dark"] .tag.ct2{background:#1E3A8A;color:#BFDBFE}:root[data-theme="dark"] .tag.ct3{background:#831843;color:#FBCFE8}
+:root[data-theme="dark"] .tag.ct4{background:#14532D;color:#BBF7D0}:root[data-theme="dark"] .tag.ct5{background:#78350F;color:#FDE68A}:root[data-theme="dark"] .tag.ct6{background:#7F1D1D;color:#FECACA}:root[data-theme="dark"] .tag.ct7{background:#334155;color:#E2E8F0}
+.tag.tt{background:transparent;border:1.5px solid currentColor;padding:0 6px}
+.tt-pr{color:#4338CA}.tt-pra{color:#A21CAF}.tt-miss{color:#0F766E}.tt-pb{color:#1D4ED8}.tt-coop{color:#B45309}.tt-dc{color:#15803D}.tt-mem{color:#475569}
+:root[data-theme="dark"] .tt-pr{color:#A5B4FC}:root[data-theme="dark"] .tt-pra{color:#F0ABFC}:root[data-theme="dark"] .tt-miss{color:#5EEAD4}:root[data-theme="dark"] .tt-pb{color:#93C5FD}:root[data-theme="dark"] .tt-coop{color:#FCD34D}:root[data-theme="dark"] .tt-dc{color:#86EFAC}:root[data-theme="dark"] .tt-mem{color:#CBD5E1}
 @media print{header,nav,.subnav,#toast,.noprint{display:none!important}body{background:#fff;padding:0}main{max-width:none;padding:0}}
 </style>
 </head>
@@ -259,7 +268,11 @@ const info=a=>{const p=[];if(a.nasc)p.push('Nasc. '+a.nasc.split('-').reverse().
  if(a.resp)p.push('Responsável: '+esc(a.resp));
  else if(tt&&tt.exigeResp)p.push('<span style="color:var(--bad);font-weight:700">Sem responsável informado</span>');
  return p.length?'<span class="sub" style="display:block">'+p.join(' · ')+'</span>':''};
-const tags=a=>(a.titulo?' <span class="tag">'+esc(a.titulo)+'</span>':'')+(a.professor?' <span class="tag">Professor(a)</span>':'');
+const NOMES_T=['desbravadores','chamados por deus','bereanos','escolhidas','carvalhos da justiça'],TIT_C={'Pr.':'pr','Pra.':'pra','Miss.':'miss','Pb.':'pb','Coop.':'coop','Dc.':'dc','Membro':'mem'};
+const corT=t=>{const i=NOMES_T.indexOf(String(t.nome||'').trim().toLowerCase());if(i>=0)return i;let h=0;String(t.id).split('').forEach(c=>{h=(h*31+c.charCodeAt(0))>>>0});return 5+h%2};
+const tagT=t=>'<span class="tag ct'+corT(t)+'">'+esc(t.nome)+'</span>';
+const tagTit=v=>'<span class="tag tt tt-'+(TIT_C[v]||'mem')+'">'+esc(v)+'</span>';
+const tags=a=>(a.titulo?' '+tagTit(a.titulo):'')+(a.professor?' <span class="tag">Professor(a)</span>':'');
 const tOptsReq=()=>'<option value="">Selecione o título</option>'+TITULOS.map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('');
 const bOptsReq=()=>[['','Selecione'],['sim','Sim'],['nao','Não']].map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('');
 const tOpts=sel=>'<option value="">Sem título</option>'+TITULOS.map(([v,l])=>'<option value="'+v+'"'+(v===sel?' selected':'')+'>'+l+'</option>').join('');
@@ -378,7 +391,7 @@ function vFaltas(){
  return '<h2>Acompanhamento de faltas</h2><p class="sub">Índice de faltas = faltas ÷ presenças possíveis, nas aulas com chamada salva. O aluno entra em atenção com '+LIM_SEG+' ou mais faltas seguidas, ou com '+LIM_IDX+'% ou mais de faltas (a partir de 3 chamadas). Faltas justificadas ficam fora do índice e das faltas seguidas.</p>'
  +'<div class="bar"><b>Índice geral de faltas</b><b>'+TQ+'%</b></div>'+meter(TQ)
  +'<p class="sub" style="margin-top:6px">'+TF+' falta(s) em '+TP+' presença(s) possíveis</p>'
- +'<div class="sec"><h2>Alunos em atenção</h2><div class="list">'+(aten.length?aten.map(r=>'<div class="item"><span class="tag">'+esc(r.t.nome)+'</span><b style="display:inline">'+esc(nm(r.a))+'</b><span class="sub" style="display:block">'+motivo(r)+' · '+r.f+' falta(s) em '+r.n+' chamada(s)</span></div>').join(''):'<div class="item sub">Nenhum aluno em atenção.</div>')+'</div></div>'
+ +'<div class="sec"><h2>Alunos em atenção</h2><div class="list">'+(aten.length?aten.map(r=>'<div class="item">'+tagT(r.t)+'<b style="display:inline">'+esc(nm(r.a))+'</b><span class="sub" style="display:block">'+motivo(r)+' · '+r.f+' falta(s) em '+r.n+' chamada(s)</span></div>').join(''):'<div class="item sub">Nenhum aluno em atenção.</div>')+'</div></div>'
  +'<div class="sec"><h2>Por turma</h2><div class="list">'+(all.length?all.map(x=>{
   return '<details class="dt"><summary><span><b>'+esc(x.t.nome)+'</b><span class="sub">'+(x.s.keys.length?x.faltas+' falta(s)'+(x.s.jus?' (+'+x.s.jus+' justificada(s))':'')+' em '+x.s.poss+' presença(s) possíveis · '+x.s.keys.length+' chamada(s)':'Sem chamada salva')+'</span></span><b>'+x.q+'%</b></summary>'
   +'<div class="meter" style="margin:0 12px 8px"><i style="width:'+x.q+'%;background:var(--bad)"></i></div>'
@@ -478,14 +491,14 @@ function aniv(){
  const hj=today.getDate(),mes=today.getMonth()+1,ano=today.getFullYear(),bis=(ano%4===0&&ano%100!==0)||ano%400===0,L=[];
  TV().forEach(t=>t.alunos.filter(a=>!a.arq&&a.nasc).forEach(a=>{const mm=+a.nasc.slice(5,7);let dd=+a.nasc.slice(8,10);if(mm!==mes)return;if(mm===2&&dd===29&&!bis)dd=28;L.push({a,t,dd})}));
  L.sort((x,y)=>x.dd-y.dd||nm(x.a).localeCompare(nm(y.a)));
- const row=({a,t,dd})=>kv('<b>'+String(dd).padStart(2,'0')+'/'+String(mes).padStart(2,'0')+'</b> · '+esc(nm(a))+' <span class="sub">'+esc(t.nome)+'</span>',dd===hj?'<span class="tag" style="margin:0">Hoje</span>':''),
+ const row=({a,t,dd})=>kv('<b>'+String(dd).padStart(2,'0')+'/'+String(mes).padStart(2,'0')+'</b> · '+esc(nm(a))+' '+tagT(t),dd===hj?'<span class="tag" style="margin:0">Hoje</span>':''),
   prox=L.filter(x=>x.dd>=hj),pas=L.filter(x=>x.dd<hj);
  return '<h2>Aniversariantes de '+today.toLocaleDateString('pt-BR',{month:'long'})+'</h2><div class="list">'+(prox.length?prox.map(row).join(''):'<div class="item sub">Nenhum aniversariante nos próximos dias deste mês.</div>')+'</div>'
   +(pas.length?'<div class="list" style="margin-top:8px"><details class="dt"><summary><span><b style="font-size:16px">Já fizeram aniversário ('+pas.length+')</b></span></summary>'+pas.map(row).join('')+'</details></div>':'')}
 function edUiV(v){return '<div class="item"><label for="evt" style="margin-top:0">Título</label><input id="evt" value="'+esc(v.titulo)+'"><label for="evx">Mensagem</label><textarea id="evx">'+esc(v.texto)+'</textarea><label for="evs">Para quem</label><select id="evs">'+(ehEquipe()?opts(me.turmaId):opts(v.turma||'','Todos (geral)'))+'</select><div class="acts"><button class="btn" style="margin-top:0" data-evok="'+v.id+'">Salvar</button><button class="tg" data-evno="1">Cancelar</button></div></div>'}
 function vAvisos(){
  const L=S.avisos.filter(v=>!ehEquipe()||!v.turma||tOk(v.turma)).reverse();
- return aniv()+'<h2 style="margin-top:28px">Avisos</h2><div class="list">'+(L.length?L.map(v=>editV===v.id?edUiV(v):'<div class="item"><span class="tag">'+(v.turma&&turma(v.turma)?esc(turma(v.turma).nome):'Geral')+'</span><b style="display:inline">'+esc(v.titulo)+'</b><div>'+esc(v.texto)+'</div><span class="sub">'+v.data.split('-').reverse().join('/')+'</span>'
+ return aniv()+'<h2 style="margin-top:28px">Avisos</h2><div class="list">'+(L.length?L.map(v=>editV===v.id?edUiV(v):'<div class="item">'+(v.turma&&turma(v.turma)?tagT(turma(v.turma)):'<span class="tag ct7">Geral</span>')+'<b style="display:inline">'+esc(v.titulo)+'</b><div>'+esc(v.texto)+'</div><span class="sub">'+v.data.split('-').reverse().join('/')+'</span>'
   +(!edita()||!avOk(v)?'':delV===v.id?'<div class="acts"><span class="sub">Excluir este aviso?</span><button class="tg bad" data-delok="'+v.id+'">Confirmar exclusão</button><button class="tg" data-delno="1">Cancelar</button></div>':'<div class="acts" style="justify-content:flex-end"><details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-ev="'+v.id+'">Editar</button><button class="tg bad" data-delv="'+v.id+'">Excluir</button></div></details></div>')+'</div>').join(''):'<div class="item sub">Nenhum aviso publicado.</div>')+'</div>'
  +(edita()&&(!ehEquipe()||minhaT())?'<div class="sec"><h2>Novo aviso</h2><label for="vt">Título</label><input id="vt"><label for="vx">Mensagem</label><textarea id="vx"></textarea><label for="vs">Para quem</label><select id="vs"'+(ehEquipe()?' disabled':'')+'>'+(ehEquipe()?opts(me.turmaId):opts('','Todos (geral)'))+'</select><button class="btn" id="addV">Publicar aviso</button></div>':'')
  +'<p class="note">Protótipo: os dados ficam só neste aparelho. Na versão real, todos os membros verão os mesmos avisos.</p>';
@@ -505,7 +518,7 @@ function vProfessores(){
  const semProf=S.aulas.filter(g=>g.data>=hoje&&!g.prof&&turma(g.turma)&&minha(g)).length;
  const card=({a,t})=>{const n=nm(a),minhas=S.aulas.filter(g=>g.prof===n&&turma(g.turma)&&minha(g)),
    prox=minhas.filter(g=>g.data>=hoje).sort((x,y)=>x.data.localeCompare(y.data)),dadas=minhas.filter(g=>g.data<hoje).length;
-  return '<details class="dt" data-pn="'+a.id+'"'+(opP.has(a.id)?' open':'')+'><summary><span><span class="tag">'+esc(t.nome)+'</span> <b style="display:inline">'+esc(n)+'</b>'+(a.ativo===false?' <span class="tag">Inativo</span>':'')
+  return '<details class="dt" data-pn="'+a.id+'"'+(opP.has(a.id)?' open':'')+'><summary><span>'+tagT(t)+' <b style="display:inline">'+esc(n)+'</b>'+(a.ativo===false?' <span class="tag">Inativo</span>':'')
    +'<span class="sub" style="display:block">'+(prox.length?prox.length+' aula(s) agendada(s)':'Nenhuma aula agendada')+' · '+dadas+' aula(s) já ministrada(s)</span></span></summary>'
    +(prox.length?prox.map(g=>'<div class="item"><b style="display:inline;text-transform:capitalize">'+fmtD(g.data)+'</b> · '+esc(turma(g.turma).nome)+'<div class="sub">'+esc(g.tema||'Sem tema')+'</div>'+(g.topicos?'<div class="sub" style="white-space:pre-line">'+esc(g.topicos)+'</div>':'')+'</div>').join(''):'<div class="item sub">Nenhuma aula agendada para este professor.</div>')+'</details>'};
  const LIM=3,mais=lista.length>LIM,aberta=expP,vis=mais&&!aberta?lista.slice(0,LIM):lista;
