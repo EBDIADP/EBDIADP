@@ -158,12 +158,10 @@ details.more[open]{z-index:10}
 <div class="subnav" id="sub" aria-label="Gerenciar" hidden></div>
 <main id="app"></main>
 <nav aria-label="Seções">
-<button data-v="painel">Dashboard</button>
+<button data-v="g-painel">Dashboard</button>
 <button data-v="g-aulas">Aulas</button>
-<button data-v="g-turmas">Turmas</button>
 <button data-v="g-controle">Controle</button>
 <button data-v="grupo">Gerenciar</button>
-<button data-v="avisos">Avisos</button>
 </nav>
 <div id="toast" role="status" aria-live="polite"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -256,9 +254,9 @@ async function checaNovas(){if(vendo||!me||me.perfil!=='admin'||pend||document.v
  try{const antes=pendentes().map(u=>u.id).join();await pullUsers();avisaNovas();
   const ae=document.activeElement;if(pendentes().map(u=>u.id).join()!==antes&&!editU&&(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName)))render()}catch(x){}finally{vendo=false}}
 setInterval(checaNovas,60000);
-const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['relatorio','Relatório'],['financeiro','Financeiro'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários'],['auditoria','Auditoria'],['backup','Backup']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
+const SUBS=[['painel','Dashboard'],['avisos','Avisos'],['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['relatorio','Relatório'],['financeiro','Financeiro'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários'],['auditoria','Auditoria'],['backup','Backup']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
 // Abas principais e as sub-abas de cada uma (a chave 'grupo' é a aba Gerenciar)
-const GRUPOS=[['g-aulas','Aulas',['chamada','agenda']],['g-turmas','Turmas',['turmas','alunos','professores','cadastro']],['g-controle','Controle',['faltas','registro','relatorio']],['grupo','Gerenciar',['financeiro','usuarios','auditoria','backup']]],subG={},grupoDe=v=>GRUPOS.find(g=>g[2].includes(v)),subLabel=v=>(SUBS.find(x=>x[0]===v)||[0,v])[1];
+const GRUPOS=[['g-painel','Dashboard',['painel','avisos']],['g-aulas','Aulas',['chamada','agenda']],['g-controle','Controle',['faltas','registro','relatorio','turmas','alunos','professores','cadastro','financeiro']],['grupo','Gerenciar',['usuarios','auditoria','backup']]],subG={},grupoDe=v=>GRUPOS.find(g=>g[2].includes(v)),subLabel=v=>(SUBS.find(x=>x[0]===v)||[0,v])[1];
 let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null,workJ={},workHJ={};
 const expT=new Set();
 let expP=false,expF=false;const opP=new Set();
@@ -585,7 +583,7 @@ function render(){
  S.turmas.forEach(t=>t.alunos.sort((x,y)=>String(x.nome||'').localeCompare(String(y.nome||''),'pt-BR',{sensitivity:'base'})));
  const nv=document.querySelector('nav');
  if(!me){nv.style.display='none';$('#sub').hidden=true;$('#hd').textContent=''+dateLabel;$('#app').innerHTML=vLogin();return}
- nv.style.display='';nv.querySelector('[data-v="painel"]').hidden=!can('painel');GRUPOS.forEach(([k,l,vs])=>{const gb=nv.querySelector('[data-v="'+k+'"]');gb.hidden=!vs.some(can);gb.innerHTML=l+(k==='grupo'?selo(pendentes().length):'')});if(!can(view))view=can('painel')?'painel':'chamada';
+ nv.style.display='';GRUPOS.forEach(([k,l,vs])=>{const gb=nv.querySelector('[data-v="'+k+'"]');gb.hidden=!vs.some(can);gb.innerHTML=(k==='g-painel'&&!can('painel')?'Avisos':l)+(k==='grupo'?selo(pendentes().length):'')});if(!can(view))view=can('painel')?'painel':'chamada';
  $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pNome(me.perfil)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
  $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():view==='backup'?vBackup():view==='financeiro'?vFinanceiro():vAvisos();
  const gv=grupoDe(view);if(gv){sub=view;subG[gv[0]]=view}
