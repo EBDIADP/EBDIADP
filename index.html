@@ -78,7 +78,7 @@ details.dt .freq{padding-left:24px;border-bottom:0}
 .list>.kv:last-child{border-bottom:0}
 details.dt .kv{padding-left:24px;font-size:15px}
 nav{overflow-x:auto;scrollbar-width:none}
-nav button{flex:1 0 auto;padding:14px 14px;font-size:14px;white-space:nowrap}
+nav button{flex:1 0 auto;padding:14px 10px;font-size:14px;white-space:nowrap}
 .al{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap}
 .al.off span{color:var(--muted);text-decoration:line-through}
 .tg{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-weight:700;cursor:pointer;color:var(--muted)}
@@ -159,6 +159,9 @@ details.more[open]{z-index:10}
 <main id="app"></main>
 <nav aria-label="Seções">
 <button data-v="painel">Dashboard</button>
+<button data-v="g-aulas">Aulas</button>
+<button data-v="g-turmas">Turmas</button>
+<button data-v="g-controle">Controle</button>
 <button data-v="grupo">Gerenciar</button>
 <button data-v="avisos">Avisos</button>
 </nav>
@@ -254,6 +257,8 @@ async function checaNovas(){if(vendo||!me||me.perfil!=='admin'||pend||document.v
   const ae=document.activeElement;if(pendentes().map(u=>u.id).join()!==antes&&!editU&&(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName)))render()}catch(x){}finally{vendo=false}}
 setInterval(checaNovas,60000);
 const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['relatorio','Relatório'],['financeiro','Financeiro'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários'],['auditoria','Auditoria'],['backup','Backup']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
+// Abas principais e as sub-abas de cada uma (a chave 'grupo' é a aba Gerenciar)
+const GRUPOS=[['g-aulas','Aulas',['chamada','agenda']],['g-turmas','Turmas',['turmas','alunos','professores','cadastro']],['g-controle','Controle',['faltas','registro','relatorio']],['grupo','Gerenciar',['financeiro','usuarios','auditoria','backup']]],subG={},grupoDe=v=>GRUPOS.find(g=>g[2].includes(v)),subLabel=v=>(SUBS.find(x=>x[0]===v)||[0,v])[1];
 let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null,workJ={},workHJ={};
 const expT=new Set();
 let expP=false,expF=false;const opP=new Set();
@@ -580,18 +585,18 @@ function render(){
  S.turmas.forEach(t=>t.alunos.sort((x,y)=>String(x.nome||'').localeCompare(String(y.nome||''),'pt-BR',{sensitivity:'base'})));
  const nv=document.querySelector('nav');
  if(!me){nv.style.display='none';$('#sub').hidden=true;$('#hd').textContent=''+dateLabel;$('#app').innerHTML=vLogin();return}
- nv.style.display='';nv.querySelector('[data-v="painel"]').hidden=!can('painel');nv.querySelector('[data-v="grupo"]').innerHTML='Gerenciar'+selo(pendentes().length);if(!can(view))view=can('painel')?'painel':'chamada';
+ nv.style.display='';nv.querySelector('[data-v="painel"]').hidden=!can('painel');GRUPOS.forEach(([k,l,vs])=>{const gb=nv.querySelector('[data-v="'+k+'"]');gb.hidden=!vs.some(can);gb.innerHTML=l+(k==='grupo'?selo(pendentes().length):'')});if(!can(view))view=can('painel')?'painel':'chamada';
  $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pNome(me.perfil)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
  $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():view==='backup'?vBackup():view==='financeiro'?vFinanceiro():vAvisos();
- if(GROUP.includes(view))sub=view;
- const sn=$('#sub');sn.hidden=!GROUP.includes(view);
- sn.innerHTML=SUBS.filter(x=>can(x[0])).map(([v,l])=>'<button data-s="'+v+'" aria-current="'+(v===view?'page':'false')+'">'+l+(v==='usuarios'?selo(pendentes().length):'')+'</button>').join('');
- document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===(GROUP.includes(view)?'grupo':view)?'page':'false'));
+ const gv=grupoDe(view);if(gv){sub=view;subG[gv[0]]=view}
+ const sn=$('#sub');sn.hidden=!gv;
+ sn.innerHTML=gv?gv[2].filter(can).map(v=>'<button data-s="'+v+'" aria-current="'+(v===view?'page':'false')+'">'+subLabel(v)+(v==='usuarios'?selo(pendentes().length):'')+'</button>').join(''):'';
+ document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===(gv?gv[0]:view)?'page':'false'));
  try{document.querySelector('nav button[aria-current="page"]').scrollIntoView({inline:'center',block:'nearest'})}catch(e){}
  if(view==='chamada'&&selA)updCount();
  if(view==='registro'&&editH)jusH();
 }
-document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b){view=b.dataset.v==='grupo'?(can(sub)?sub:'chamada'):b.dataset.v;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
+document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b){const gg=GRUPOS.find(g=>g[0]===b.dataset.v);view=gg?(subG[gg[0]]&&can(subG[gg[0]])?subG[gg[0]]:(gg[2].find(can)||'chamada')):b.dataset.v;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
 $('#sub').addEventListener('click',e=>{const b=e.target.closest('button');if(b){view=b.dataset.s;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
 $('#app').addEventListener('click',e=>{
  const r=e.target.closest('.row[data-a]');
