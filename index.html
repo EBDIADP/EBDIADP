@@ -212,7 +212,7 @@ if(!S.extras)S.extras=demoExtras(S.pres);
 if(!S.usuarios)S.usuarios=[];
 if(!S.aulas)S.aulas=[];
 }
-let saveErr=false;
+let saveErr=false,mut=0;
 const TAB=['turmas','aulas','avisos','chamadas'];
 function snapAll(){const m={turmas:{},aulas:{},avisos:{},chamadas:{}};
  S.turmas.forEach(t=>m.turmas[t.id]=JSON.stringify(t));S.aulas.forEach(x=>m.aulas[x.id]=JSON.stringify(x));S.avisos.forEach(x=>m.avisos[x.id]=JSON.stringify(x));
@@ -230,12 +230,12 @@ async function push(){
   const perm=!!e&&(e.code==='42501'||/row-level security|permission denied/i.test(e.message||''));
   if(perm){try{await pull();saveErr=false;render();toast('Sem permissão para essa alteração. Os dados foram recarregados do servidor.',6000);return}catch(x){}}
   saveErr=true;toast('')}}
-function save(){pend++;fila=fila.then(push).catch(()=>{}).then(()=>{pend--})}
+function save(){mut++;pend++;fila=fila.then(push).catch(()=>{}).then(()=>{pend--})}
 window.addEventListener('beforeunload',e=>{if(pend){e.preventDefault();e.returnValue=''}});
 async function todos(tab){let out=[],i=0;for(;;){const {data,error}=await sb.from(tab).select('id,dados').order('id').range(i,i+999);if(error)throw error;out=out.concat(data);if(data.length<1000)return out;i+=1000}}
-async function pull(){const r={};for(const tab of TAB)r[tab]=await todos(tab);
+async function pull(ok){const r={};for(const tab of TAB)r[tab]=await todos(tab);if(ok&&!ok())return false;
  const u=S.usuarios;S=vazio();S.usuarios=u;S.turmas=r.turmas.map(x=>x.dados);S.aulas=r.aulas.map(x=>x.dados);S.avisos=r.avisos.map(x=>x.dados);
- r.chamadas.forEach(x=>{S.pres[x.id]=x.dados.p||[];if(x.dados.e)S.extras[x.id]=x.dados.e});norm();remoto=snapAll()}
+ r.chamadas.forEach(x=>{S.pres[x.id]=x.dados.p||[];if(x.dados.e)S.extras[x.id]=x.dados.e});norm();remoto=snapAll();return true}
 let aprovCol=false;
 async function pullUsers(){const {data,error}=await sb.from('perfis').select('*').order('criado_em');if(error)throw error;
  aprovCol=data.length>0&&Object.prototype.hasOwnProperty.call(data[0],'aprovado_em');
@@ -545,6 +545,22 @@ function vAgenda(){
  return form+'<div class="sec"><h2>Agenda de aulas</h2><p class="sub">Separada por turma.</p>'+(ehEquipe()?'<p class="sub">'+(minhaT()?'Você vê apenas as aulas da sua turma.':semTurma)+'</p>':'')+(ehProf()?'<p class="sub">'+(meuAluno()?'Você vê apenas as aulas em que é o(a) professor(a).':'Seu usuário ainda não está vinculado a um aluno(a) professor(a). Peça ao administrador para fazer o vínculo em Gerenciar › Usuários.')+'</p>':'')+'</div>'+(grupos||'<div class="sec"><div class="list"><div class="item sub">Nenhuma aula agendada.</div></div></div>');
 }
 
+// Atualização automática dos dados: a cada 60 s, só com o app visível, online e sem ninguém digitando ou com algo por salvar.
+// Se qualquer alteração local acontecer enquanto os dados são buscados, a atualização é descartada (nada do usuário se perde).
+let atualizando=false;
+const VIEWS_LIVRES=['painel','chamada','registro','faltas','relatorio','turmas','alunos','professores','auditoria'];
+const ocupado=()=>{const ae=document.activeElement;
+ if(!me||pend||saveErr||selA||work||workH.size||editA||editT||editH||editV||editG||editU||delV||delA||delG||delH||delT||delU)return true;
+ if(ae&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName))return true;
+ return [...document.querySelectorAll('#app input:not([type=checkbox]):not([type=radio]):not([type=date]):not([type=button]),#app textarea')].some(el=>el.value&&el.value.trim())};
+async function atualizaAuto(){
+ if(atualizando||!navigator.onLine||document.visibilityState!=='visible'||ocupado())return;
+ atualizando=true;const m0=mut;
+ try{const antes=JSON.stringify(remoto);
+  const ok=await pull(()=>mut===m0&&!ocupado());
+  if(ok&&JSON.stringify(remoto)!==antes&&VIEWS_LIVRES.includes(view)&&!ocupado()){render();toast('Dados atualizados',1500)}
+ }catch(x){}finally{atualizando=false}}
+setInterval(atualizaAuto,60000);
 const PART=new Set(['da','das','de','do','dos','e','di','du']);
 function capNome(s){s=String(s||'').replace(/\s+/g,' ').trim();if(!s)return s;
  const up=w=>{const c=Array.from(w);return c.length?c[0].toLocaleUpperCase('pt-BR')+c.slice(1).join(''):w};
