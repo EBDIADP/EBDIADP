@@ -158,6 +158,25 @@ Observações:
 - **WhatsApp (opcional):** no começo do script do `index.html`, preencha `const ADMIN_WHATSAPP='5511999999999';` (só números, com país e DDD). A tela "Aguardando aprovação" passa a mostrar o botão **Avisar o administrador no WhatsApp**, que abre uma mensagem pronta.
 - Depois de rodar o SQL, **atualize também o `schema.sql`** guardado.
 
+### Financeiro (administrador)
+
+Em **Gerenciar › Financeiro** o administrador controla as ofertas e as despesas da EBD, mês a mês.
+
+**Antes de usar, rode o SQL (uma vez):** no Supabase, abra **SQL Editor › New query**, cole o conteúdo do arquivo `financeiro.sql` e clique em **Run**. Depois publique o novo `index.html`. Sem o SQL, a tela mostra o aviso "A tabela do financeiro ainda não existe".
+
+- **Quem acessa:** só o administrador. Secretário(a), líder e professor(a) não veem a aba, e o próprio banco recusa o acesso deles.
+- **Entradas automáticas:** o valor do campo **Contribuições** de cada chamada entra sozinho no mês da aula, separado por turma. Não precisa digitar de novo. Para corrigir um valor, edite a chamada em **Histórico**.
+- **Entradas avulsas e saídas:** toque em **Novo lançamento** e preencha tipo, categoria, data, valor, turma (opcional) e descrição. Cada lançamento guarda quem o registrou. Dá para editar e excluir pelo **⋯**.
+- **Resumo do mês:** contribuições das aulas, outras entradas, total de entradas, saídas e saldo do mês. Troque o mês no seletor.
+- **Prestação de contas:** os botões **Baixar planilha (CSV)** e **Imprimir ou salvar em PDF** geram o relatório do mês.
+
+**Limites desta versão:**
+
+- Mostra o saldo **do mês**, sem somar os meses anteriores (não há saldo em caixa acumulado).
+- O **backup do app** (Gerenciar › Backup) ainda **não inclui** os lançamentos do financeiro. Baixe a planilha de cada mês para guardar.
+- As alterações do financeiro **não aparecem** na tela Auditoria.
+- Os dados financeiros ficam só no Supabase. Se você usa o Apps Script de backup no Drive, ele não os copia.
+
 ## Como as permissões funcionam
 
 O banco (Supabase) recusa gravações fora destas regras, mesmo que alguém tente burlar a tela do app:
@@ -174,6 +193,7 @@ O banco (Supabase) recusa gravações fora destas regras, mesmo que alguém tent
 | Ver a lista de usuários, mudar perfil, ativar, excluir | Só o administrador |
 | Nunca ficar sem administrador ativo | Sempre |
 | Backup (exportar e importar) | Só o administrador (tela do app) |
+| Ver e lançar o financeiro (ofertas e despesas) | Só o administrador |
 
 **Limite que ainda existe:**
 

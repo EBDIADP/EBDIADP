@@ -253,7 +253,7 @@ async function checaNovas(){if(vendo||!me||me.perfil!=='admin'||pend||document.v
  try{const antes=pendentes().map(u=>u.id).join();await pullUsers();avisaNovas();
   const ae=document.activeElement;if(pendentes().map(u=>u.id).join()!==antes&&!editU&&(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName)))render()}catch(x){}finally{vendo=false}}
 setInterval(checaNovas,60000);
-const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['relatorio','Relatório'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários'],['auditoria','Auditoria'],['backup','Backup']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
+const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['relatorio','Relatório'],['financeiro','Financeiro'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários'],['auditoria','Auditoria'],['backup','Backup']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
 let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null,workJ={},workHJ={};
 const expT=new Set();
 let expP=false,expF=false;const opP=new Set();
@@ -283,7 +283,7 @@ function opts(sel,blank){return (blank?'<option value="">'+blank+'</option>':'')
 const PERFIS=[['admin','Administrador(a)'],['secretario','Secretário(a)'],['lider','Líder'],['professor','Professor(a)']],pNome=p=>(PERFIS.find(x=>x[0]===p)||[0,p])[1];
 let me=null,pendNome='',editU='',delU='',modo=/type=recovery/.test(location.hash)?'nova':'entrar',acesso='carregando';
 const PROF_OK=['chamada','agenda','registro','avisos'];
-const can=a=>!!me&&(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):a!=='usuarios'&&a!=='auditoria'&&a!=='backup'));
+const can=a=>!!me&&(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):a!=='usuarios'&&a!=='auditoria'&&a!=='backup'&&a!=='financeiro'));
 const edita=()=>!!me&&me.perfil!=='professor';
 const podeAgendar=()=>edita()&&(!ehEquipe()||!!minhaT());
 const ehEquipe=()=>!!me&&(me.perfil==='lider'||me.perfil==='secretario');
@@ -578,7 +578,7 @@ function render(){
  if(!me){nv.style.display='none';$('#sub').hidden=true;$('#hd').textContent=''+dateLabel;$('#app').innerHTML=vLogin();return}
  nv.style.display='';nv.querySelector('[data-v="painel"]').hidden=!can('painel');nv.querySelector('[data-v="grupo"]').innerHTML='Gerenciar'+selo(pendentes().length);if(!can(view))view=can('painel')?'painel':'chamada';
  $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pNome(me.perfil)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
- $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():view==='backup'?vBackup():vAvisos();
+ $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():view==='backup'?vBackup():view==='financeiro'?vFinanceiro():vAvisos();
  if(GROUP.includes(view))sub=view;
  const sn=$('#sub');sn.hidden=!GROUP.includes(view);
  sn.innerHTML=SUBS.filter(x=>can(x[0])).map(([v,l])=>'<button data-s="'+v+'" aria-current="'+(v===view?'page':'false')+'">'+l+(v==='usuarios'?selo(pendentes().length):'')+'</button>').join('');
@@ -687,7 +687,7 @@ $('#app').addEventListener('change',e=>{
  if(e.target.dataset.jh!==undefined){const v=e.target.value,i=e.target.dataset.jh;v?workHJ[i]=v:delete workHJ[i];return}
  if((e.target.id==='gd'||e.target.id==='egd')&&e.target.value&&!dom(e.target.value)){const d=new Date(e.target.value+'T12:00:00');d.setDate(d.getDate()+(7-d.getDay())%7);e.target.value=ymd(d);toast(msgDom+': ajustei para o próximo domingo')}
 });
-$('#hd').addEventListener('click',async e=>{if(e.target.id==='sair'){try{await sb.auth.signOut()}catch(x){}me=null;S=vazio();acesso='';modo='entrar';view='painel';sub='chamada';render();scrollTo(0,0)}});
+$('#hd').addEventListener('click',async e=>{if(e.target.id==='sair'){try{await sb.auth.signOut()}catch(x){}me=null;S=vazio();F=novoF();acesso='';modo='entrar';view='painel';sub='chamada';render();scrollTo(0,0)}});
 $('#app').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'&&!me){const b=$('#entrar')||$('#criarConta')||$('#salvarSenha');if(b)b.click()}});
 // ===== Relatório trimestral =====
 let rAno=null,rTri=1;
@@ -773,6 +773,79 @@ $('#app').addEventListener('click',e=>{
  if(e.target.closest('[data-print]')){document.querySelectorAll('#app details').forEach(d=>{d.open=true});print();return}
  if(e.target.closest('[data-hmais]')){carregaH(true);return}
  if(e.target.closest('[data-hatu]')){H.ok=false;H.ld=false;H.l=[];H.err='';render()}});
+// ===== Financeiro (só administrador; veja financeiro.sql) =====
+// Entradas: contribuições das chamadas (automático) + entradas avulsas. Saídas: despesas lançadas aqui.
+const CAT_E=['Doação','Venda ou cantina','Outras entradas'],CAT_S=['Revistas e material','Lanche','Evento','Manutenção','Outras saídas'];
+const novoF=()=>({l:[],ok:false,ld:false,err:'',mes:'',form:'',del:''});
+let F=novoF();
+const c100=v=>Math.round((+String(v==null?'':v).replace(',','.')||0)*100),mesAtual=()=>ymd(today).slice(0,7);
+const mesRot=m=>{const [y,n]=m.split('-'),s=new Date(+y,+n-1,15).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});return s.charAt(0).toUpperCase()+s.slice(1)};
+const mesFim=m=>{const [y,n]=m.split('-');return m+'-'+String(new Date(+y,+n,0).getDate()).padStart(2,'0')};
+const catOpts=(tipo,sel)=>{const L=(tipo==='entrada'?CAT_E:CAT_S).slice();if(sel&&!L.includes(sel))L.push(sel);return L.map(c=>'<option'+(c===sel?' selected':'')+'>'+esc(c)+'</option>').join('')};
+const ofertasMes=m=>Object.keys(S.pres).filter(k=>k.slice(0,7)===m).map(k=>({d:k.slice(0,10),t:k.split('|')[1],c:c100((ex(k)||{}).oferta)})).filter(x=>x.c>0).sort((a,b)=>a.d.localeCompare(b.d));
+async function carregaF(){
+ if(F.ld)return;const f0=F,m=F.mes;F.ld=true;
+ try{const {data,error}=await sb.from('financeiro').select('*').gte('data',m+'-01').lte('data',mesFim(m)).order('data',{ascending:false}).order('criado_em',{ascending:false});
+  if(error)throw error;if(F!==f0)return;F.l=data;F.err=''}
+ catch(e){if(F!==f0)return;F.err=/42P01|PGRST205|financeiro/.test((e.code||'')+(e.message||''))?'sql':'erro'}
+ F.ok=true;F.ld=false;if(view==='financeiro')render()}
+function fForm(x){const tipo=x?x.tipo:'saida';
+ return '<div class="item"><label for="ftipo" style="margin-top:0">Tipo</label><select id="ftipo"><option value="saida"'+(tipo==='saida'?' selected':'')+'>Saída (despesa)</option><option value="entrada"'+(tipo==='entrada'?' selected':'')+'>Entrada avulsa (além das contribuições das aulas)</option></select>'
+ +'<label for="fcat">Categoria</label><select id="fcat">'+catOpts(tipo,x?x.categoria:'')+'</select>'
+ +'<label for="fdata">Data</label><input id="fdata" type="date" value="'+(x?x.data:(F.mes===mesAtual()?ymd(today):mesFim(F.mes)))+'">'
+ +'<label for="fval">Valor (R$)</label><input id="fval" type="number" min="0.01" step="0.01" inputmode="decimal" value="'+(x?x.valor_centavos/100:'')+'">'
+ +'<label for="ftur">Turma (opcional)</label><select id="ftur"><option value="">Geral (sem turma)</option>'+S.turmas.map(t=>'<option value="'+t.id+'"'+(x&&x.turma_id===t.id?' selected':'')+'>'+esc(t.nome)+'</option>').join('')+'</select>'
+ +'<label for="fdesc">Descrição</label><input id="fdesc" maxlength="120" value="'+(x?esc(x.descricao):'')+'">'
+ +'<div class="acts"><button class="btn" style="margin-top:0" data-fsave="'+(x?x.id:'novo')+'">Salvar</button><button class="tg" data-fno="1">Cancelar</button></div></div>'}
+function vFinanceiro(){
+ if(!F.mes)F.mes=mesAtual();
+ if(!F.ok&&!F.ld)carregaF();
+ const m=F.mes,L=F.l,ofs=ofertasMes(m),tof=ofs.reduce((n,x)=>n+x.c,0),pronto=F.ok&&!F.err,
+  soma=t=>L.filter(x=>x.tipo===t).reduce((n,x)=>n+x.valor_centavos,0),av=soma('entrada'),sai=soma('saida'),ent=tof+av,saldo=ent-sai;
+ const meses=[];for(let i=0;i<36;i++){const d=new Date(today.getFullYear(),today.getMonth()-i,1);meses.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))}
+ if(!meses.includes(m))meses.push(m);
+ const sel='<div class="noprint"><label for="fmes">Mês</label><select id="fmes">'+meses.map(x=>'<option value="'+x+'"'+(x===m?' selected':'')+'>'+mesRot(x)+'</option>').join('')+'</select></div>';
+ const aviso=F.err==='sql'?'<div class="item sub">A tabela do financeiro ainda não existe. Rode o arquivo financeiro.sql no SQL Editor do Supabase.</div>'
+  :F.err?'<div class="item sub">Não foi possível carregar os lançamentos. Verifique a conexão e toque em Atualizar.</div>':!F.ok?'<div class="item sub">Carregando…</div>':'';
+ const resumo=pronto?'<div class="list">'+kv('Contribuições das aulas',brl(tof/100))+kv('Outras entradas',brl(av/100))+kv('<b>Total de entradas</b>',brl(ent/100))+kv('Saídas','<span style="color:var(--bad)">'+brl(sai/100)+'</span>')+kv('<b>Saldo do mês</b>','<span style="color:'+(saldo<0?'var(--bad)':'var(--ok)')+'">'+brl(saldo/100)+'</span>')+'</div>':'<div class="list">'+aviso+'</div>';
+ const porT={};ofs.forEach(x=>{porT[x.t]=(porT[x.t]||0)+x.c});
+ const ofDet='<details class="dt"><summary><b>Contribuições das aulas ('+brl(tof/100)+')</b></summary>'+(ofs.length?Object.keys(porT).map(t=>kv(turma(t)?esc(turma(t).nome):'Turma removida',brl(porT[t]/100))).join('')+'<p class="sub" style="margin:8px 12px">Vêm do campo Contribuições de cada chamada. Para corrigir um valor, edite a chamada em Histórico.</p>':'<div class="item sub">Nenhuma contribuição registrada neste mês.</div>')+'</details>';
+ const fila=x=>F.form===x.id?fForm(x):'<div class="item al"><span><b>'+esc(x.descricao)+'</b><span class="sub" style="display:block"><span class="tag">'+esc(x.categoria)+'</span>'+(x.turma_id&&turma(x.turma_id)?' '+tagT(turma(x.turma_id)):'')+' '+dBR(x.data)+(x.criado_por_nome?' · '+esc(x.criado_por_nome):'')+'</span></span>'
+  +'<b style="color:'+(x.tipo==='saida'?'var(--bad)':'var(--ok)')+'">'+(x.tipo==='saida'?'−':'+')+brl(x.valor_centavos/100)+'</b>'
+  +(F.del===x.id?'<span class="acts" style="margin:0"><span class="sub">Excluir?</span><button class="tg bad" data-fok="'+x.id+'">Confirmar</button><button class="tg" data-fno="1">Cancelar</button></span>':'<details class="more noprint"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-fed="'+x.id+'">Editar</button><button class="tg bad" data-fdel="'+x.id+'">Excluir</button></div></details>')+'</div>';
+ return '<h2>Financeiro · '+mesRot(m)+'</h2><p class="sub">Ofertas e despesas da EBD. Só o administrador vê esta tela.</p>'+sel+'<div class="sec">'+resumo+'</div>'
+  +(pronto?'<div class="sec">'+ofDet+'</div>':'')
+  +'<div class="sec"><h2>Lançamentos</h2><div class="acts noprint" style="margin:0 0 12px"><button class="btn" style="margin-top:0" data-fnovo="1">Novo lançamento</button></div><div class="list">'
+  +(F.form==='novo'?fForm(null):'')+(pronto?(L.length?L.map(fila).join(''):(F.form==='novo'?'':'<div class="item sub">Nenhum lançamento neste mês. Toque em Novo lançamento para registrar uma despesa ou entrada avulsa.</div>')):'')+'</div></div>'
+  +'<div class="acts noprint" style="margin-top:16px"><button class="tg" data-fatu="1">Atualizar</button><button class="tg" data-fcsv="1">Baixar planilha (CSV)</button><button class="tg" data-print="1">Imprimir ou salvar em PDF</button></div>'}
+$('#app').addEventListener('change',e=>{const i=e.target.id;
+ if(i==='fmes'){F={...novoF(),mes:e.target.value};render()}
+ if(i==='ftipo'){const c=$('#fcat');if(c)c.innerHTML=catOpts(e.target.value,'')}});
+$('#app').addEventListener('click',async e=>{
+ if(view!=='financeiro'||!me||me.perfil!=='admin')return;
+ const b=e.target.closest('[data-fnovo],[data-fed],[data-fdel],[data-fok],[data-fno],[data-fsave],[data-fatu],[data-fcsv]');if(!b)return;const D=b.dataset;
+ if(D.fnovo!==undefined){F.form='novo';F.del='';render();return}
+ if(D.fed){F.form=D.fed;F.del='';render();return}
+ if(D.fdel){F.del=D.fdel;F.form='';render();return}
+ if(D.fno!==undefined){F.form='';F.del='';render();return}
+ if(D.fatu!==undefined){F={...novoF(),mes:F.mes};render();return}
+ if(D.fok){b.disabled=true;const {error}=await sb.from('financeiro').delete().eq('id',D.fok);
+  if(error){b.disabled=false;toast('Não foi possível excluir. Tente de novo.');return}
+  F={...novoF(),mes:F.mes};toast('Lançamento excluído');render();return}
+ if(D.fsave){const tipo=$('#ftipo').value,cat=$('#fcat').value,data=$('#fdata').value,v=c100($('#fval').value),desc=$('#fdesc').value.trim().slice(0,120),tur=$('#ftur').value||null;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(data)||isNaN(new Date(data+'T12:00:00'))){toast('Informe a data');return}
+  if(!(v>0)||v>1e9){toast('Informe um valor maior que zero');return}
+  if(!desc){toast('Escreva uma descrição');return}
+  const row={tipo,categoria:cat,data,valor_centavos:v,descricao:desc,turma_id:tur};
+  b.disabled=true;
+  const r=D.fsave==='novo'?await sb.from('financeiro').insert({...row,criado_por_nome:me.nome}):await sb.from('financeiro').update(row).eq('id',D.fsave);
+  if(r.error){b.disabled=false;toast('Não foi possível salvar. Verifique a conexão e tente de novo.');return}
+  F={...novoF(),mes:data.slice(0,7)};toast('Lançamento salvo');render();return}
+ if(D.fcsv!==undefined){const m=F.mes,q=v=>{v=String(v==null?'':v);if(/^[=+@-]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'},val=c=>(c/100).toFixed(2).replace('.',',');
+  const R=ofertasMes(m).map(x=>({d:x.d,l:[dBR(x.d),'Entrada','Oferta da aula',tn(x.t),'Contribuições da chamada',val(x.c)]}))
+   .concat(F.l.map(x=>({d:x.data,l:[dBR(x.data),x.tipo==='saida'?'Saída':'Entrada',x.categoria,x.turma_id?tn(x.turma_id):'Geral',x.descricao,val(x.valor_centavos)]})))
+   .sort((a,b)=>a.d.localeCompare(b.d));
+  baixa('ebd-financeiro-'+m+'.csv','\ufeff'+[['Data','Tipo','Categoria','Turma','Descrição','Valor (R$)']].concat(R.map(x=>x.l)).map(l=>l.map(q).join(';')).join('\r\n'),'text/csv;charset=utf-8');toast('Planilha baixada')}});
 // ===== Backup e restauração (só administrador) =====
 let BK=null,bkMsg='',bkOcupado=false;
 const lerUlt=()=>{try{return localStorage.getItem('ebd_ult_backup')||''}catch(e){return ''}};
@@ -832,7 +905,7 @@ $('#app').addEventListener('change',e=>{if(e.target.id==='bkf'&&e.target.files[0
 $('#app').addEventListener('click',e=>{const c=k=>e.target.closest(k);
  if(c('[data-bkj]'))bkBaixar();else if(c('[data-bkc]'))bkCsv();else if(c('[data-bkgo]'))bkRestaurar();else if(c('[data-bkno]')){BK=null;bkMsg='';render()}});
 async function boot(){
- vistos=null;
+ vistos=null;F=novoF();
  if(!sb){acesso='config';me=null;render();return}
  if(modo==='nova'){acesso='';me=null;render();return}
  const {data:{session}}=await sb.auth.getSession();
