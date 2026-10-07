@@ -112,6 +112,8 @@ Depois de publicar, volte ao passo 3.4 e coloque o endereço em **Site URL**.
 | **Líder** | Igual ao secretário(a) | **Turma** e **aluno** (ambos obrigatórios) |
 | **Professor(a)** | Vê e faz a chamada apenas das aulas em que é o(a) professor(a); só leitura nas demais telas | **Aluno** (obrigatório) |
 
+**Perfil adicional: Tesoureiro(a).** Uma pessoa pode ter o perfil principal da tabela acima **e** também ser Tesoureiro(a), que dá acesso ao **Financeiro**. Em **Gerenciar › Usuários**, toque em ⋯ › Editar e marque **Também é Tesoureiro(a)**. Exemplos: Secretário(a) + Tesoureiro(a), ou Professor(a) + Tesoureiro(a). Quem só cuida do financeiro e não tem função em turma deve ficar com o perfil **Professor(a) sem vínculo** e a opção marcada. Só o administrador altera esse perfil adicional. Para isso funcionar, rode o `tesoureiro.sql` (veja a seção **Financeiro**).
+
 Na tela **Professores**, líder e secretário(a) veem **todos os professores cadastrados, de todas as turmas**, para saber quem é professor. As contagens de aulas de cada professor mostram só as aulas da turma deles.
 
 **Importante:** líder e secretário(a) **sem turma vinculada não conseguem salvar nada**. O banco só aceita gravações de líder e secretário(a) na turma vinculada a eles.
@@ -162,9 +164,9 @@ Observações:
 
 Em **Gerenciar › Financeiro** o administrador controla as ofertas e as despesas da EBD, mês a mês.
 
-**Antes de usar, rode o SQL (uma vez):** no Supabase, abra **SQL Editor › New query**, cole o conteúdo do arquivo `financeiro.sql` e clique em **Run**. Depois publique o novo `index.html`. Sem o SQL, a tela mostra o aviso "A tabela do financeiro ainda não existe".
+**Antes de usar, rode o SQL (uma vez):** no Supabase, abra **SQL Editor › New query**, cole o conteúdo do arquivo `financeiro.sql` e clique em **Run**. Depois rode também o `tesoureiro.sql` do mesmo jeito (ele cria o perfil adicional Tesoureiro(a) e libera esse perfil no financeiro). Por fim, publique o novo `index.html`. Sem o SQL, a tela mostra o aviso "A tabela do financeiro ainda não existe".
 
-- **Quem acessa:** só o administrador. Secretário(a), líder e professor(a) não veem a aba, e o próprio banco recusa o acesso deles.
+- **Quem acessa:** o administrador e quem tem o perfil adicional **Tesoureiro(a)**. Os demais não veem a aba, e o próprio banco recusa o acesso deles.
 - **Entradas automáticas:** o valor do campo **Contribuições** de cada chamada entra sozinho no mês da aula, separado por turma. Não precisa digitar de novo. Para corrigir um valor, edite a chamada em **Histórico**.
 - **Entradas avulsas e saídas:** toque em **Novo lançamento** e preencha tipo, categoria, data, valor, turma (opcional) e descrição. Cada lançamento guarda quem o registrou. Dá para editar e excluir pelo **⋯**.
 - **Resumo do mês:** contribuições das aulas, outras entradas, total de entradas, saídas e saldo do mês. Troque o mês no seletor.
@@ -193,7 +195,8 @@ O banco (Supabase) recusa gravações fora destas regras, mesmo que alguém tent
 | Ver a lista de usuários, mudar perfil, ativar, excluir | Só o administrador |
 | Nunca ficar sem administrador ativo | Sempre |
 | Backup (exportar e importar) | Só o administrador (tela do app) |
-| Ver e lançar o financeiro (ofertas e despesas) | Só o administrador |
+| Ver e lançar o financeiro (ofertas e despesas) | Administrador e quem tem o perfil adicional Tesoureiro(a) |
+| Dar ou tirar o perfil Tesoureiro(a) | Só o administrador |
 
 **Limite que ainda existe:**
 

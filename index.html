@@ -237,10 +237,12 @@ async function todos(tab){let out=[],i=0;for(;;){const {data,error}=await sb.fro
 async function pull(ok){const r={};for(const tab of TAB)r[tab]=await todos(tab);if(ok&&!ok())return false;
  const u=S.usuarios;S=vazio();S.usuarios=u;S.turmas=r.turmas.map(x=>x.dados);S.aulas=r.aulas.map(x=>x.dados);S.avisos=r.avisos.map(x=>x.dados);
  r.chamadas.forEach(x=>{S.pres[x.id]=x.dados.p||[];if(x.dados.e)S.extras[x.id]=x.dados.e});norm();remoto=snapAll();return true}
-let aprovCol=false;
+let aprovCol=false,extraCol=false;
 async function pullUsers(){const {data,error}=await sb.from('perfis').select('*').order('criado_em');if(error)throw error;
- aprovCol=data.length>0&&Object.prototype.hasOwnProperty.call(data[0],'aprovado_em');
- S.usuarios=data.map(u=>({id:u.id,nome:u.nome||u.email,login:u.email,perfil:u.perfil,ativo:u.ativo,aluno_id:u.aluno_id||null,turma_id:u.turma_id||null,aprovado_em:u.aprovado_em||null}))}
+ aprovCol=data.length>0&&Object.prototype.hasOwnProperty.call(data[0],'aprovado_em');extraCol=data.length>0&&Object.prototype.hasOwnProperty.call(data[0],'perfis_extra');
+ S.usuarios=data.map(u=>({id:u.id,nome:u.nome||u.email,login:u.email,perfil:u.perfil,ativo:u.ativo,aluno_id:u.aluno_id||null,turma_id:u.turma_id||null,aprovado_em:u.aprovado_em||null,extras:Array.isArray(u.perfis_extra)?u.perfis_extra:[]}))}
+// Perfil adicional (hoje só 'tesoureiro'): vale além do perfil principal. Precisa do tesoureiro.sql.
+const temTes=u=>!!u&&(u.extras||[]).includes('tesoureiro'),ehTes=()=>!!me&&(me.perfil==='admin'||temTes(me)),pRot=u=>pNome(u.perfil)+(temTes(u)?' + Tesoureiro(a)':'');
 // Conta nova = inativa e nunca aprovada (só funciona depois do SQL do PASSO-A-PASSO; sem ele, aprovCol fica falso e não há avisos)
 const ehPend=u=>aprovCol&&u.ativo===false&&!u.aprovado_em;
 const pendentes=()=>(me&&me.perfil==='admin')?S.usuarios.filter(ehPend):[];
@@ -286,7 +288,7 @@ function opts(sel,blank){return (blank?'<option value="">'+blank+'</option>':'')
 const PERFIS=[['admin','Administrador(a)'],['secretario','Secretário(a)'],['lider','Líder'],['professor','Professor(a)']],pNome=p=>(PERFIS.find(x=>x[0]===p)||[0,p])[1];
 let me=null,pendNome='',editU='',delU='',modo=/type=recovery/.test(location.hash)?'nova':'entrar',acesso='carregando';
 const PROF_OK=['chamada','agenda','registro','avisos'];
-const can=a=>!!me&&(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):a!=='usuarios'&&a!=='auditoria'&&a!=='backup'&&a!=='financeiro'));
+const can=a=>!!me&&(a==='financeiro'?ehTes():(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):a!=='usuarios'&&a!=='auditoria'&&a!=='backup')));
 const edita=()=>!!me&&me.perfil!=='professor';
 const podeAgendar=()=>edita()&&(!ehEquipe()||!!minhaT());
 const ehEquipe=()=>!!me&&(me.perfil==='lider'||me.perfil==='secretario');
@@ -304,7 +306,7 @@ const meuAluno=()=>{const r=me&&alunoDe(me.alunoId);return r?r.a:null};
 const minha=x=>ehEquipe()?tOk(x.turma):(!ehProf()||(!!meuAluno()&&x.prof===nm(meuAluno())));
 const proprio=k=>{if(ehEquipe())return tOk(k.slice(k.indexOf('|')+1));if(!ehProf())return true;const i=k.indexOf('|'),d=k.slice(0,i),tid=k.slice(i+1),au=S.aulas.find(x=>x.turma===tid&&x.data===d),pr=au?au.prof:((S.extras||{})[k]||{}).prof;return !!meuAluno()&&pr===nm(meuAluno())};
 const semAula=()=>ehEquipe()?(minhaT()?'Nenhuma chamada liberada para a sua turma. A chamada abre no dia das aulas agendadas.':semTurma):ehProf()?(meuAluno()?'Nenhuma chamada liberada para você. A chamada abre no dia das aulas em que você é o(a) professor(a).':'Seu usuário ainda não está vinculado a um aluno(a) professor(a). Peça ao administrador para fazer o vínculo em Gerenciar › Usuários.'):'Nenhuma chamada liberada. Agende uma aula em Gerenciar › Agenda: a chamada abre no dia marcado.';
-const vinc=u=>{const bad=t=>' · <span style="color:var(--bad);font-weight:700">'+t+'</span>',r=alunoDe(u.aluno_id);let x=r?' · Aluno(a): '+esc(nm(r.a))+' ('+esc(r.t.nome)+')':(u.perfil==='professor'||u.perfil==='lider'?bad('sem vínculo com aluno'):'');if(u.perfil==='lider'||u.perfil==='secretario'){const t=turma(u.turma_id);x=(t?' · '+(u.perfil==='lider'?'Líder':'Secretário(a)')+' da turma '+esc(t.nome):bad('sem vínculo com turma'))+x}return x};
+const vinc=u=>{const bad=t=>' · <span style="color:var(--bad);font-weight:700">'+t+'</span>',r=alunoDe(u.aluno_id);let x=r?' · Aluno(a): '+esc(nm(r.a))+' ('+esc(r.t.nome)+')':((u.perfil==='professor'&&!temTes(u))||u.perfil==='lider'?bad('sem vínculo com aluno'):'');if(u.perfil==='lider'||u.perfil==='secretario'){const t=turma(u.turma_id);x=(t?' · '+(u.perfil==='lider'?'Líder':'Secretário(a)')+' da turma '+esc(t.nome):bad('sem vínculo com turma'))+x}return x};
 const admins=()=>S.usuarios.filter(u=>u.perfil==='admin'&&u.ativo!==false);
 const alOpts=sel=>'<option value="">Sem vínculo</option>'+S.turmas.map(t=>{const L=t.alunos.filter(a=>!a.arq);return L.length?'<optgroup label="'+esc(t.nome)+'">'+L.map(a=>'<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(nm(a))+(a.professor?' (professor)':'')+'</option>').join('')+'</optgroup>':''}).join('');
 const pOpts=sel=>PERFIS.map(([v,l])=>'<option value="'+v+'"'+(v===sel?' selected':'')+'>'+l+'</option>').join('');
@@ -317,10 +319,10 @@ function vLogin(){
  if(modo==='nova')return '<h2>Nova senha</h2>'+L('ns','Nova senha (mín. 6 caracteres)','password','new-password')+'<button class="btn full" id="salvarSenha">Salvar nova senha</button>';
  if(modo==='criar')return '<h2>Criar conta</h2><p class="sub">Depois de criar, o administrador precisa liberar o seu acesso.</p>'+L('cn','Nome')+L('cl','E-mail','email','email')+L('cs','Senha (mín. 6 caracteres)','password','new-password')+L('cr','Repita a senha','password','new-password')+'<button class="btn full" id="criarConta">Criar conta</button><div class="acts"><button class="tg" id="irEntrar">Já tenho conta</button></div>';
  return '<h2>Entrar</h2>'+L('lg','E-mail','email','username')+L('ls','Senha','password','current-password')+'<button class="btn full" id="entrar">Entrar</button><div class="acts"><button class="tg" id="irCriar">Criar conta</button></div><p style="margin:12px 0 0;font-size:.85rem;opacity:.7">Esqueceu a senha? Fale com o administrador da EBD.</p>'}
-function edUiU(u){return '<div class="item"><label for="eun" style="margin-top:0">Nome</label><input id="eun" value="'+esc(u.nome)+'"><label for="eup">Perfil</label><select id="eup">'+pOpts(u.perfil)+'</select><div id="eulw"><label for="eul">Aluno(a) vinculado(a)</label><select id="eul">'+alOpts(u.aluno_id||'')+'</select><p class="sub">O vínculo vale para administrador, secretário(a) e professor(a). Um líder também deve ser vinculado ao seu cadastro de aluno. No perfil professor(a), a pessoa passa a ver e fazer chamada apenas das aulas em que é o(a) professor(a).</p></div><div id="eutw"'+(u.perfil==='lider'||u.perfil==='secretario'?'':' hidden')+'><label for="eut">Turma vinculada</label><select id="eut">'+opts(u.turma_id||'','Sem vínculo')+'</select><p class="sub">Líder e secretário(a) veem e acompanham apenas esta turma: dashboard, chamada, agenda, histórico e faltas. Também podem agendar aulas e cadastrar novos alunos nela.</p></div><label class="chkl"><input type="checkbox" id="eua"'+(u.ativo!==false||ehPend(u)?' checked':'')+'>Ativo</label><div class="acts"><button class="btn" style="margin-top:0" data-uek="'+u.id+'">Salvar</button><button class="tg" data-uno="1">Cancelar</button></div></div>'}
+function edUiU(u){return '<div class="item"><label for="eun" style="margin-top:0">Nome</label><input id="eun" value="'+esc(u.nome)+'"><label for="eup">Perfil</label><select id="eup">'+pOpts(u.perfil)+'</select><div id="eulw"><label for="eul">Aluno(a) vinculado(a)</label><select id="eul">'+alOpts(u.aluno_id||'')+'</select><p class="sub">O vínculo vale para administrador, secretário(a) e professor(a). Um líder também deve ser vinculado ao seu cadastro de aluno. No perfil professor(a), a pessoa passa a ver e fazer chamada apenas das aulas em que é o(a) professor(a).</p></div><div id="eutw"'+(u.perfil==='lider'||u.perfil==='secretario'?'':' hidden')+'><label for="eut">Turma vinculada</label><select id="eut">'+opts(u.turma_id||'','Sem vínculo')+'</select><p class="sub">Líder e secretário(a) veem e acompanham apenas esta turma: dashboard, chamada, agenda, histórico e faltas. Também podem agendar aulas e cadastrar novos alunos nela.</p></div>'+(extraCol?'<label class="chkl"><input type="checkbox" id="eutes"'+(temTes(u)?' checked':'')+'>Também é Tesoureiro(a)</label><p class="sub">Dá acesso ao Financeiro, além do perfil escolhido acima. Para quem só cuida do financeiro, use o perfil Professor(a) sem vínculo e marque esta opção.</p>':'')+'<label class="chkl"><input type="checkbox" id="eua"'+(u.ativo!==false||ehPend(u)?' checked':'')+'>Ativo</label><div class="acts"><button class="btn" style="margin-top:0" data-uek="'+u.id+'">Salvar</button><button class="tg" data-uno="1">Cancelar</button></div></div>'}
 function vUsuarios(){
  return '<h2>Usuários'+selo(pendentes().length)+'</h2><p class="sub">Só o administrador cria, edita e exclui usuários e faz os vínculos. O administrador acessa tudo. Professor(a), vinculado a um aluno, vê e faz chamada só das próprias aulas. Líder e secretário(a), vinculados a uma turma, têm acesso a tudo dessa turma (chamada, agenda, histórico, faltas, alunos, professores, cadastro e avisos), mas só dela.</p><div class="list">'
- +S.usuarios.map((u,i)=>[u,i]).sort((a,b)=>(ehPend(b[0])-ehPend(a[0]))||a[1]-b[1]).map(x=>x[0]).map(u=>editU===u.id?edUiU(u):'<div class="item al'+(u.ativo===false&&!ehPend(u)?' off':'')+'"><span>'+esc(u.nome)+(ehPend(u)?' <span class="tag">Aguardando aprovação</span>':'')+(u.id===me.id?' <span class="tag">Você</span>':'')+'<span class="sub" style="display:block">@'+esc(u.login)+' · '+pNome(u.perfil)+(u.ativo===false&&!ehPend(u)?' · Inativo'+(aprovCol?'':' ou aguardando aprovação'):'')+vinc(u)+'</span></span>'
+ +S.usuarios.map((u,i)=>[u,i]).sort((a,b)=>(ehPend(b[0])-ehPend(a[0]))||a[1]-b[1]).map(x=>x[0]).map(u=>editU===u.id?edUiU(u):'<div class="item al'+(u.ativo===false&&!ehPend(u)?' off':'')+'"><span>'+esc(u.nome)+(ehPend(u)?' <span class="tag">Aguardando aprovação</span>':'')+(u.id===me.id?' <span class="tag">Você</span>':'')+'<span class="sub" style="display:block">@'+esc(u.login)+' · '+pRot(u)+(u.ativo===false&&!ehPend(u)?' · Inativo'+(aprovCol?'':' ou aguardando aprovação'):'')+vinc(u)+'</span></span>'
   +(delU===u.id?'<span class="acts" style="margin:0"><span class="sub">Excluir?</span><button class="tg bad" data-uok="'+u.id+'">Confirmar</button><button class="tg" data-uno="1">Cancelar</button></span>':(ehPend(u)?'<button class="tg" data-ue="'+u.id+'">Liberar</button>':'')+'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-ue="'+u.id+'">Editar</button>'+(u.id===me.id?'':'<button class="tg bad" data-ud="'+u.id+'">Excluir</button>')+'</div></details>')+'</div>').join('')+'</div>'
  +'<div class="sec"><h2>Novas pessoas</h2><p class="sub">Quem precisa de acesso toca em <b>Criar conta</b> na tela de entrada. A conta aparece aqui no topo, como <b>Aguardando aprovação</b>: toque em <b>Liberar</b> (ou ⋯ › Editar), escolha o perfil, faça os vínculos e confira se <b>Ativo</b> está marcado. Para apagar o login por completo, exclua também em Authentication › Users no Supabase.</p></div>'}
 const aulaKey=x=>x.data+'|'+x.turma;
@@ -584,7 +586,7 @@ function render(){
  const nv=document.querySelector('nav');
  if(!me){nv.style.display='none';$('#sub').hidden=true;$('#hd').textContent=''+dateLabel;$('#app').innerHTML=vLogin();return}
  nv.style.display='';GRUPOS.forEach(([k,l,vs])=>{const gb=nv.querySelector('[data-v="'+k+'"]');gb.hidden=!vs.some(can);gb.innerHTML=(k==='g-painel'&&!can('painel')?'Avisos':l)+(k==='grupo'?selo(pendentes().length):'')});if(!can(view))view=can('painel')?'painel':'chamada';
- $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pNome(me.perfil)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
+ $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pRot(me)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
  $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():view==='backup'?vBackup():view==='financeiro'?vFinanceiro():vAvisos();
  const gv=grupoDe(view);if(gv){sub=view;subG[gv[0]]=view}
  const sn=$('#sub');sn.hidden=!gv;
@@ -731,7 +733,7 @@ async function carregaH(mais){
   H.l=mais?H.l.concat(data):data;H.fim=data.length<50;H.err=''}
  catch(e){if(H.f!==f)return;H.err=/42P01|PGRST205|historico/.test((e.code||'')+(e.message||''))?'sql':'erro'}
  H.ok=true;H.ld=false;if(view==='auditoria')render()}
-const ROT={nome:'nome',titulo:'título',professor:'professor(a)',ativo:'situação',arq:'arquivado',desde:'data de entrada',resp:'responsável',batizado:'batismo',nasc:'nascimento',ant:'histórico de turma',tema:'tema',topicos:'tópicos',prof:'professor(a)',data:'data',texto:'mensagem',turma:'turma',perfil:'perfil',aluno_id:'vínculo com aluno',turma_id:'vínculo com turma'};
+const ROT={perfis_extra:'perfil adicional',nome:'nome',titulo:'título',professor:'professor(a)',ativo:'situação',arq:'arquivado',desde:'data de entrada',resp:'responsável',batizado:'batismo',nasc:'nascimento',ant:'histórico de turma',tema:'tema',topicos:'tópicos',prof:'professor(a)',data:'data',texto:'mensagem',turma:'turma',perfil:'perfil',aluno_id:'vínculo com aluno',turma_id:'vínculo com turma'};
 const difC=(a,b,sk)=>Object.keys(Object.assign({},a,b)).filter(k=>!(sk||[]).includes(k)&&JSON.stringify((a||{})[k])!==JSON.stringify((b||{})[k])).map(k=>ROT[k]||k);
 const dBR=d=>String(d).split('-').reverse().join('/'),tn=id=>{const t=turma(id);return t?t.nome:'turma removida'};
 function descH(h){const A=h.antes||{},D=h.depois||{},op=h.op,x=op==='DELETE'?A:D;
@@ -780,7 +782,7 @@ $('#app').addEventListener('click',e=>{
  if(e.target.closest('[data-print]')){document.querySelectorAll('#app details').forEach(d=>{d.open=true});print();return}
  if(e.target.closest('[data-hmais]')){carregaH(true);return}
  if(e.target.closest('[data-hatu]')){H.ok=false;H.ld=false;H.l=[];H.err='';render()}});
-// ===== Financeiro (só administrador; veja financeiro.sql) =====
+// ===== Financeiro (administrador e tesoureiro; veja financeiro.sql e tesoureiro.sql) =====
 // Entradas: contribuições das chamadas (automático) + entradas avulsas. Saídas: despesas lançadas aqui.
 const CAT_E=['Doação','Venda ou cantina','Outras entradas'],CAT_S=['Revistas e material','Lanche','Evento','Manutenção','Outras saídas'];
 const novoF=()=>({l:[],ok:false,ld:false,err:'',mes:'',form:'',del:''});
@@ -820,7 +822,7 @@ function vFinanceiro(){
  const fila=x=>F.form===x.id?fForm(x):'<div class="item al"><span><b>'+esc(x.descricao)+'</b><span class="sub" style="display:block"><span class="tag">'+esc(x.categoria)+'</span>'+(x.turma_id&&turma(x.turma_id)?' '+tagT(turma(x.turma_id)):'')+' '+dBR(x.data)+(x.criado_por_nome?' · '+esc(x.criado_por_nome):'')+'</span></span>'
   +'<b style="color:'+(x.tipo==='saida'?'var(--bad)':'var(--ok)')+'">'+(x.tipo==='saida'?'−':'+')+brl(x.valor_centavos/100)+'</b>'
   +(F.del===x.id?'<span class="acts" style="margin:0"><span class="sub">Excluir?</span><button class="tg bad" data-fok="'+x.id+'">Confirmar</button><button class="tg" data-fno="1">Cancelar</button></span>':'<details class="more noprint"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-fed="'+x.id+'">Editar</button><button class="tg bad" data-fdel="'+x.id+'">Excluir</button></div></details>')+'</div>';
- return '<h2>Financeiro · '+mesRot(m)+'</h2><p class="sub">Ofertas e despesas da EBD. Só o administrador vê esta tela.</p>'+sel+'<div class="sec">'+resumo+'</div>'
+ return '<h2>Financeiro · '+mesRot(m)+'</h2><p class="sub">Ofertas e despesas da EBD. Só o administrador e quem tem o perfil Tesoureiro(a) veem esta tela.</p>'+sel+'<div class="sec">'+resumo+'</div>'
   +(pronto?'<div class="sec">'+ofDet+'</div>':'')
   +'<div class="sec"><h2>Lançamentos</h2><div class="acts noprint" style="margin:0 0 12px"><button class="btn" style="margin-top:0" data-fnovo="1">Novo lançamento</button></div><div class="list">'
   +(F.form==='novo'?fForm(null):'')+(pronto?(L.length?L.map(fila).join(''):(F.form==='novo'?'':'<div class="item sub">Nenhum lançamento neste mês. Toque em Novo lançamento para registrar uma despesa ou entrada avulsa.</div>')):'')+'</div></div>'
@@ -829,7 +831,7 @@ $('#app').addEventListener('change',e=>{const i=e.target.id;
  if(i==='fmes'){F={...novoF(),mes:e.target.value};render()}
  if(i==='ftipo'){const c=$('#fcat');if(c)c.innerHTML=catOpts(e.target.value,'')}});
 $('#app').addEventListener('click',async e=>{
- if(view!=='financeiro'||!me||me.perfil!=='admin')return;
+ if(view!=='financeiro'||!ehTes())return;
  const b=e.target.closest('[data-fnovo],[data-fed],[data-fdel],[data-fok],[data-fno],[data-fsave],[data-fatu],[data-fcsv]');if(!b)return;const D=b.dataset;
  if(D.fnovo!==undefined){F.form='novo';F.del='';render();return}
  if(D.fed){F.form=D.fed;F.del='';render();return}
@@ -920,7 +922,7 @@ async function boot(){
  const {data:p,error}=await sb.from('perfis').select('*').eq('id',session.user.id).maybeSingle();
  if(error){toast('Erro ao conectar. Tente novamente.');me=null;acesso='';render();return}
  if(!p||!p.ativo){me=null;acesso='pendente';pendNome=(p&&(p.nome||p.email))||session.user.email||'';render();return}
- me={id:p.id,nome:p.nome||p.email,login:p.email,perfil:p.perfil,ativo:true,alunoId:p.aluno_id||null,turmaId:p.turma_id||null};acesso='';
+ me={id:p.id,nome:p.nome||p.email,login:p.email,perfil:p.perfil,ativo:true,alunoId:p.aluno_id||null,turmaId:p.turma_id||null,extras:Array.isArray(p.perfis_extra)?p.perfis_extra:[]};acesso='';
  try{await pull();if(me.perfil==='admin'){await pullUsers();if(!S.turmas.length){S.turmas=seed().turmas;norm();save()}}}catch(e){toast('Erro ao carregar os dados')}
  if(ehEquipe()&&me.turmaId)cur=me.turmaId;view=can('painel')?'painel':'chamada';render();scrollTo(0,0);if(me.perfil==='admin')avisaNovas()}
 $('#app').addEventListener('click',async e=>{
@@ -947,13 +949,13 @@ $('#app').addEventListener('click',async e=>{
   if(u.perfil==='admin'&&u.ativo!==false&&admins().length<2){toast('Precisa existir ao menos um administrador ativo');return}
   const {error}=await sb.from('perfis').delete().eq('id',u.id);if(error){toast('Não foi possível excluir');return}
   S.usuarios=S.usuarios.filter(x=>x.id!==u.id);delU='';toast('Usuário excluído');render();return}
- if(D.uek){const u=S.usuarios.find(x=>x.id===D.uek);if(!u)return;const n=capNome($('#eun').value),pf=$('#eup').value,at=$('#eua').checked,al=$('#eul').value||null,tu=(pf==='lider'||pf==='secretario')?($('#eut').value||null):null;
+ if(D.uek){const u=S.usuarios.find(x=>x.id===D.uek);if(!u)return;const n=capNome($('#eun').value),pf=$('#eup').value,at=$('#eua').checked,al=$('#eul').value||null,tu=(pf==='lider'||pf==='secretario')?($('#eut').value||null):null,ex2=($('#eutes')&&$('#eutes').checked)?['tesoureiro']:[];
   if(!n){toast('Informe o nome');return}
   if(u.id===me.id&&!at){toast('Você não pode desativar a si mesmo');return}
   if(u.perfil==='admin'&&u.ativo!==false&&!(pf==='admin'&&at)&&admins().length<2){toast('Precisa existir ao menos um administrador ativo');return}
   if(al){const dup=S.usuarios.find(x=>x.id!==u.id&&x.aluno_id===al);if(dup){toast('Esse aluno já está vinculado a '+dup.nome);return}}
-  const {error}=await sb.from('perfis').update({nome:n,perfil:pf,ativo:at,aluno_id:al,turma_id:tu}).eq('id',u.id);if(error){toast('Não foi possível salvar: '+error.message);return}
-  u.nome=n;u.perfil=pf;u.ativo=at;u.aluno_id=al;u.turma_id=tu;if(at&&!u.aprovado_em)u.aprovado_em=new Date().toISOString();editU='';toast('Usuário atualizado');render();return}
+  const {error}=await sb.from('perfis').update(Object.assign({nome:n,perfil:pf,ativo:at,aluno_id:al,turma_id:tu},extraCol?{perfis_extra:ex2}:{})).eq('id',u.id);if(error){toast('Não foi possível salvar: '+error.message);return}
+  u.nome=n;u.perfil=pf;u.ativo=at;u.aluno_id=al;u.turma_id=tu;if(extraCol)u.extras=ex2;if(at&&!u.aprovado_em)u.aprovado_em=new Date().toISOString();editU='';toast('Usuário atualizado');render();return}
 });
 if(sb)sb.auth.onAuthStateChange((ev)=>{if(ev==='PASSWORD_RECOVERY'){modo='nova';me=null;render()}});
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!me||pend)return;
