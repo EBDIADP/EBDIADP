@@ -99,16 +99,9 @@ Depois de publicar, volte ao passo 3.4 e coloque o endereço em **Site URL**.
 ## 8. Liberar os demais usuários
 
 1. Cada pessoa abre o site, toca em **Criar conta** e cadastra nome, e-mail e senha.
-2. Ela verá "Aguardando aprovação".
-3. O administrador abre **Gerenciar › Usuários**, toca em **⋯ › Editar**, escolhe o **Perfil**, faz os **vínculos** (veja abaixo), marca **Ativo** e salva.
+2. Ela verá "Aguardando aprovação" e o administrador é avisado dentro do app (veja **Aviso de novas contas** abaixo).
+3. O administrador abre **Gerenciar › Usuários**, toca em **Liberar** (ou **⋯ › Editar**), escolhe o **Perfil**, faz os **vínculos** (veja abaixo), confere se **Ativo** está marcado e salva.
 4. A pessoa sai, entra de novo e já usa o app.
-
-**Aviso de novos cadastros (para o administrador):** quando alguém cria uma conta, o administrador vê no app:
-- uma faixa no topo da tela, "N pessoa(s) aguardam aprovação", que leva direto a **Gerenciar › Usuários**;
-- um número ao lado de **Gerenciar** e de **Usuários**;
-- com o app aberto, uma verificação a cada 1 minuto e um aviso rápido na tela quando chega um novo cadastro.
-
-Conta como "aguardando aprovação" quem está **inativo e ainda sem vínculos** (sem turma e sem aluno). Ao ativar a pessoa e fazer os vínculos, o aviso some. O aviso só aparece com o app aberto; **não há e-mail nem notificação no celular**. E-mail depende de um SMTP funcionando (veja a seção **Recuperação de senha e envio de e-mails**).
 
 ### Perfis e vínculos
 
@@ -123,6 +116,46 @@ Conta como "aguardando aprovação" quem está **inativo e ainda sem vínculos**
 
 Para remover alguém por completo, desative-a no app. Para apagar o login dela, exclua também em **Authentication › Users** no Supabase.
 
+### Aviso de novas contas (administrador)
+
+Quando alguém cria uma conta, o administrador é avisado dentro do app:
+
+- Uma **faixa no Dashboard** mostra quantas contas aguardam liberação e os nomes, com o botão **Revisar agora**.
+- Um **número laranja** aparece no menu **Gerenciar** e na aba **Usuários**.
+- Ao entrar, ao voltar para o app e **a cada 60 segundos** (com o app aberto), aparece um aviso quando chega uma conta nova.
+- Em **Gerenciar › Usuários**, as contas pendentes ficam no topo, marcadas como **Aguardando aprovação**, com o botão **Liberar**. No formulário, **Ativo** já vem marcado.
+
+**Antes de publicar esta versão, rode este SQL no Supabase** (SQL Editor). Ele cria a coluna que diferencia conta nova de conta desativada e não altera nenhum dado existente, além de marcar como aprovados os usuários que já estão ativos:
+
+```sql
+alter table public.perfis add column if not exists aprovado_em timestamptz;
+
+update public.perfis set aprovado_em = coalesce(criado_em, now())
+where ativo is true and aprovado_em is null;
+
+create or replace function public.perfis_marca_aprovado() returns trigger
+language plpgsql as $$
+begin
+  if new.ativo is true and new.aprovado_em is null then
+    new.aprovado_em := now();
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists perfis_marca_aprovado on public.perfis;
+create trigger perfis_marca_aprovado
+before insert or update on public.perfis
+for each row execute function public.perfis_marca_aprovado();
+```
+
+Observações:
+
+- **Contas inativas que já existem hoje** passam a aparecer como "Aguardando aprovação". Se alguma for de quem foi desativado de propósito, marque-a como já aprovada (troque o e-mail): `update public.perfis set aprovado_em = criado_em where email = 'pessoa@exemplo.com';`
+- **Sem o SQL**, o app continua funcionando como antes, mas sem os avisos.
+- **Limite:** o aviso só chega se o administrador abrir o app. Não há e-mail nem notificação no celular, porque o envio de e-mails ainda não funciona (veja a seção de e-mails).
+- **WhatsApp (opcional):** no começo do script do `index.html`, preencha `const ADMIN_WHATSAPP='5511999999999';` (só números, com país e DDD). A tela "Aguardando aprovação" passa a mostrar o botão **Avisar o administrador no WhatsApp**, que abre uma mensagem pronta.
+- Depois de rodar o SQL, **atualize também o `schema.sql`** guardado.
+
 ## Como as permissões funcionam
 
 O banco (Supabase) recusa gravações fora destas regras, mesmo que alguém tente burlar a tela do app:
@@ -134,16 +167,15 @@ O banco (Supabase) recusa gravações fora destas regras, mesmo que alguém tent
 | Criar ou excluir turmas | Só o administrador |
 | Alterar alunos de uma turma | Administrador; líder e secretário(a) apenas da própria turma |
 | Criar, alterar e excluir aulas e avisos | Administrador; líder e secretário(a) apenas da própria turma |
-| Salvar chamadas | Administrador; líder e secretário(a) da própria turma; professor |
+| Salvar chamadas | Administrador; líder e secretário(a) da própria turma; professor(a), apenas das aulas em que é o(a) responsável |
 | Excluir chamadas | Administrador; líder e secretário(a) da própria turma |
 | Ver a lista de usuários, mudar perfil, ativar, excluir | Só o administrador |
 | Nunca ficar sem administrador ativo | Sempre |
 | Backup (exportar e importar) | Só o administrador (tela do app) |
 
-**Limites que ainda existem:**
+**Limite que ainda existe:**
 
 - **A leitura não é separada por turma.** A tela esconde as outras turmas de líder, secretário(a) e professor, mas o banco entrega todos os dados a qualquer usuário ativo. Isso inclui nascimento de crianças e telefone de responsáveis.
-- **O professor pode salvar a chamada de qualquer turma**, não só das aulas em que é o responsável. Só a tela impede isso.
 
 Por isso, libere acesso só a quem precisa e desative quem sair da equipe.
 
@@ -212,6 +244,18 @@ where email = 'pessoa@exemplo.com';
 Teste primeiro com uma conta de teste. Entregue a senha temporária à pessoa por um canal seguro. Pelo que consta no código, o app só mostra a tela de nova senha pelo link do e-mail, então a pessoa continuará usando essa senha. Use uma senha diferente para cada pessoa.
 
 **Opção B: excluir e recadastrar.** Exclua a conta em **Authentication › Users** e peça para a pessoa criar a conta de novo. Depois o administrador a aprova e refaz o perfil e os vínculos em **Gerenciar › Usuários**.
+
+## Nomes: correção automática de maiúsculas
+
+O app corrige sozinho a escrita dos nomes. Ao sair do campo (e de novo ao salvar), "joão da silva" e "JOÃO DA SILVA" viram "João da Silva". As palavras "da, das, de, do, dos, e, di, du" ficam em minúsculas quando não são a primeira. Nomes com hífen ou apóstrofo também são ajustados (ex.: "ana-clara" vira "Ana-Clara").
+
+A correção vale para: nome do aluno, nome do responsável, nome ao criar a conta e nome do usuário editado pelo administrador. **Não** vale para nomes de turmas.
+
+Pontos de atenção:
+
+- A correção só mexe na **primeira letra** de cada palavra (e em palavras escritas todas em maiúsculas). Nomes como "McDonald" ou "Pedro II" são mantidos.
+- Nomes **já cadastrados** não são alterados automaticamente. Eles são corrigidos quando alguém abre o aluno em **Gerenciar › Alunos**, edita e salva.
+- Ao corrigir o nome de um **professor**, o app atualiza também o nome dele nas aulas e nas chamadas já registradas, para ele não perder o acesso às aulas. Se quem edita for líder ou secretário, só são atualizadas as aulas da própria turma.
 
 ## Mensagens de erro ao salvar
 
