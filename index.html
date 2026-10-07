@@ -523,7 +523,7 @@ function vProfessores(){
    +(prox.length?prox.map(g=>'<div class="item"><b style="display:inline;text-transform:capitalize">'+fmtD(g.data)+'</b> · '+esc(turma(g.turma).nome)+'<div class="sub">'+esc(g.tema||'Sem tema')+'</div>'+(g.topicos?'<div class="sub" style="white-space:pre-line">'+esc(g.topicos)+'</div>':'')+'</div>').join(''):'<div class="item sub">Nenhuma aula agendada para este professor'+(ehEquipe()?' na sua turma':'')+'.</div>')+'</details>'};
  const LIM=3,mais=lista.length>LIM,aberta=expP,vis=mais&&!aberta?lista.slice(0,LIM):lista;
  return '<h2>Professores</h2><p class="sub">Alunos marcados como professor(a) no Cadastro. A turma indicada é a turma em que a pessoa é aluna; as aulas vêm da Agenda.</p>'
-  +'<div class="bar"><b>Total de professores</b><b>'+lista.length+'</b></div>'
+  +'<div class="tot" role="group" aria-label="Total de professores"><b>Total de professores</b><div class="tgrid"><div><span class="n">'+lista.length+'</span><span class="l">Professores</span></div>'+S.turmas.map(t=>'<div><span class="n">'+lista.filter(x=>x.t===t).length+'</span><span class="l">'+esc(t.nome)+'</span></div>').join('')+'</div></div>'
   +(semProf?'<p class="sub" style="margin:6px 0 0">'+semProf+' aula(s) agendada(s) ainda sem professor definido.</p>':'')
   +'<div class="sec"><div class="list">'+(lista.length?vis.map(card).join('')+(mais?'<div class="item" style="text-align:center"><button class="tg" data-vp="1">'+(aberta?'Mostrar menos':'Ver todos ('+lista.length+')')+'</button></div>':''):'<div class="item sub">Nenhum professor cadastrado. Marque "também é professor(a)" no Cadastro de aluno.</div>')+'</div></div>'}
 function vAgenda(){
