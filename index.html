@@ -141,6 +141,7 @@ details.more[open]{z-index:10}
 .subnav button{padding:9px 4px;font-size:13px;min-width:0;text-align:center}
 }
 
+@media print{header,nav,.subnav,#toast,.noprint{display:none!important}body{background:#fff;padding:0}main{max-width:none;padding:0}}
 </style>
 </head>
 <body>
@@ -243,7 +244,7 @@ async function checaNovas(){if(vendo||!me||me.perfil!=='admin'||pend||document.v
  try{const antes=pendentes().map(u=>u.id).join();await pullUsers();avisaNovas();
   const ae=document.activeElement;if(pendentes().map(u=>u.id).join()!==antes&&!editU&&(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName)))render()}catch(x){}finally{vendo=false}}
 setInterval(checaNovas,60000);
-const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
+const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['relatorio','Relatório'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários'],['auditoria','Auditoria']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
 let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null,workJ={},workHJ={};
 const expT=new Set();
 let expP=false,expF=false;const opP=new Set();
@@ -269,7 +270,7 @@ function opts(sel,blank){return (blank?'<option value="">'+blank+'</option>':'')
 const PERFIS=[['admin','Administrador(a)'],['secretario','Secretário(a)'],['lider','Líder'],['professor','Professor(a)']],pNome=p=>(PERFIS.find(x=>x[0]===p)||[0,p])[1];
 let me=null,pendNome='',editU='',delU='',modo=/type=recovery/.test(location.hash)?'nova':'entrar',acesso='carregando';
 const PROF_OK=['chamada','agenda','registro','avisos'];
-const can=a=>!!me&&(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):a!=='usuarios'));
+const can=a=>!!me&&(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):a!=='usuarios'&&a!=='auditoria'));
 const edita=()=>!!me&&me.perfil!=='professor';
 const podeAgendar=()=>edita()&&(!ehEquipe()||!!minhaT());
 const ehEquipe=()=>!!me&&(me.perfil==='lider'||me.perfil==='secretario');
@@ -537,7 +538,7 @@ function render(){
  if(!me){nv.style.display='none';$('#sub').hidden=true;$('#hd').textContent=''+dateLabel;$('#app').innerHTML=vLogin();return}
  nv.style.display='';nv.querySelector('[data-v="painel"]').hidden=!can('painel');nv.querySelector('[data-v="grupo"]').innerHTML='Gerenciar'+selo(pendentes().length);if(!can(view))view=can('painel')?'painel':'chamada';
  $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pNome(me.perfil)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
- $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():vAvisos();
+ $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():vAvisos();
  if(GROUP.includes(view))sub=view;
  const sn=$('#sub');sn.hidden=!GROUP.includes(view);
  sn.innerHTML=SUBS.filter(x=>can(x[0])).map(([v,l])=>'<button data-s="'+v+'" aria-current="'+(v===view?'page':'false')+'">'+l+(v==='usuarios'?selo(pendentes().length):'')+'</button>').join('');
@@ -653,6 +654,90 @@ $('#app').addEventListener('change',e=>{
   rd.readAsText(f)}});
 $('#hd').addEventListener('click',async e=>{if(e.target.id==='sair'){try{await sb.auth.signOut()}catch(x){}me=null;S=vazio();acesso='';modo='entrar';view='painel';sub='chamada';render();scrollTo(0,0)}});
 $('#app').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'&&!me){const b=$('#entrar')||$('#criarConta')||$('#salvarSenha');if(b)b.click()}});
+// ===== Relatório trimestral =====
+let rAno=null,rTri=1;
+const TRIS=['1º trimestre (jan a mar)','2º trimestre (abr a jun)','3º trimestre (jul a set)','4º trimestre (out a dez)'];
+const triFaixa=(a,q)=>[a+'-'+String((q-1)*3+1).padStart(2,'0')+'-01',a+'-'+String(q*3).padStart(2,'0')+'-31'];
+function metrT(t,ini,fim){
+ const keys=keysT(t).filter(k=>{const d=k.split('|')[0];return d>=ini&&d<=fim});
+ let pres=0,poss=0,jus=0,bib=0,of=0,vis=0;
+ keys.forEach(k=>{const e=ex(k)||{},J=e.just||{},ids=S.pres[k],E=eleg(t,k);pres+=ids.length;poss+=E.length;jus+=E.filter(a=>!ids.includes(a.id)&&J[a.id]).length;bib+=e.biblias||0;of+=e.oferta||0;vis+=e.visitantes||0});
+ const n=keys.length,al=ativos(t).map(a=>{const r=rowsA(a,t).filter(x=>x.d>=ini&&x.d<=fim),p=r.filter(x=>x.ok).length;return {a,n:r.length,p,q:r.length?Math.round(p/r.length*100):0}});
+ return {n,pres,poss,jus,bib,of,vis,p:poss?Math.round(pres/poss*100):0,media:n?Math.round(pres/n*10)/10:0,al,integral:al.filter(x=>x.n>0&&x.p===x.n)}}
+function vRelatorio(){
+ if(rAno===null){rAno=today.getFullYear();rTri=Math.floor(today.getMonth()/3)+1}
+ const [i,f]=triFaixa(rAno,rTri),pa=rTri===1?[rAno-1,4]:[rAno,rTri-1],[pi,pf]=triFaixa(pa[0],pa[1]);
+ const all=TV().map(t=>({t,m:metrT(t,i,f),a:metrT(t,pi,pf)})),som=(k,o)=>all.reduce((n,x)=>n+x[o||'m'][k],0);
+ const n=som('n'),pres=som('pres'),poss=som('poss'),jus=som('jus'),p=poss?Math.round(pres/poss*100):0,pp=som('poss','a')?Math.round(som('pres','a')/som('poss','a')*100):0,ofP=som('of','a');
+ const vs=(a,b,fm)=>b>0?'<span class="sub"> · '+(a>=b?'+':'−')+fm(Math.abs(a-b))+' sobre o trimestre anterior</span>':'';
+ const ys=Object.keys(S.pres).map(k=>+k.slice(0,4)),y0=Math.min(today.getFullYear(),...ys);let anos='';for(let y=today.getFullYear();y>=y0;y--)anos+='<option'+(y===rAno?' selected':'')+'>'+y+'</option>';
+ return '<h2>Relatório trimestral</h2><p class="sub">Soma das chamadas salvas no trimestre. O número de alunos ativos é o de hoje.</p>'
+ +'<div class="noprint"><label for="rano">Ano</label><select id="rano">'+anos+'</select><label for="rtri">Trimestre</label><select id="rtri">'+TRIS.map((l,j)=>'<option value="'+(j+1)+'"'+(j+1===rTri?' selected':'')+'>'+l+'</option>').join('')+'</select><button class="btn full" data-print="1">Imprimir ou salvar em PDF</button></div>'
+ +'<div class="sec"><h2>'+TRIS[rTri-1]+' de '+rAno+' · '+(ehEquipe()?'sua turma':'todas as turmas')+'</h2>'+(n?'<div class="list">'+kv('Aulas com chamada',n)+kv('Frequência média',p+'%'+vs(p,pp,x=>x+' p.p.'))+kv('Média de presentes por aula',Math.round(pres/n*10)/10)+kv('Faltas (justificadas)',(poss-pres-jus)+' ('+jus+')')+kv('Visitantes',som('vis')||'Nenhum')+kv('Bíblias físicas',som('bib'))+kv('Contribuições','<span>'+brl(som('of'))+'</span>'+vs(som('of'),ofP,brl))+'</div>':'<div class="list"><div class="item sub">Nenhuma chamada salva neste trimestre.</div></div>')+'</div>'
+ +all.map(({t,m})=>'<div class="sec"><h2>'+esc(t.nome)+'</h2>'+(m.n?'<div class="list">'+kv('Aulas com chamada',m.n)+kv('Alunos ativos',ativos(t).length)+kv('Frequência média',m.p+'%')+kv('Média de presentes por aula',m.media)+kv('Faltas (justificadas)',(m.poss-m.pres-m.jus)+' ('+m.jus+')')+kv('Visitantes',m.vis||'Nenhum')+kv('Bíblias físicas',m.bib)+kv('Contribuições',brl(m.of))+'</div>'
+  +(m.integral.length?'<p class="sub"><b>Presença integral:</b> '+m.integral.map(x=>esc(nm(x.a))).join(', ')+'.</p>':'')
+  +'<details class="dt"><summary><b>Frequência por aluno</b></summary>'+m.al.map(x=>'<div class="freq"><div><span>'+esc(nm(x.a))+'</span><b>'+(x.n?x.q+'%':'—')+'</b></div><span class="sub">'+(x.n?x.p+' de '+x.n+' aula(s)':'Sem chamadas no período')+'</span></div>').join('')+'</details>'
+  :'<div class="list"><div class="item sub">Sem chamada salva neste trimestre.</div></div>')+'</div>').join('');
+}
+// ===== Auditoria (lê a tabela historico; veja auditoria.sql) =====
+let H={l:[],ok:false,ld:false,fim:false,f:'',err:''};
+const HF=[['','Tudo'],['chamadas','Chamadas'],['turmas','Turmas e alunos'],['aulas','Aulas'],['avisos','Avisos'],['perfis','Usuários']];
+async function carregaH(mais){
+ if(H.ld)return;H.ld=true;const f=H.f,ini=mais?H.l.length:0;
+ try{let q=sb.from('historico').select('*').order('quando',{ascending:false}).range(ini,ini+49);if(f)q=q.eq('tabela',f);
+  const {data,error}=await q;if(error)throw error;if(H.f!==f)return;
+  H.l=mais?H.l.concat(data):data;H.fim=data.length<50;H.err=''}
+ catch(e){if(H.f!==f)return;H.err=/42P01|PGRST205|historico/.test((e.code||'')+(e.message||''))?'sql':'erro'}
+ H.ok=true;H.ld=false;if(view==='auditoria')render()}
+const ROT={nome:'nome',titulo:'título',professor:'professor(a)',ativo:'situação',arq:'arquivado',desde:'data de entrada',resp:'responsável',batizado:'batismo',nasc:'nascimento',ant:'histórico de turma',tema:'tema',topicos:'tópicos',prof:'professor(a)',data:'data',texto:'mensagem',turma:'turma',perfil:'perfil',aluno_id:'vínculo com aluno',turma_id:'vínculo com turma'};
+const difC=(a,b,sk)=>Object.keys(Object.assign({},a,b)).filter(k=>!(sk||[]).includes(k)&&JSON.stringify((a||{})[k])!==JSON.stringify((b||{})[k])).map(k=>ROT[k]||k);
+const dBR=d=>String(d).split('-').reverse().join('/'),tn=id=>{const t=turma(id);return t?t.nome:'turma removida'};
+function descH(h){const A=h.antes||{},D=h.depois||{},op=h.op,x=op==='DELETE'?A:D;
+ if(h.tabela==='turmas'){
+  if(op==='INSERT')return ['Criou a turma '+x.nome];if(op==='DELETE')return ['Excluiu a turma '+x.nome];
+  const o=[],ma=Object.fromEntries((A.alunos||[]).map(a=>[a.id,a])),mb=Object.fromEntries((D.alunos||[]).map(a=>[a.id,a]));
+  (D.alunos||[]).forEach(a=>{if(!ma[a.id])o.push('Incluiu '+a.nome+' em '+D.nome);else{const c=difC(ma[a.id],a);if(c.length)o.push('Alterou '+a.nome+' ('+c.join(', ')+')')}});
+  (A.alunos||[]).forEach(a=>{if(!mb[a.id])o.push('Removeu '+a.nome+' de '+A.nome)});
+  const c=difC(A,D,['alunos']);if(c.length)o.push('Alterou a turma '+D.nome+' ('+c.join(', ')+')');
+  return o.length?o:['Alterou a turma '+D.nome]}
+ if(h.tabela==='chamadas'){const [d,t]=h.registro.split('|'),ti='chamada de '+dBR(d)+' ('+tn(t)+')';
+  if(op==='INSERT')return ['Salvou a '+ti+': '+(x.p||[]).length+' presente(s)'];if(op==='DELETE')return ['Excluiu a '+ti];
+  const o=[],ea=A.e||{},ed=D.e||{};
+  if(JSON.stringify([...(A.p||[])].sort())!==JSON.stringify([...(D.p||[])].sort()))o.push('presentes '+(A.p||[]).length+' para '+(D.p||[]).length);
+  [['biblias','Bíblias'],['oferta','contribuições'],['visitantes','visitantes']].forEach(([k,l])=>{if(ea[k]!==ed[k])o.push(l+' '+(ea[k]??0)+' para '+(ed[k]??0))});
+  if(JSON.stringify(ea.just||{})!==JSON.stringify(ed.just||{}))o.push('justificativas');
+  return ['Editou a '+ti+(o.length?': '+o.join('; '):'')]}
+ if(h.tabela==='aulas'){const ti='aula de '+dBR(x.data)+' ('+tn(x.turma)+')';
+  if(op==='INSERT')return ['Agendou a '+ti];if(op==='DELETE')return ['Excluiu a '+ti];
+  const c=difC(A,D);return ['Editou a '+ti+(c.length?' ('+c.join(', ')+')':'')]}
+ if(h.tabela==='avisos'){const ti='aviso "'+x.titulo+'"';
+  if(op==='INSERT')return ['Publicou o '+ti];if(op==='DELETE')return ['Excluiu o '+ti];
+  const c=difC(A,D);return ['Editou o '+ti+(c.length?' ('+c.join(', ')+')':'')]}
+ const w=x.nome||x.email||'usuário';
+ if(op==='INSERT')return ['Nova conta criada: '+w];if(op==='DELETE')return ['Excluiu o usuário '+w];
+ const o=[];if(A.ativo!==D.ativo)o.push(D.ativo?'liberou o acesso':'desativou o acesso');
+ if(A.perfil!==D.perfil)o.push('perfil '+pNome(A.perfil)+' para '+pNome(D.perfil));
+ const c=difC(A,D,['ativo','perfil','criado_em','aprovado_em']);if(c.length)o.push('alterou '+c.join(', '));
+ return ['Usuário '+w+': '+(o.join('; ')||'sem mudança visível')]}
+const fdt=iso=>new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+function vAuditoria(){
+ if(!H.ok&&!H.ld)carregaH();
+ const filtro='<label for="hfil">Mostrar</label><select id="hfil">'+HF.map(([v,l])=>'<option value="'+v+'"'+(v===H.f?' selected':'')+'>'+l+'</option>').join('')+'</select>';
+ const corpo=H.err==='sql'?'<div class="item sub">A tabela de histórico ainda não existe. Rode o arquivo auditoria.sql no SQL Editor do Supabase.</div>'
+  :H.err?'<div class="item sub">Não foi possível carregar o histórico. Verifique a conexão e toque em Atualizar.</div>'
+  :!H.ok?'<div class="item sub">Carregando…</div>'
+  :H.l.length?H.l.map(h=>'<div class="item"><b style="display:inline">'+esc(h.quem_nome||'Sistema')+'</b> <span class="tag">'+esc((HF.find(x=>x[0]===h.tabela)||[0,h.tabela])[1])+'</span><span class="sub" style="display:block">'+fdt(h.quando)+'</span>'+descH(h).map(l=>'<div>'+esc(l)+'</div>').join('')+'</div>').join('')
+  :'<div class="item sub">Nenhuma alteração registrada.</div>';
+ return '<h2>Histórico de alterações</h2><p class="sub">Quem mudou o quê, do mais recente para o mais antigo. Só o administrador vê esta tela.</p>'+filtro
+  +'<div class="list" style="margin-top:12px">'+corpo+'</div>'
+  +'<div class="acts" style="margin-top:12px"><button class="tg" data-hatu="1">Atualizar</button>'+(H.ok&&!H.fim&&!H.err?'<button class="tg" data-hmais="1">Ver mais antigos</button>':'')+'</div>'}
+$('#app').addEventListener('change',e=>{const i=e.target.id;
+ if(i==='rano'||i==='rtri'){rAno=+$('#rano').value;rTri=+$('#rtri').value;render()}
+ if(i==='hfil'){H={l:[],ok:false,ld:false,fim:false,f:e.target.value,err:''};render()}});
+$('#app').addEventListener('click',e=>{
+ if(e.target.closest('[data-print]')){document.querySelectorAll('#app details').forEach(d=>{d.open=true});print();return}
+ if(e.target.closest('[data-hmais]')){carregaH(true);return}
+ if(e.target.closest('[data-hatu]')){H.ok=false;H.ld=false;H.l=[];H.err='';render()}});
 async function boot(){
  vistos=null;
  if(!sb){acesso='config';me=null;render();return}
