@@ -244,7 +244,7 @@ async function checaNovas(){if(vendo||!me||me.perfil!=='admin'||pend||document.v
  try{const antes=pendentes().map(u=>u.id).join();await pullUsers();avisaNovas();
   const ae=document.activeElement;if(pendentes().map(u=>u.id).join()!==antes&&!editU&&(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName)))render()}catch(x){}finally{vendo=false}}
 setInterval(checaNovas,60000);
-const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['relatorio','Relatório'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários'],['auditoria','Auditoria']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
+const SUBS=[['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['relatorio','Relatório'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários'],['auditoria','Auditoria'],['backup','Backup']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
 let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null,workJ={},workHJ={};
 const expT=new Set();
 let expP=false,expF=false;const opP=new Set();
@@ -270,7 +270,7 @@ function opts(sel,blank){return (blank?'<option value="">'+blank+'</option>':'')
 const PERFIS=[['admin','Administrador(a)'],['secretario','Secretário(a)'],['lider','Líder'],['professor','Professor(a)']],pNome=p=>(PERFIS.find(x=>x[0]===p)||[0,p])[1];
 let me=null,pendNome='',editU='',delU='',modo=/type=recovery/.test(location.hash)?'nova':'entrar',acesso='carregando';
 const PROF_OK=['chamada','agenda','registro','avisos'];
-const can=a=>!!me&&(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):a!=='usuarios'&&a!=='auditoria'));
+const can=a=>!!me&&(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):a!=='usuarios'&&a!=='auditoria'&&a!=='backup'));
 const edita=()=>!!me&&me.perfil!=='professor';
 const podeAgendar=()=>edita()&&(!ehEquipe()||!!minhaT());
 const ehEquipe=()=>!!me&&(me.perfil==='lider'||me.perfil==='secretario');
@@ -538,7 +538,7 @@ function render(){
  if(!me){nv.style.display='none';$('#sub').hidden=true;$('#hd').textContent=''+dateLabel;$('#app').innerHTML=vLogin();return}
  nv.style.display='';nv.querySelector('[data-v="painel"]').hidden=!can('painel');nv.querySelector('[data-v="grupo"]').innerHTML='Gerenciar'+selo(pendentes().length);if(!can(view))view=can('painel')?'painel':'chamada';
  $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pNome(me.perfil)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
- $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():vAvisos();
+ $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():view==='backup'?vBackup():vAvisos();
  if(GROUP.includes(view))sub=view;
  const sn=$('#sub');sn.hidden=!GROUP.includes(view);
  sn.innerHTML=SUBS.filter(x=>can(x[0])).map(([v,l])=>'<button data-s="'+v+'" aria-current="'+(v===view?'page':'false')+'">'+l+(v==='usuarios'?selo(pendentes().length):'')+'</button>').join('');
@@ -738,6 +738,62 @@ $('#app').addEventListener('click',e=>{
  if(e.target.closest('[data-print]')){document.querySelectorAll('#app details').forEach(d=>{d.open=true});print();return}
  if(e.target.closest('[data-hmais]')){carregaH(true);return}
  if(e.target.closest('[data-hatu]')){H.ok=false;H.ld=false;H.l=[];H.err='';render()}});
+// ===== Backup e restauração (só administrador) =====
+let BK=null,bkMsg='',bkOcupado=false;
+const lerUlt=()=>{try{return localStorage.getItem('ebd_ult_backup')||''}catch(e){return ''}};
+function baixa(nome,txt,tipo){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:tipo}));a.download=nome;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+async function geraBackup(){const o={app:'ebd-iadp',versao:1,geradoEm:new Date().toISOString()};
+ for(const t of TAB)o[t]=await todos(t);
+ await pullUsers();o.usuarios=S.usuarios.map(u=>({nome:u.nome,email:u.login,perfil:u.perfil,ativo:u.ativo,aluno_id:u.aluno_id,turma_id:u.turma_id}));return o}
+async function bkBaixar(){if(bkOcupado)return;bkOcupado=true;bkMsg='';
+ try{const o=await geraBackup();baixa('ebd-backup-'+ymd(new Date())+'.json',JSON.stringify(o),'application/json');
+  try{localStorage.setItem('ebd_ult_backup',new Date().toLocaleString('pt-BR'))}catch(e){}bkMsg='Backup baixado. Guarde o arquivo no Google Drive da igreja e em mais um lugar.'}
+ catch(e){bkMsg='Não foi possível gerar o backup. Verifique a conexão e tente de novo.'}
+ bkOcupado=false;render()}
+async function bkCsv(){if(bkOcupado)return;bkOcupado=true;bkMsg='';
+ try{const rows=await todos('chamadas');
+  const q=v=>{v=String(v==null?'':v);if(/^[=+@-]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
+  const L=[['Data','Turma','Presentes','Bíblias','Visitantes','Contribuições (R$)','Professor(a)','Tema']];
+  rows.sort((a,b)=>a.id.localeCompare(b.id)).forEach(r=>{const [d,t]=r.id.split('|'),e=r.dados.e||{},au=S.aulas.find(x=>x.turma===t&&x.data===d)||{};
+   L.push([dBR(d),tn(t),(r.dados.p||[]).length,e.biblias||0,e.visitantes||0,String(e.oferta||0).replace('.',','),e.prof||au.prof||'',e.tema||au.tema||''])});
+  baixa('ebd-chamadas-'+ymd(new Date())+'.csv','\ufeff'+L.map(l=>l.map(q).join(';')).join('\r\n'),'text/csv;charset=utf-8');bkMsg='Planilha de chamadas baixada.'}
+ catch(e){bkMsg='Não foi possível gerar a planilha. Verifique a conexão e tente de novo.'}
+ bkOcupado=false;render()}
+async function bkLer(file){bkMsg='';BK=null;
+ try{if(file.size>20e6)throw 0;const o=JSON.parse(await file.text());if(!o||o.app!=='ebd-iadp'||o.versao!==1)throw 0;
+  const ok=(a,f)=>Array.isArray(a)&&a.every(r=>r&&typeof r.id==='string'&&r.dados&&typeof r.dados==='object'&&(!f||f(r)));
+  if(!ok(o.turmas,r=>Array.isArray(r.dados.alunos))||!ok(o.aulas)||!ok(o.avisos)||!ok(o.chamadas,r=>/^\d{4}-\d{2}-\d{2}\|.+$/.test(r.id)))throw 0;
+  BK={o,nome:file.name}}
+ catch(e){bkMsg='Arquivo inválido. Use um backup .json gerado por esta tela.'}
+ render()}
+async function bkRestaurar(){if(bkOcupado||!BK)return;
+ if(pend){toast('Aguarde o app terminar de salvar e tente de novo');return}
+ if($('#bkc').value.trim().toUpperCase()!=='RESTAURAR'){toast('Digite RESTAURAR para confirmar');return}
+ const subst=$('#bkm').value==='tudo';
+ if(subst&&!BK.o.turmas.length){toast('O arquivo não tem turmas; substituição cancelada');return}
+ bkOcupado=true;bkMsg='';render();
+ try{const seg=await geraBackup();baixa('ebd-antes-de-restaurar-'+ymd(new Date())+'.json',JSON.stringify(seg),'application/json');
+  for(const t of TAB){const rows=BK.o[t];
+   for(let i=0;i<rows.length;i+=200){const {error}=await sb.from(t).upsert(rows.slice(i,i+200).map(r=>({id:r.id,dados:r.dados})));if(error)throw error}
+   if(subst){const manter=new Set(rows.map(r=>r.id)),apagar=seg[t].map(r=>r.id).filter(id=>!manter.has(id));
+    for(let i=0;i<apagar.length;i+=100){const {error}=await sb.from(t).delete().in('id',apagar.slice(i,i+100));if(error)throw error}}}
+  await pull();BK=null;bkMsg='Backup restaurado. Uma cópia do estado anterior foi baixada (ebd-antes-de-restaurar).'}
+ catch(e){bkMsg='A restauração parou no meio ('+((e&&e.message)||'erro')+'). Os dados podem estar parcialmente restaurados. Escolha o mesmo arquivo e restaure de novo.';try{await pull()}catch(x){}}
+ bkOcupado=false;render()}
+function vBackup(){const dis=bkOcupado?' disabled':'',o=BK&&BK.o;
+ const conf=o?'<div class="list"><div class="item"><b>'+esc(BK.nome)+'</b><span class="sub">Gerado em '+esc(fdt(o.geradoEm))+'</span></div>'
+  +kv('Turmas',o.turmas.length)+kv('Alunos',o.turmas.reduce((n,r)=>n+r.dados.alunos.length,0))+kv('Aulas',o.aulas.length)+kv('Chamadas',o.chamadas.length)+kv('Avisos',o.avisos.length)+'</div>'
+  +'<label for="bkm">Como restaurar</label><select id="bkm"><option value="mesclar">Recuperar: grava o que está no arquivo e não apaga nada</option><option value="tudo">Substituir tudo: apaga o que não está no arquivo</option></select>'
+  +'<p class="sub">Itens que existem no arquivo voltam ao estado dele, inclusive a lista de alunos de cada turma. Antes de gravar, o app baixa uma cópia do estado atual.</p>'
+  +'<label for="bkc">Digite RESTAURAR para confirmar</label><input id="bkc" autocomplete="off"'+dis+'><div class="acts"><button class="btn" data-bkgo="1"'+dis+'>Restaurar agora</button><button class="tg" data-bkno="1"'+dis+'>Cancelar</button></div>'
+  :'<p class="sub">Escolha um backup .json gerado por esta tela. Nada é alterado antes da sua confirmação.</p><label for="bkf">Arquivo de backup</label><input id="bkf" type="file" accept=".json,application/json"'+dis+'>';
+ return '<h2>Backup e restauração</h2><p class="sub">Baixe uma cópia dos dados com frequência e guarde fora do celular (Google Drive da igreja e mais um lugar). As contas de login (e-mail e senha) ficam no Supabase e não entram no backup.</p>'
+  +(bkOcupado?'<div class="novas" role="status"><b>Aguarde…</b></div>':bkMsg?'<div class="novas" role="status"><b>'+esc(bkMsg)+'</b></div>':'')
+  +'<div class="sec"><h2>Baixar</h2><p class="sub">Último backup baixado neste aparelho: '+esc(lerUlt()||'nenhum')+'</p><button class="btn full" data-bkj="1"'+dis+'>Baixar backup completo (.json)</button><button class="btn full" data-bkc="1"'+dis+'>Baixar chamadas para Excel (.csv)</button></div>'
+  +'<div class="sec"><h2>Restaurar</h2>'+conf+'</div>'}
+$('#app').addEventListener('change',e=>{if(e.target.id==='bkf'&&e.target.files[0])bkLer(e.target.files[0])});
+$('#app').addEventListener('click',e=>{const c=k=>e.target.closest(k);
+ if(c('[data-bkj]'))bkBaixar();else if(c('[data-bkc]'))bkCsv();else if(c('[data-bkgo]'))bkRestaurar();else if(c('[data-bkno]')){BK=null;bkMsg='';render()}});
 async function boot(){
  vistos=null;
  if(!sb){acesso='config';me=null;render();return}
