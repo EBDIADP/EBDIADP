@@ -43,7 +43,7 @@ create trigger protege_perfis_extra
   before update on public.perfis
   for each row execute function public.protege_perfis_extra();
 
--- Quem pode usar o financeiro: administrador ativo OU usuário ativo com o perfil adicional tesoureiro.
+-- Quem pode usar o financeiro: administrador ou coordenador ativo OU usuário ativo com o perfil adicional tesoureiro.
 create or replace function public.pode_financeiro()
 returns boolean
 language sql
@@ -55,6 +55,6 @@ as $$
     select 1 from public.perfis p
     where p.id = auth.uid()
       and p.ativo is true
-      and (p.perfil = 'admin' or 'tesoureiro' = any (p.perfis_extra))
+      and (p.perfil in ('admin','coordenador') or 'tesoureiro' = any (p.perfis_extra))
   );
 $$;

@@ -18,7 +18,7 @@ create table if not exists public.financeiro (
 
 create index if not exists financeiro_data_idx on public.financeiro (data);
 
--- Quem pode usar o financeiro: administrador ativo.
+-- Quem pode usar o financeiro: administrador ou coordenador ativo.
 create or replace function public.pode_financeiro()
 returns boolean
 language sql
@@ -28,7 +28,7 @@ set search_path = public
 as $$
   select exists (
     select 1 from public.perfis p
-    where p.id = auth.uid() and p.ativo is true and p.perfil = 'admin'
+    where p.id = auth.uid() and p.ativo is true and p.perfil in ('admin','coordenador')
   );
 $$;
 

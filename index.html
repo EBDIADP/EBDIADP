@@ -242,7 +242,7 @@ async function pullUsers(){const {data,error}=await sb.from('perfis').select('*'
  aprovCol=data.length>0&&Object.prototype.hasOwnProperty.call(data[0],'aprovado_em');extraCol=data.length>0&&Object.prototype.hasOwnProperty.call(data[0],'perfis_extra');
  S.usuarios=data.map(u=>({id:u.id,nome:u.nome||u.email,login:u.email,perfil:u.perfil,ativo:u.ativo,aluno_id:u.aluno_id||null,turma_id:u.turma_id||null,aprovado_em:u.aprovado_em||null,extras:Array.isArray(u.perfis_extra)?u.perfis_extra:[]}))}
 // Perfil adicional (hoje só 'tesoureiro'): vale além do perfil principal. Precisa do tesoureiro.sql.
-const temTes=u=>!!u&&(u.extras||[]).includes('tesoureiro'),ehTes=()=>!!me&&(me.perfil==='admin'||temTes(me)),pRot=u=>pNome(u.perfil)+(temTes(u)?' + Tesoureiro(a)':'');
+const temTes=u=>!!u&&(u.extras||[]).includes('tesoureiro'),ehTes=()=>!!me&&(me.perfil==='admin'||me.perfil==='coordenador'||temTes(me)),pRot=u=>pNome(u.perfil)+(temTes(u)?' + Tesoureiro(a)':'');
 // Conta nova = inativa e nunca aprovada (só funciona depois do SQL do PASSO-A-PASSO; sem ele, aprovCol fica falso e não há avisos)
 const ehPend=u=>aprovCol&&u.ativo===false&&!u.aprovado_em;
 const pendentes=()=>(me&&me.perfil==='admin')?S.usuarios.filter(ehPend):[];
@@ -285,7 +285,7 @@ const ativos=t=>t.alunos.filter(a=>a.ativo!==false&&!a.arq);
 function toast(m,ms){const t=$('#toast');if(saveErr)m='Atenção: não foi possível salvar no servidor. Verifique a conexão e tente de novo.'+(m?' ('+m+')':'');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),saveErr?6000:(ms||1800))}
 function opts(sel,blank){return (blank?'<option value="">'+blank+'</option>':'')+TV().map(t=>'<option value="'+t.id+'"'+(t.id===sel?' selected':'')+'>'+esc(t.nome)+'</option>').join('')}
 
-const PERFIS=[['admin','Administrador(a)'],['secretario','Secretário(a)'],['lider','Líder'],['professor','Professor(a)']],pNome=p=>(PERFIS.find(x=>x[0]===p)||[0,p])[1];
+const PERFIS=[['admin','Administrador(a)'],['coordenador','Coordenador(a)'],['secretario','Secretário(a)'],['lider','Líder'],['professor','Professor(a)']],pNome=p=>(PERFIS.find(x=>x[0]===p)||[0,p])[1];
 let me=null,pendNome='',editU='',delU='',modo=/type=recovery/.test(location.hash)?'nova':'entrar',acesso='carregando';
 const PROF_OK=['chamada','agenda','registro','avisos'];
 const can=a=>!!me&&(a==='financeiro'?ehTes():(me.perfil==='admin'||(me.perfil==='professor'?PROF_OK.includes(a):a!=='usuarios'&&a!=='auditoria'&&a!=='backup')));
@@ -295,7 +295,7 @@ const ehEquipe=()=>!!me&&(me.perfil==='lider'||me.perfil==='secretario');
 const soLeitura=()=>ehProf();
 const alOk=id=>{const r=alunoDe(id);return !!r&&tOk(r.t.id)};
 const avOk=v=>!ehEquipe()||(!!v.turma&&v.turma===me.turmaId);
-const soAdmin=()=>!!me&&me.perfil==='admin';
+const ehGestor=()=>!!me&&(me.perfil==='admin'||me.perfil==='coordenador');
 const tOk=id=>!ehEquipe()||(!!me.turmaId&&id===me.turmaId);
 const TV=()=>S.turmas.filter(t=>tOk(t.id));
 const minhaT=()=>ehEquipe()?turma(me.turmaId)||null:null;
@@ -326,7 +326,7 @@ function vUsuarios(){
   +(delU===u.id?'<span class="acts" style="margin:0"><span class="sub">Excluir?</span><button class="tg bad" data-uok="'+u.id+'">Confirmar</button><button class="tg" data-uno="1">Cancelar</button></span>':(ehPend(u)?'<button class="tg" data-ue="'+u.id+'">Liberar</button>':'')+'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-ue="'+u.id+'">Editar</button>'+(u.id===me.id?'':'<button class="tg bad" data-ud="'+u.id+'">Excluir</button>')+'</div></details>')+'</div>').join('')+'</div>'
  +'<div class="sec"><h2>Novas pessoas</h2><p class="sub">Quem precisa de acesso toca em <b>Criar conta</b> na tela de entrada. A conta aparece aqui no topo, como <b>Aguardando aprovação</b>: toque em <b>Liberar</b> (ou ⋯ › Editar), escolha o perfil, faça os vínculos e confira se <b>Ativo</b> está marcado. Para apagar o login por completo, exclua também em Authentication › Users no Supabase.</p></div>'}
 const aulaKey=x=>x.data+'|'+x.turma;
-const dom=d=>!!(me&&me.perfil==='admin')||new Date(d+'T12:00:00').getDay()===0,msgDom='Só é possível agendar aulas aos domingos';
+const dom=d=>ehGestor()||new Date(d+'T12:00:00').getDay()===0,msgDom='Só é possível agendar aulas aos domingos';
 const fmtD=d=>new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'});
 function vChamada(){
  const hoje=ymd(today),A=S.aulas.find(x=>x.id===selA&&turma(x.turma)&&minha(x));
@@ -445,7 +445,7 @@ function vRegistro(){
    +'<div class="item"><b>Ausentes</b><span class="sub">'+(au.map(a=>esc(nm(a))+((e.just||{})[a.id]?' ('+esc(e.just[a.id])+')':'')).join(', ')||'Ninguém')+'</span></div>'+(!me?'':'<div class="acts" style="margin:0;padding:12px;justify-content:flex-end">'+(delH===k?'<span class="sub">Excluir esta chamada?</span><button class="tg bad" data-hdelok="'+k+'">Confirmar</button><button class="tg" data-hdelno="1">Cancelar</button>':'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-hedit="'+k+'">Editar chamada</button>'+(soLeitura()?'':'<button class="tg bad" data-hdel="'+k+'">Excluir</button>')+'</div></details>')+'</div>'))+'</details>'}).join(''):'<div class="item sub">Nenhuma chamada salva ainda.</div>')+'</div>'+'</div>'}).join(''):'<p class="sub">Cadastre uma turma na aba Turmas.</p>');
 }
 
-function edUi(a){const tt=S.turmas.find(x=>x.alunos.some(y=>y.id===a.id));return '<div class="item">'+(me&&me.perfil==='admin'&&S.turmas.length>1?'<label for="eat" style="margin-top:0">Turma</label><select id="eat">'+opts(tt?tt.id:'')+'</select>':'')+(tt&&tt.semProf?'':'<label for="et" style="margin-top:0">Título (opcional)</label><select id="et">'+tOpts(a.titulo||'')+'</select>')+'<label for="en"'+(tt&&tt.semProf?' style="margin-top:0"':'')+'>Nome</label><input id="en" value="'+esc(a.nome)+'"><label for="ed">Data de nascimento</label><input id="ed" type="date" value="'+esc(a.nasc||'')+'">'+(semBat(tt)?'':'<label for="eb">Batizado?</label><select id="eb">'+bOpts(a.batizado||'')+'</select>')+(tt&&tt.exigeResp?'<label for="er">Responsável pelo aluno</label><input id="er" value="'+esc(a.resp||'')+'">':'')+(tt&&tt.semProf?'':'<label class="chkl"><input type="checkbox" id="ep"'+(a.professor?' checked':'')+'>Também é professor(a)</label>')+'<div class="acts"><button class="btn" style="margin-top:0" data-edok="'+a.id+'">Salvar</button><button class="tg" data-edno="1">Cancelar</button></div></div>'}
+function edUi(a){const tt=S.turmas.find(x=>x.alunos.some(y=>y.id===a.id));return '<div class="item">'+(ehGestor()&&S.turmas.length>1?'<label for="eat" style="margin-top:0">Turma</label><select id="eat">'+opts(tt?tt.id:'')+'</select>':'')+(tt&&tt.semProf?'':'<label for="et" style="margin-top:0">Título (opcional)</label><select id="et">'+tOpts(a.titulo||'')+'</select>')+'<label for="en"'+(tt&&tt.semProf?' style="margin-top:0"':'')+'>Nome</label><input id="en" value="'+esc(a.nome)+'"><label for="ed">Data de nascimento</label><input id="ed" type="date" value="'+esc(a.nasc||'')+'">'+(semBat(tt)?'':'<label for="eb">Batizado?</label><select id="eb">'+bOpts(a.batizado||'')+'</select>')+(tt&&tt.exigeResp?'<label for="er">Responsável pelo aluno</label><input id="er" value="'+esc(a.resp||'')+'">':'')+(tt&&tt.semProf?'':'<label class="chkl"><input type="checkbox" id="ep"'+(a.professor?' checked':'')+'>Também é professor(a)</label>')+'<div class="acts"><button class="btn" style="margin-top:0" data-edok="'+a.id+'">Salvar</button><button class="tg" data-edno="1">Cancelar</button></div></div>'}
 const CARGOS=[['Primeiro(a) líder','lider1','el1'],['Segundo(a) líder','lider2','el2'],['Primeiro(a) secretário(a)','sec1','es1'],['Segundo(a) secretário(a)','sec2','es2']];
 const pessoaT=(t,k)=>{const x=S.turmas.find(u=>u.alunos.some(a=>a.id===t[k]));if(!x)return '';const a=x.alunos.find(a=>a.id===t[k]);return esc(nm(a))+(x.id!==t.id?' ('+esc(x.nome)+')':'')};
 function cargosSel(t){
@@ -454,7 +454,7 @@ function cargosSel(t){
   return '<label for="'+i+'">'+l+'</label><select id="'+i+'"><option value="">Não definido</option>'
    +S.turmas.map(x=>{const L=x.alunos.filter(a=>!a.arq&&(!ehEquipe()||tOk(x.id)||CARGOS.some(([,kk])=>t[kk]===a.id)));return L.length?'<optgroup label="'+esc(x.nome)+'">'+L.map(a=>op(a,k)).join('')+'</optgroup>':''}).join('')+'</select>'}).join('')
   +'<p class="sub">Líderes e secretários podem ser qualquer aluno cadastrado, de qualquer turma.</p>'}
-function edUiT(t){return '<div class="item"><label for="etn" style="margin-top:0">Nome da turma</label><input id="etn" value="'+esc(t.nome)+'"'+(soAdmin()?'':' disabled')+'><label class="chkl"><input type="checkbox" id="etr"'+(t.exigeResp?' checked':'')+'>Exige responsável no cadastro dos alunos</label><label class="chkl"><input type="checkbox" id="etsp"'+(t.semProf?' checked':'')+'>Sem título nem marcação de professor(a) nos alunos</label>'+cargosSel(t)+'<div class="acts"><button class="btn" style="margin-top:0" data-etok="'+t.id+'">Salvar</button><button class="tg" data-etno="1">Cancelar</button></div></div>'}
+function edUiT(t){return '<div class="item"><label for="etn" style="margin-top:0">Nome da turma</label><input id="etn" value="'+esc(t.nome)+'"'+(ehGestor()?'':' disabled')+'><label class="chkl"><input type="checkbox" id="etr"'+(t.exigeResp?' checked':'')+'>Exige responsável no cadastro dos alunos</label><label class="chkl"><input type="checkbox" id="etsp"'+(t.semProf?' checked':'')+'>Sem título nem marcação de professor(a) nos alunos</label>'+cargosSel(t)+'<div class="acts"><button class="btn" style="margin-top:0" data-etok="'+t.id+'">Salvar</button><button class="tg" data-etno="1">Cancelar</button></div></div>'}
 function delUi(a,extra){return delA===a.id?'<span class="acts" style="margin:0"><span class="sub">Excluir de vez?</span><button class="tg bad" data-delaok="'+a.id+'">Confirmar</button><button class="tg" data-delano="1">Cancelar</button></span>':'<details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu">'+extra+'<button class="tg" data-eda="'+a.id+'">Editar</button><button class="tg bad" data-dela="'+a.id+'">Excluir</button></div></details>'}
 function acomp(a,t){
  const rows=rowsA(a,t);
@@ -478,8 +478,8 @@ function vAlunos(){
   +'</div></div>'}).join(''):'<p class="sub">'+(ehEquipe()?semTurma:'Nenhuma turma cadastrada.')+'</p>');
 }
 function vCadastro(){
- return '<h2>Cadastro</h2><p class="sub">Cadastre aqui novos alunos'+(me&&me.perfil==='admin'?' e novas turmas':'')+'. '+'Para ver, editar, arquivar ou excluir, use Gerenciar › Alunos'+(me&&me.perfil==='admin'?' e Gerenciar › Turmas':'')+'.'+'</p><div class="sec" style="margin-top:12px"><h2>Novo aluno</h2><p class="sub">'+(ehEquipe()?(minhaT()?'Todos os campos são obrigatórios. O aluno será cadastrado na sua turma.':semTurma):'Todos os campos são obrigatórios. Escolha a turma primeiro.')+'</p><label for="as">Turma</label><select id="as"'+(ehEquipe()?' disabled':'')+'>'+(ehEquipe()?opts(me.turmaId):opts('','Selecione a turma'))+'</select><div id="afw"'+(ehEquipe()&&minhaT()?'':' hidden')+'><div id="atw"'+(turma(cur)&&turma(cur).semProf?' hidden':'')+'><label for="at">Título</label><select id="at">'+tOptsReq()+'</select></div><label for="an">Nome do aluno</label><input id="an"><label for="ad">Data de nascimento</label><input id="ad" type="date"><div id="abw"'+(semBat(turma(cur))?' hidden':'')+'><label for="ab">Batizado?</label><select id="ab">'+bOptsReq()+'</select></div><div id="rsp"'+(turma(cur)&&turma(cur).exigeResp?'':' hidden')+'><label for="ar">Responsável pelo aluno</label><input id="ar"></div><div id="apw"'+(turma(cur)&&turma(cur).semProf?' hidden':'')+'><label class="chkl"><input type="checkbox" id="ap">Este aluno também é professor(a)</label></div><button class="btn" id="addA">Adicionar aluno</button></div></div>'
- +(me&&me.perfil==='admin'?'<div class="sec"><h2>Nova turma</h2><label for="tn">Nome da turma</label><input id="tn" placeholder="Ex.: Casais"><button class="btn" id="addT">Adicionar turma</button></div>':'');
+ return '<h2>Cadastro</h2><p class="sub">Cadastre aqui novos alunos'+(ehGestor()?' e novas turmas':'')+'. '+'Para ver, editar, arquivar ou excluir, use Gerenciar › Alunos'+(ehGestor()?' e Gerenciar › Turmas':'')+'.'+'</p><div class="sec" style="margin-top:12px"><h2>Novo aluno</h2><p class="sub">'+(ehEquipe()?(minhaT()?'Todos os campos são obrigatórios. O aluno será cadastrado na sua turma.':semTurma):'Todos os campos são obrigatórios. Escolha a turma primeiro.')+'</p><label for="as">Turma</label><select id="as"'+(ehEquipe()?' disabled':'')+'>'+(ehEquipe()?opts(me.turmaId):opts('','Selecione a turma'))+'</select><div id="afw"'+(ehEquipe()&&minhaT()?'':' hidden')+'><div id="atw"'+(turma(cur)&&turma(cur).semProf?' hidden':'')+'><label for="at">Título</label><select id="at">'+tOptsReq()+'</select></div><label for="an">Nome do aluno</label><input id="an"><label for="ad">Data de nascimento</label><input id="ad" type="date"><div id="abw"'+(semBat(turma(cur))?' hidden':'')+'><label for="ab">Batizado?</label><select id="ab">'+bOptsReq()+'</select></div><div id="rsp"'+(turma(cur)&&turma(cur).exigeResp?'':' hidden')+'><label for="ar">Responsável pelo aluno</label><input id="ar"></div><div id="apw"'+(turma(cur)&&turma(cur).semProf?' hidden':'')+'><label class="chkl"><input type="checkbox" id="ap">Este aluno também é professor(a)</label></div><button class="btn" id="addA">Adicionar aluno</button></div></div>'
+ +(ehGestor()?'<div class="sec"><h2>Nova turma</h2><label for="tn">Nome da turma</label><input id="tn" placeholder="Ex.: Casais"><button class="btn" id="addT">Adicionar turma</button></div>':'');
 }
 function alunosCard(){
  const c=(n,l)=>'<div><span class="n">'+n+'</span><span class="l">'+l+'</span></div>';
@@ -492,7 +492,7 @@ function totalCard(){
 function vTurmas(){
  return '<h2>Turmas</h2><p class="sub">'+(ehEquipe()?(minhaT()?'Você vê e gerencia apenas a sua turma.':semTurma):'Para cadastrar turmas e alunos, use a aba Cadastro. Para gerenciar os alunos, use a aba Alunos.')+'</p>'+totalCard()
  +'<div class="list">'+(TV().length?TV().map(t=>{const vis=t.alunos.filter(a=>!a.arq),at=ativos(t).length,ar=t.alunos.length-vis.length;
-  if(editT===t.id)return edUiT(t);return '<div class="item"><b>'+esc(t.nome)+'</b>'+CARGOS.map(([l,k])=>'<div class="sub">'+l+': '+(pessoaT(t,k)||'não definido')+'</div>').join('')+(t.exigeResp?'<div class="sub">Exige responsável no cadastro dos alunos</div>':'')+'<div class="sub">'+at+' ativo(s) · '+(vis.length-at)+' inativo(s) · '+ar+' arquivado(s)</div>'+(delT===t.id?'<div class="acts"><span class="sub">Excluir esta turma apaga '+t.alunos.length+' aluno(s), '+Object.keys(S.pres).filter(k=>k.endsWith('|'+t.id)).length+' chamada(s) salva(s) e as aulas agendadas dela.</span><button class="tg bad" data-deltok="'+t.id+'">Confirmar exclusão</button><button class="tg" data-deltno="1">Cancelar</button></div>':'<div class="acts" style="justify-content:flex-end"><details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-edt="'+t.id+'">Editar</button>'+(soAdmin()?'<button class="tg bad" data-delt="'+t.id+'">Excluir</button>':'')+'</div></details></div>')+'</div>'}).join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>')+'</div>'
+  if(editT===t.id)return edUiT(t);return '<div class="item"><b>'+esc(t.nome)+'</b>'+CARGOS.map(([l,k])=>'<div class="sub">'+l+': '+(pessoaT(t,k)||'não definido')+'</div>').join('')+(t.exigeResp?'<div class="sub">Exige responsável no cadastro dos alunos</div>':'')+'<div class="sub">'+at+' ativo(s) · '+(vis.length-at)+' inativo(s) · '+ar+' arquivado(s)</div>'+(delT===t.id?'<div class="acts"><span class="sub">Excluir esta turma apaga '+t.alunos.length+' aluno(s), '+Object.keys(S.pres).filter(k=>k.endsWith('|'+t.id)).length+' chamada(s) salva(s) e as aulas agendadas dela.</span><button class="tg bad" data-deltok="'+t.id+'">Confirmar exclusão</button><button class="tg" data-deltno="1">Cancelar</button></div>':'<div class="acts" style="justify-content:flex-end"><details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-edt="'+t.id+'">Editar</button>'+(ehGestor()?'<button class="tg bad" data-delt="'+t.id+'">Excluir</button>':'')+'</div></details></div>')+'</div>'}).join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>')+'</div>'
  ;
 }
 
@@ -541,7 +541,7 @@ function vAgenda(){
   return '<div class="item"><b style="display:inline;text-transform:capitalize">'+dl+'</b><div>'+esc(x.tema)+'</div>'+(x.topicos?'<div class="sub" style="white-space:pre-line">'+esc(x.topicos)+'</div>':'')+'<span class="sub">Professor(a): '+(x.prof?esc(x.prof):'a definir')+'</span>'
   +(!edita()?'':delG===x.id?'<div class="acts"><span class="sub">Excluir esta aula?</span><button class="tg bad" data-delgok="'+x.id+'">Confirmar exclusão</button><button class="tg" data-delgno="1">Cancelar</button></div>':'<div class="acts" style="justify-content:flex-end"><details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-eg="'+x.id+'">Editar</button><button class="tg bad" data-delg="'+x.id+'">Excluir</button></div></details></div>')+'</div>'};
  const form=(podeAgendar()?'<div class="sec"><h2>Agendar aula</h2><label for="gt">Turma</label><select id="gt"'+(ehEquipe()?' disabled':'')+'>'+opts(ehEquipe()?me.turmaId:cur)+'</select>'
- +'<label for="gd">Data</label><input id="gd" type="date" value="'+dateKey+'"><p class="sub">'+(me&&me.perfil==='admin'?'Como administrador, você pode agendar em qualquer data.':'Aulas só podem ser agendadas aos domingos.')+'</p>'
+ +'<label for="gd">Data</label><input id="gd" type="date" value="'+dateKey+'"><p class="sub">'+(ehGestor()?'Você pode agendar em qualquer data.':'Aulas só podem ser agendadas aos domingos.')+'</p>'
  +'<label for="gp">Professor(a)</label><select id="gp"><option value="">A definir</option>'+P.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('')+'</select>'
  +'<p class="sub">'+(P.length?'Só aparecem aqui os alunos marcados como professor(a) no Cadastro.':'Nenhum professor cadastrado ainda. Marque "também é professor(a)" no Cadastro de aluno para ele aparecer aqui.')+'</p>'
  +'<label for="gm">Tema da aula</label><input id="gm"><label for="gtp">Tópicos (opcional)</label><textarea id="gtp" placeholder="Um tópico por linha"></textarea><button class="btn" id="addG">Agendar aula</button></div>':'');
@@ -577,7 +577,7 @@ function capNome(s){s=String(s||'').replace(/\s+/g,' ').trim();if(!s)return s;
   if(i>0&&PART.has(lw))return lw;
   const base=(w.length>2&&w===w.toLocaleUpperCase('pt-BR')&&w!==lw)?lw:w;
   return base.split(/([-'’])/).map(p=>/^[-'’]$/.test(p)?p:up(p)).join('')}).join(' ')}
-function renomeiaProf(a,b){if(!a||!b||a===b)return;const ok=t=>!!me&&(me.perfil==='admin'||tOk(t));
+function renomeiaProf(a,b){if(!a||!b||a===b)return;const ok=t=>(ehGestor()||tOk(t));
  (S.aulas||[]).forEach(x=>{if(x.prof===a&&ok(x.turma))x.prof=b});
  Object.keys(S.extras||{}).forEach(k=>{const e=S.extras[k];if(e&&e.prof===a&&ok(k.split('|')[1]))e.prof=b})}
 document.addEventListener('focusout',e=>{const t=e.target;if(t&&['an','ar','en','er','cn','eun'].includes(t.id)){const v=capNome(t.value);if(v!==t.value)t.value=v}});
@@ -611,8 +611,8 @@ $('#app').addEventListener('click',e=>{
  if(fa){const id=fa.dataset.fa;if(id&&!alOk(id))return;viewA=(id&&viewA!==id)?id:'';render();return}
  const dt=e.target.closest('[data-delt],[data-deltok],[data-deltno]');
  if(dt){const D=dt.dataset;
-  if(D.delt){if(!soAdmin())return;delT=D.delt}
-  else if(D.deltok){if(!soAdmin())return;const id=D.deltok;S.turmas=S.turmas.filter(t=>t.id!==id);Object.keys(S.pres).filter(k=>k.endsWith('|'+id)).forEach(k=>{delete S.pres[k];delete S.extras[k]});S.aulas=S.aulas.filter(x=>x.turma!==id);if(cur===id)cur=(S.turmas[0]||{}).id||'';delT='';selA='';work=null;save();toast('Turma excluída')}
+  if(D.delt){if(!ehGestor())return;delT=D.delt}
+  else if(D.deltok){if(!ehGestor())return;const id=D.deltok;S.turmas=S.turmas.filter(t=>t.id!==id);Object.keys(S.pres).filter(k=>k.endsWith('|'+id)).forEach(k=>{delete S.pres[k];delete S.extras[k]});S.aulas=S.aulas.filter(x=>x.turma!==id);if(cur===id)cur=(S.turmas[0]||{}).id||'';delT='';selA='';work=null;save();toast('Turma excluída')}
   else delT='';
   render();return}
  const ab=e.target.closest('[data-ab],[data-av]');
@@ -634,13 +634,13 @@ $('#app').addEventListener('click',e=>{
  if(ed){const D=ed.dataset;
   if(D.eda){if(ehProf()||!alOk(D.eda))return;editA=D.eda}
   else if(D.edok){if(ehProf()||!alOk(D.edok))return;const al=S.turmas.flatMap(t=>t.alunos).find(x=>x.id===D.edok),n=capNome($('#en').value);if(!n){toast('Informe o nome');return}if($('#ed').value>ymd(new Date())){toast('A data de nascimento não pode estar no futuro');return}const tt=S.turmas.find(x=>x.alunos.some(y=>y.id===al.id));if(tt&&tt.exigeResp&&!capNome($('#er').value)){toast('Informe o responsável pelo aluno');return}if(tt&&tt.exigeResp){al.resp=capNome($('#er').value)}const antes=nm(al);al.nome=n;al.nasc=$('#ed').value;if(!semBat(tt))al.batizado=$('#eb').value;al.titulo=tt&&tt.semProf?'':$('#et').value;al.professor=tt&&tt.semProf?false:$('#ep').checked;renomeiaProf(antes,nm(al));
-   let msg='Cadastro atualizado';const sel=$('#eat'),nt=sel&&me.perfil==='admin'?turma(sel.value):null;
+   let msg='Cadastro atualizado';const sel=$('#eat'),nt=sel&&ehGestor()?turma(sel.value):null;
    if(nt&&tt&&nt.id!==tt.id){const am=new Date(today);am.setDate(am.getDate()+1);tt.alunos=tt.alunos.filter(y=>y.id!==al.id);al.ant=(al.ant||[]).concat({turma:tt.id,desde:al.desde||'',ate:ymd(today)});al.desde=ymd(am);
     if(nt.semProf){al.titulo='';al.professor=false}nt.alunos.push(al);msg='Aluno movido para '+nt.nome+(nt.exigeResp&&!al.resp?'. Edite o aluno para informar o responsável':'')}
    editA='';save();toast(msg)}
   else if(D.edno)editA='';
   else if(D.edt){if(ehProf()||!tOk(D.edt))return;editT=D.edt}
-  else if(D.etok){if(ehProf()||!tOk(D.etok))return;const t=turma(D.etok),n=(soAdmin()?$('#etn').value.trim():turma(D.etok).nome);if(!n){toast('Informe o nome da turma');return}const l1=$('#el1').value,l2=$('#el2').value,s1=$('#es1').value,s2=$('#es2').value;if(l1&&l1===l2){toast('A mesma pessoa não pode ser primeiro(a) e segundo(a) líder');return}if(s1&&s1===s2){toast('A mesma pessoa não pode ser primeiro(a) e segundo(a) secretário(a)');return}t.lider1=l1;t.lider2=l2;t.sec1=s1;t.sec2=s2;t.exigeResp=$('#etr').checked;t.semProf=$('#etsp').checked;if(t.semProf)t.alunos.forEach(a=>{a.professor=false;a.titulo=''});t.nome=n;editT='';save();toast('Turma atualizada')}
+  else if(D.etok){if(ehProf()||!tOk(D.etok))return;const t=turma(D.etok),n=(ehGestor()?$('#etn').value.trim():turma(D.etok).nome);if(!n){toast('Informe o nome da turma');return}const l1=$('#el1').value,l2=$('#el2').value,s1=$('#es1').value,s2=$('#es2').value;if(l1&&l1===l2){toast('A mesma pessoa não pode ser primeiro(a) e segundo(a) líder');return}if(s1&&s1===s2){toast('A mesma pessoa não pode ser primeiro(a) e segundo(a) secretário(a)');return}t.lider1=l1;t.lider2=l2;t.sec1=s1;t.sec2=s2;t.exigeResp=$('#etr').checked;t.semProf=$('#etsp').checked;if(t.semProf)t.alunos.forEach(a=>{a.professor=false;a.titulo=''});t.nome=n;editT='';save();toast('Turma atualizada')}
   else editT='';
   render();return}
  const ev=e.target.closest('[data-ev],[data-evok],[data-evno]');
@@ -675,7 +675,7 @@ $('#app').addEventListener('click',e=>{
  if(id==='salvar'){const A=S.aulas.find(x=>x.id===selA);if(!A||!minha(A))return;const key=aulaKey(A);
   S.pres[key]=[...work];S.extras[key]={biblias:Math.max(0,+$('#xb').value||0),oferta:Math.max(0,+$('#xo').value||0),visitantes:Math.max(0,+$('#xv').value||0),clima:$('#xc').value,tema:A.tema,prof:A.prof,topicos:A.topicos||'',just:jOnly(workJ,work)};
   selA='';work=null;workJ={};save();toast('Chamada salva');view='registro';render();scrollTo(0,0)}
- if(id==='addT'){if(!me||me.perfil!=='admin')return;const n=$('#tn').value.trim();if(!n){toast('Informe o nome da turma');return}
+ if(id==='addT'){if(!ehGestor())return;const n=$('#tn').value.trim();if(!n){toast('Informe o nome da turma');return}
   const t={id:uid(),nome:n,alunos:[]};S.turmas.push(t);if(!cur)cur=t.id;save();toast('Turma adicionada');render()}
  if(id==='addA'){if(ehProf())return;const n=capNome($('#an').value),t=turma(ehEquipe()?me.turmaId:$('#as').value);if(!t){toast(ehEquipe()?'Seu usuário não está vinculado a uma turma':'Escolha a turma');return}if(!t.semProf&&!$('#at').value){toast('Escolha o título');return}if(!n){toast('Informe o nome do aluno');return}if(!$('#ad').value){toast('Informe a data de nascimento');return}if(!semBat(t)&&!$('#ab').value){toast('Informe se o aluno é batizado');return}if(t.exigeResp&&!capNome($('#ar').value)){toast('Informe o responsável pelo aluno');return}if($('#ad').value>ymd(new Date())){toast('A data de nascimento não pode estar no futuro');return}
   t.alunos.push({id:uid(),nome:n,titulo:t.semProf?'':$('#at').value,professor:t.semProf?false:$('#ap').checked,nasc:$('#ad').value,batizado:semBat(t)?'':$('#ab').value,resp:t.exigeResp?capNome($('#ar').value):'',desde:ymd(new Date())});cur=t.id;work=null;save();toast('Aluno adicionado');render()}

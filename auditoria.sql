@@ -48,5 +48,8 @@ do $$ declare t text; begin
   end loop;
 end $$;
 
+-- Função de trigger: não precisa ficar chamável pela API.
+revoke execute on function public.registra_historico() from public, anon, authenticated;
+
 -- Opcional (LGPD): apagar registros com mais de 12 meses. Rode de vez em quando, como administrador no SQL Editor.
 -- delete from public.historico where quando < now() - interval '12 months';

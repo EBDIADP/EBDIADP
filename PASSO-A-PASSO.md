@@ -107,7 +107,8 @@ Depois de publicar, volte ao passo 3.4 e coloque o endereço em **Site URL**.
 
 | Perfil | O que vê e faz no app | Vínculo necessário |
 |---|---|---|
-| **Administrador(a)** | Tudo, incluindo Usuários e backup | Aluno (opcional) |
+| **Administrador(a)** | Tudo, incluindo Usuários, Auditoria e Backup | Aluno (opcional) |
+| **Coordenador(a)** | Tudo o que o administrador faz (turmas, alunos, aulas, avisos, chamadas e Financeiro), **exceto Usuários, Auditoria e Backup** | Aluno (opcional) |
 | **Secretário(a)** | Acompanha uma turma: chamada, agenda, histórico, faltas; agenda aulas, cadastra alunos e publica avisos nela | **Turma** (obrigatório) |
 | **Líder** | Igual ao secretário(a) | **Turma** e **aluno** (ambos obrigatórios) |
 | **Professor(a)** | Vê e faz a chamada apenas das aulas em que é o(a) professor(a); só leitura nas demais telas | **Aluno** (obrigatório) |
@@ -166,7 +167,7 @@ Em **Gerenciar › Financeiro** o administrador controla as ofertas e as despesa
 
 **Antes de usar, rode o SQL (uma vez):** no Supabase, abra **SQL Editor › New query**, cole o conteúdo do arquivo `financeiro.sql` e clique em **Run**. Depois rode também o `tesoureiro.sql` do mesmo jeito (ele cria o perfil adicional Tesoureiro(a) e libera esse perfil no financeiro). Por fim, publique o novo `index.html`. Sem o SQL, a tela mostra o aviso "A tabela do financeiro ainda não existe".
 
-- **Quem acessa:** o administrador e quem tem o perfil adicional **Tesoureiro(a)**. Os demais não veem a aba, e o próprio banco recusa o acesso deles.
+- **Quem acessa:** o administrador, o coordenador e quem tem o perfil adicional **Tesoureiro(a)**. Os demais não veem a aba, e o próprio banco recusa o acesso deles.
 - **Entradas automáticas:** o valor do campo **Contribuições** de cada chamada entra sozinho no mês da aula, separado por turma. Não precisa digitar de novo. Para corrigir um valor, edite a chamada em **Histórico**.
 - **Entradas avulsas e saídas:** toque em **Novo lançamento** e preencha tipo, categoria, data, valor, turma (opcional) e descrição. Cada lançamento guarda quem o registrou. Dá para editar e excluir pelo **⋯**.
 - **Resumo do mês:** contribuições das aulas, outras entradas, total de entradas, saídas e saldo do mês. Troque o mês no seletor.
@@ -187,15 +188,16 @@ O banco (Supabase) recusa gravações fora destas regras, mesmo que alguém tent
 |---|---|
 | Ler turmas, alunos, aulas, avisos e chamadas | Qualquer usuário **ativo** |
 | Ler qualquer dado sem estar logado, ou com conta inativa | Ninguém |
-| Criar ou excluir turmas | Só o administrador |
-| Alterar alunos de uma turma | Administrador; líder e secretário(a) apenas da própria turma |
-| Criar, alterar e excluir aulas e avisos | Administrador; líder e secretário(a) apenas da própria turma |
-| Salvar chamadas | Administrador; líder e secretário(a) da própria turma; professor(a), apenas das aulas em que é o(a) responsável |
-| Excluir chamadas | Administrador; líder e secretário(a) da própria turma |
+| Criar ou excluir turmas | Administrador e coordenador |
+| Alterar alunos de uma turma | Administrador e coordenador; líder e secretário(a) apenas da própria turma |
+| Criar, alterar e excluir aulas e avisos | Administrador e coordenador; líder e secretário(a) apenas da própria turma |
+| Salvar chamadas | Administrador e coordenador; líder e secretário(a) da própria turma; professor(a), apenas das aulas em que é o(a) responsável |
+| Excluir chamadas | Administrador e coordenador; líder e secretário(a) da própria turma |
 | Ver a lista de usuários, mudar perfil, ativar, excluir | Só o administrador |
+| Ver o histórico de alterações (Auditoria) | Só o administrador |
 | Nunca ficar sem administrador ativo | Sempre |
 | Backup (exportar e importar) | Só o administrador (tela do app) |
-| Ver e lançar o financeiro (ofertas e despesas) | Administrador e quem tem o perfil adicional Tesoureiro(a) |
+| Ver e lançar o financeiro (ofertas e despesas) | Administrador, coordenador e quem tem o perfil adicional Tesoureiro(a) |
 | Dar ou tirar o perfil Tesoureiro(a) | Só o administrador |
 
 **Limite que ainda existe:**

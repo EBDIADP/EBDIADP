@@ -1,7 +1,8 @@
 -- =====================================================================
 -- EBD IADP - banco de dados (Supabase / PostgreSQL)
 -- Estado atual, com as regras de gravação por perfil, aviso de novas contas,
--- perfil adicional Tesoureiro(a) e módulo financeiro (out/2026).
+-- perfil adicional Tesoureiro(a), módulo financeiro, perfil Coordenador(a) e
+-- revogação de EXECUTE das funções internas (out/2026).
 --
 -- COMO USAR: Supabase > SQL Editor > New query > cole tudo > Run.
 -- Pode ser executado de novo sem problema (não apaga dados).
@@ -28,7 +29,7 @@ create table if not exists public.perfis (
   nome      text,
   email     text,
   perfil    text not null default 'professor'
-            check (perfil in ('admin','secretario','lider','professor')),
+            check (perfil in ('admin','coordenador','secretario','lider','professor')),
   ativo     boolean not null default false,
   aluno_id  text,   -- vínculo com o cadastro de aluno (professor, líder, secretário, admin)
   turma_id  text,   -- turma de líder e secretário
@@ -36,6 +37,11 @@ create table if not exists public.perfis (
   aprovado_em timestamptz,                         -- quando a conta foi liberada (aviso de novas contas)
   perfis_extra text[] not null default '{}'        -- perfis adicionais (hoje só 'tesoureiro')
 );
+
+-- Bancos antigos: libera o perfil 'coordenador' na restrição (seguro de repetir).
+alter table public.perfis drop constraint if exists perfis_perfil_check;
+alter table public.perfis add constraint perfis_perfil_check
+  check (perfil in ('admin','coordenador','secretario','lider','professor'));
 -- Para bancos que já existiam antes dessas duas colunas (create table if not exists não as adiciona):
 alter table public.perfis add column if not exists aprovado_em timestamptz;
 alter table public.perfis add column if not exists perfis_extra text[] not null default '{}';
@@ -66,15 +72,21 @@ create or replace function public.sou_admin() returns boolean
   language sql stable security definer set search_path = public as
 $$ select exists (select 1 from public.perfis where id = auth.uid() and ativo and perfil = 'admin') $$;
 
+-- admin ou coordenador: gestão do conteúdo (turmas, aulas, avisos, chamadas, financeiro).
+-- Usuários e auditoria continuam só do admin (sou_admin).
+create or replace function public.sou_gestor() returns boolean
+  language sql stable security definer set search_path = public as
+$$ select exists (select 1 from public.perfis where id = auth.uid() and ativo and perfil in ('admin','coordenador')) $$;
+
 create or replace function public.meu_perfil() returns text
   language sql stable security definer set search_path = public as
 $$ select perfil::text from public.perfis where id = auth.uid() and ativo $$;
 
--- true se for admin, ou líder/secretário vinculado à turma informada
+-- true se for admin ou coordenador, ou líder/secretário vinculado à turma informada
 create or replace function public.pode_gravar_turma(tid text) returns boolean
   language sql stable security definer set search_path = public as
 $$ select coalesce((
-     select perfil = 'admin'
+     select perfil in ('admin','coordenador')
          or (perfil in ('lider','secretario') and coalesce(tid,'') <> '' and turma_id::text = tid)
      from public.perfis where id = auth.uid() and ativo), false) $$;
 
@@ -196,13 +208,13 @@ do $$ declare t text; begin
   end loop;
 end $$;
 
--- turmas: excluir só admin; alterar (alunos) admin ou líder/secretário da turma.
+-- turmas: excluir admin ou coordenador; alterar (alunos) admin, coordenador ou líder/secretário da turma.
 -- O INSERT também usa pode_gravar_turma porque o app grava com UPSERT (INSERT ... ON CONFLICT
 -- DO UPDATE), e o Postgres confere a regra de INSERT antes de detectar a turma existente.
 -- Com sou_admin() aqui, líder e secretário(a) não conseguiam salvar alunos novos.
--- Turma nova só nasce com id que nenhum perfil tem em turma_id, então só o admin cria turma.
+-- Turma nova só nasce com id que nenhum perfil tem em turma_id, então só admin e coordenador criam turma.
 create policy turmas_inserir on public.turmas for insert with check (public.pode_gravar_turma(id::text));
-create policy turmas_excluir on public.turmas for delete using (public.sou_admin());
+create policy turmas_excluir on public.turmas for delete using (public.sou_gestor());
 create policy turmas_alterar on public.turmas for update
   using (public.pode_gravar_turma(id::text)) with check (public.pode_gravar_turma(id::text));
 
@@ -234,7 +246,7 @@ create policy perfis_alterar on public.perfis for update using (public.sou_admin
 create policy perfis_excluir on public.perfis for delete using (public.sou_admin() and id <> auth.uid());
 
 -- ---------- 5. Financeiro (ofertas e despesas) ----------
--- Acesso: administrador ativo ou usuário ativo com o perfil adicional 'tesoureiro'.
+-- Acesso: administrador ou coordenador ativo, ou usuário ativo com o perfil adicional 'tesoureiro'.
 create table if not exists public.financeiro (
   id uuid primary key default gen_random_uuid(),
   data date not null,
@@ -253,7 +265,7 @@ create or replace function public.pode_financeiro() returns boolean
   language sql stable security definer set search_path = public as
 $$ select exists (select 1 from public.perfis p
                   where p.id = auth.uid() and p.ativo is true
-                    and (p.perfil = 'admin' or 'tesoureiro' = any (p.perfis_extra))) $$;
+                    and (p.perfil in ('admin','coordenador') or 'tesoureiro' = any (p.perfis_extra))) $$;
 
 alter table public.financeiro enable row level security;
 revoke all on public.financeiro from anon;
@@ -264,5 +276,28 @@ create policy financeiro_admin on public.financeiro for all to authenticated
 
 -- O histórico de alterações (auditoria) fica no arquivo auditoria.sql.
 
--- ---------- 6. Conferência (opcional) ----------
+-- ---------- 6. Permissão de execução das funções ----------
+-- Funções SECURITY DEFINER do schema public ficam expostas em /rest/v1/rpc/... (API).
+-- Funções de trigger: ninguém precisa chamá-las pela API (o EXECUTE só é checado ao criar o trigger).
+revoke execute on function public.novo_usuario()         from public, anon, authenticated;
+revoke execute on function public.protege_ultimo_admin() from public, anon, authenticated;
+revoke execute on function public.protege_perfis_extra() from public, anon, authenticated;
+-- (registra_historico() é tratada no fim do auditoria.sql)
+-- Funções auxiliares das políticas: só usuários logados (as políticas rodam como authenticated).
+revoke execute on function public.sou_admin()                       from public, anon;
+revoke execute on function public.sou_ativo()                       from public, anon;
+revoke execute on function public.sou_gestor()                      from public, anon;
+revoke execute on function public.meu_perfil()                      from public, anon;
+revoke execute on function public.pode_financeiro()                 from public, anon;
+revoke execute on function public.pode_gravar_turma(text)           from public, anon;
+revoke execute on function public.professor_da_chamada(text, jsonb) from public, anon;
+grant execute on function public.sou_admin()                       to authenticated;
+grant execute on function public.sou_ativo()                       to authenticated;
+grant execute on function public.sou_gestor()                      to authenticated;
+grant execute on function public.meu_perfil()                      to authenticated;
+grant execute on function public.pode_financeiro()                 to authenticated;
+grant execute on function public.pode_gravar_turma(text)           to authenticated;
+grant execute on function public.professor_da_chamada(text, jsonb) to authenticated;
+
+-- ---------- 7. Conferência (opcional) ----------
 -- select tablename, policyname, cmd, qual, with_check from pg_policies where schemaname = 'public' order by 1, 2;
