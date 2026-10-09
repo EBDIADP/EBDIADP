@@ -319,6 +319,20 @@ const alunoDe=id=>{if(!id)return null;for(const t of S.turmas){const a=t.alunos.
 const meuAluno=()=>{const r=me&&alunoDe(me.alunoId);return r?r.a:null};
 const minha=x=>ehEquipe()?tOk(x.turma):(!ehProf()||(!!meuAluno()&&x.prof===nm(meuAluno())));
 const proprio=k=>{if(ehEquipe())return tOk(k.slice(k.indexOf('|')+1));if(!ehProf())return true;const i=k.indexOf('|'),d=k.slice(0,i),tid=k.slice(i+1),au=S.aulas.find(x=>x.turma===tid&&x.data===d),pr=au?au.prof:((S.extras||{})[k]||{}).prof;return !!meuAluno()&&pr===nm(meuAluno())};
+// Aviso ao professor: aulas agendadas para ele que ele ainda não viu neste aparelho.
+const kVistas=()=>'ebd_aulas_vistas_'+(me?me.id:'');
+const lerVistas=()=>{try{const v=JSON.parse(localStorage.getItem(kVistas())||'null');return Array.isArray(v)?v:null}catch(x){return null}};
+const gravaVistas=a=>{try{localStorage.setItem(kVistas(),JSON.stringify(a.slice(-300)))}catch(x){}};
+const minhasAulasProf=()=>{if(!ehProf()||!meuAluno())return [];const n=nm(meuAluno());return S.aulas.filter(x=>x.prof===n&&turma(x.turma))};
+const aulasNovasProf=()=>{const v=lerVistas();if(v===null)return [];const h=ymd(today);return minhasAulasProf().filter(x=>x.data>=h&&!v.includes(x.id))};
+function marcaAulasVistas(){if(!ehProf()||!meuAluno())return;const v=new Set(lerVistas()||[]);minhasAulasProf().forEach(x=>v.add(x.id));gravaVistas([...v])}
+const avisadasP=new Set();
+function avisaAulas(){if(!ehProf()||!meuAluno())return;const v=lerVistas(),h=ymd(today),mine=minhasAulasProf(),prox=mine.filter(x=>x.data>=h);
+ if(v===null){gravaVistas(mine.map(x=>x.id));if(prox.length)toast('Você tem '+prox.length+(prox.length===1?' aula agendada':' aulas agendadas'),6000);return}
+ const novas=aulasNovasProf().filter(x=>!avisadasP.has(x.id));novas.forEach(x=>avisadasP.add(x.id));
+ if(novas.length)toast(novas.length===1?'Nova aula agendada para você: '+fmtD(novas[0].data)+' · '+turma(novas[0].turma).nome:novas.length+' novas aulas agendadas para você',6000)}
+function faixaAulasProf(){const N=aulasNovasProf();if(!N.length)return '';
+ return '<div class="novas" role="alert"><b>'+(N.length===1?'Nova aula agendada para você':N.length+' novas aulas agendadas para você')+'</b>'+N.slice(0,4).map(x=>'<span class="sub">'+esc(turma(x.turma).nome)+' · '+fmtD(x.data)+(x.tema?' · '+esc(x.tema):'')+'</span>').join('')+(N.length>4?'<span class="sub">e mais '+(N.length-4)+'</span>':'')+'<div class="acts"><button class="btn" style="margin-top:0" data-aulaver="1">Ver na agenda</button><button class="btn" style="margin-top:0;background:none;color:var(--ink);border:1px solid var(--line)" data-aulaok="1">Ok</button></div></div>'}
 const semAula=()=>ehEquipe()?(minhaT()?'Nenhuma chamada liberada para a sua turma. A chamada abre no dia das aulas agendadas.':semTurma):ehProf()?(meuAluno()?'Nenhuma chamada liberada para você. A chamada abre no dia das aulas em que você é o(a) professor(a).':'Seu usuário ainda não está vinculado a um aluno(a) professor(a). Peça ao administrador para fazer o vínculo em Gerenciar › Usuários.'):'Nenhuma chamada liberada. Agende uma aula em Gerenciar › Agenda: a chamada abre no dia marcado.';
 const vinc=u=>{const bad=t=>' · <span style="color:var(--bad);font-weight:700">'+t+'</span>',r=alunoDe(u.aluno_id);let x=r?' · Aluno(a): '+esc(nm(r.a))+' ('+esc(r.t.nome)+')':((u.perfil==='professor'&&!temTes(u))||u.perfil==='lider'?bad('sem vínculo com aluno'):'');if(u.perfil==='lider'||u.perfil==='secretario'){const t=turma(u.turma_id);x=(t?' · '+(u.perfil==='lider'?'Líder':'Secretário(a)')+' da turma '+esc(t.nome):bad('sem vínculo com turma'))+x}return x};
 const admins=()=>S.usuarios.filter(u=>u.perfil==='admin'&&u.ativo!==false);
@@ -581,6 +595,7 @@ async function atualizaAuto(){
  atualizando=true;const m0=mut;
  try{const antes=JSON.stringify(remoto);
   const ok=await pull(()=>mut===m0&&!ocupado());
+  if(ok)avisaAulas();
   if(ok&&JSON.stringify(remoto)!==antes&&VIEWS_LIVRES.includes(view)&&!ocupado()){render();toast('Dados atualizados',1500)}
  }catch(x){}finally{atualizando=false}}
 setInterval(atualizaAuto,60000);
@@ -602,6 +617,7 @@ function render(){
  nv.style.display='';GRUPOS.forEach(([k,l,vs])=>{const gb=nv.querySelector('[data-v="'+k+'"]');gb.hidden=!vs.some(can);gb.innerHTML=(k==='g-painel'&&!can('painel')?'Avisos':l)+(k==='grupo'?selo(pendentes().length):'')});if(!can(view))view=can('painel')?'painel':'chamada';
  $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pRot(me)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
  $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():view==='backup'?vBackup():view==='financeiro'?vFinanceiro():vAvisos();
+ if(ehProf()){if(view==='agenda')marcaAulasVistas();else if(!(view==='chamada'&&selA)){const f=faixaAulasProf();if(f)$('#app').insertAdjacentHTML('afterbegin',f)}}
  const gv=grupoDe(view);if(gv){sub=view;subG[gv[0]]=view}
  const sn=$('#sub');sn.hidden=!gv;
  sn.innerHTML=gv?gv[2].filter(can).map(v=>'<button data-s="'+v+'" aria-current="'+(v===view?'page':'false')+'">'+subLabel(v)+(v==='usuarios'?selo(pendentes().length):'')+'</button>').join(''):'';
@@ -938,7 +954,7 @@ async function boot(){
  if(!p||!p.ativo){me=null;acesso='pendente';pendNome=(p&&(p.nome||p.email))||session.user.email||'';render();return}
  me={id:p.id,nome:p.nome||p.email,login:p.email,perfil:p.perfil,ativo:true,alunoId:p.aluno_id||null,turmaId:p.turma_id||null,extras:Array.isArray(p.perfis_extra)?p.perfis_extra:[]};acesso='';
  try{await pull();if(me.perfil==='admin'){await pullUsers();if(!S.turmas.length){S.turmas=seed().turmas;norm();save()}}}catch(e){toast('Erro ao carregar os dados')}
- if(ehEquipe()&&me.turmaId)cur=me.turmaId;view=can('painel')?'painel':'chamada';render();scrollTo(0,0);if(me.perfil==='admin')avisaNovas()}
+ if(ehEquipe()&&me.turmaId)cur=me.turmaId;view=can('painel')?'painel':'chamada';render();scrollTo(0,0);if(me.perfil==='admin')avisaNovas();else avisaAulas()}
 $('#app').addEventListener('click',async e=>{
  const id=e.target.id,B=e.target.closest('[data-ue],[data-ud],[data-uok],[data-uno],[data-uek]'),D=B?B.dataset:{};
  if(id==='irCriar'||id==='irEntrar'){modo=id==='irCriar'?'criar':'entrar';render();return}
@@ -954,6 +970,7 @@ $('#app').addEventListener('click',async e=>{
  if(id==='salvarSenha'){const sn=$('#ns').value;if(sn.length<6){toast('A senha precisa ter ao menos 6 caracteres');return}
   const {error}=await sb.auth.updateUser({password:sn});if(error){toast('Não foi possível salvar a senha');return}
   modo='entrar';history.replaceState(null,'',location.pathname);toast('Senha alterada');await boot();return}
+ if(me&&ehProf()&&e.target.closest('[data-aulaok],[data-aulaver]')){const ver=!!e.target.closest('[data-aulaver]');marcaAulasVistas();if(ver)view='agenda';render();scrollTo(0,0);return}
  if(!me||me.perfil!=='admin')return;
  if(e.target.closest('[data-rev]')){view='usuarios';sub='usuarios';editU='';delU='';render();scrollTo(0,0);return}
  if(D.ue){editU=D.ue;delU='';render();return}
@@ -973,7 +990,7 @@ $('#app').addEventListener('click',async e=>{
 });
 if(sb)sb.auth.onAuthStateChange((ev)=>{if(ev==='PASSWORD_RECOVERY'){modo='nova';me=null;render()}});
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!me||pend)return;
- try{await pull();if(me.perfil==='admin'){await pullUsers();avisaNovas()}const ae=document.activeElement;if(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName))render()}catch(x){}});
+ try{await pull();if(me.perfil==='admin'){await pullUsers();avisaNovas()}else avisaAulas();const ae=document.activeElement;if(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName))render()}catch(x){}});
 
 render();
 boot();
