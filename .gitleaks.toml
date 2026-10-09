@@ -1,0 +1,9 @@
+title = "EBDIADP gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Chave publishable do Supabase é pública por design (protegida por RLS)"
+regexes = ['''sb_publishable_[A-Za-z0-9_\-]+''']
+paths = ['''index\.html''']
