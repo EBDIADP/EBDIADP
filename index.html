@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Escola Bíblica Dominical</title>
-<meta name="theme-color" content="#0f1f3d">
+<meta name="theme-color" content="#FFFFFF">
 <script>(function(){try{var t=localStorage.getItem("ebd_tema");if(!t&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)t="dark";if(t==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}})()</script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,9 +18,9 @@
 <style>
 /* EBD app */
 
-:root{--bg:#F5F7FB;--surface:#FFFFFF;--ink:#0B1B33;--muted:#5B6B85;--line:#E3E8F1;--brand:#2563EB;--onbrand:#FFFFFF;--accent:#F59E0B;--ok:#16A34A;--bad:#DC2626;--navy:#0B1B33;--shadow:0 1px 2px rgba(11,27,51,.04),0 8px 24px -12px rgba(11,27,51,.12);
+:root{--bg:#FAFAF9;--surface:#FFFFFF;--ink:#1C1917;--muted:#78716C;--line:#E7E5E4;--brand:#462410;--onbrand:#FFF7ED;--accent:#F59E0B;--ok:#16A34A;--bad:#DC2626;--navy:#1C1917;--soft:#F5F5F4;--shadow:0 1px 2px rgba(28,25,23,.05);
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-:root[data-theme="dark"]{color-scheme:dark;--bg:#121A18;--surface:#1B2623;--ink:#E8EEEA;--muted:#9AABA4;--line:#2E3D38;--brand:#2B5A4D;--onbrand:#F2F5F1;--ok:#5CC49A;--bad:#E8806F}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0C0A09;--surface:#1C1917;--ink:#FAFAF9;--muted:#A8A29E;--line:#2B2623;--brand:#E7E5E4;--onbrand:#1C1917;--soft:#292524;--navy:#0C0A09;--ok:#5CC49A;--bad:#E8806F}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Figtree,system-ui,sans-serif;padding-bottom:84px}
@@ -28,7 +28,7 @@ h1,h2{font-family:Outfit,Figtree,sans-serif;margin:0;letter-spacing:-.01em}
 header{background:var(--brand);color:var(--onbrand);padding:20px 20px 18px}
 header h1{font-size:26px;font-weight:800}
 header{position:relative;padding-right:64px}
-#tema{position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.14);color:var(--onbrand);font-size:19px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+#tema{position:absolute;top:50%;right:14px;transform:translateY(-50%);width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:17px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
 header p{margin:2px 0 0;opacity:.8;font-size:14px}
 main{max-width:640px;margin:0 auto;padding:20px}
 h2{font-size:20px;font-weight:600;margin-bottom:12px}
@@ -36,7 +36,7 @@ label{display:block;font-size:14px;font-weight:500;margin:12px 0 4px}
 input,select,textarea,button{font:inherit;color:inherit}
 input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
 textarea{min-height:76px;resize:vertical}
-:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .btn{background:var(--brand);color:var(--onbrand);border:0;border-radius:8px;padding:12px 18px;font-weight:700;cursor:pointer;margin-top:14px}
 .btn.full{width:100%}
 .sub{color:var(--muted);font-size:14px}
@@ -101,39 +101,46 @@ nav button{flex:1 0 auto;padding:14px 10px;font-size:14px;white-space:nowrap}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
 
-/* Modern refresh */
+/* Visual estilo shadcn: neutro quente + marrom do logo */
 html,body{background:var(--bg);min-height:100%}
-header{background:linear-gradient(135deg,var(--navy),#16315C 60%,var(--brand));padding:28px 24px 28px;border-radius:0 0 28px 28px}
-header h1{font-size:28px;font-weight:800}
+header{background:var(--surface);color:var(--ink);border-bottom:1px solid var(--line);border-radius:0;padding:12px 60px 12px 16px;display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:center}
+header img{grid-row:1/3;width:42px;height:auto;box-sizing:content-box;padding:5px;background:#F8F8F8;border-radius:8px;display:block}
+header h1{font-size:17px;font-weight:600;line-height:1.2}
+header p{color:var(--muted);opacity:1;margin:2px 0 0;font-size:13px}
 main{max-width:760px;margin:0 auto;position:relative}
 .subnav{background:transparent;border:0;padding:12px 20px 0;margin-top:0;position:relative;max-width:760px;margin-inline:auto}
 .subnav:not([hidden])+main{margin-top:0}
-.subnav button{border-radius:12px;box-shadow:var(--shadow);border-color:transparent}
-.list{border:0;border-radius:20px;box-shadow:var(--shadow);background:var(--surface)}
+.subnav button{border-radius:8px;border-color:var(--line);font-weight:500;padding:7px 14px}
+.list{border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);background:var(--surface)}
 .row,.item,.freq,.kv,details.dt{background:transparent}
-.tot{border-radius:20px;background:linear-gradient(135deg,var(--navy),var(--brand));box-shadow:0 12px 30px -12px rgba(37,99,235,.5)}
+.tot{border-radius:10px;background:var(--surface);color:var(--ink);border:1px solid var(--line);box-shadow:var(--shadow)}
+.tot .l{opacity:1;color:var(--muted)}
 .tgrid{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
-.tgrid>*{background:rgba(255,255,255,.08);border-radius:14px;padding:12px}
+.tgrid>*{background:var(--soft);border-radius:8px;padding:12px}
 .tgrid>*:first-child{grid-column:span 2}
-.btn{border-radius:12px;box-shadow:0 6px 16px -6px rgba(37,99,235,.6);transition:transform .15s}
-.btn:active{transform:scale(.98)}
-input,select,textarea{border-radius:12px}
-h2{font-size:22px}
+.btn{border-radius:8px;box-shadow:none;font-weight:500;transition:opacity .15s}
+.btn:hover{opacity:.9}
+.btn:active{transform:scale(.99)}
+input,select,textarea{border-radius:8px}
+h2{font-size:20px;font-weight:600}
+h1,h2{font-family:Figtree,system-ui,sans-serif}
+.tot .n{font-family:Figtree,system-ui,sans-serif;font-weight:700}
 .tag{border-radius:6px}
-.meter{height:8px;border-radius:4px}
-.meter i{background:linear-gradient(90deg,var(--brand),#60A5FA)}
-nav{left:50%;right:auto;transform:translateX(-50%);bottom:12px;width:min(520px,calc(100% - 24px));border:0;border-radius:18px;box-shadow:0 12px 30px -10px rgba(11,27,51,.3);padding:6px;gap:4px}
-nav button{border-top:0;border-radius:12px;padding:10px 12px}
-nav button[aria-current="page"]{background:var(--navy);color:#fff}
-#toast{border-radius:12px;bottom:96px}
-@media(min-width:720px){main>.list,main .list{margin-bottom:8px}}
+.novas{border-radius:10px;border-width:1px;border-left-width:4px}
+.meter{height:6px;border-radius:3px}
+.meter i{background:var(--brand)}
+nav{left:0;right:0;transform:none;bottom:0;width:auto;border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));gap:4px}
+nav button{border-top:0;border-radius:8px;padding:9px 12px;font-weight:500}
+nav button[aria-current="page"]{background:var(--soft);color:var(--ink);box-shadow:inset 0 2px 0 var(--accent)}
+#toast{border-radius:8px;bottom:80px}
+.tg{border-radius:8px;font-weight:500}
 
 .subnav{flex-wrap:wrap;overflow:visible}
 details.more{position:relative;margin-left:auto}
 details.more summary{list-style:none;cursor:pointer;width:36px;height:36px;display:grid;place-items:center;border-radius:10px;font-size:22px;font-weight:800;color:var(--muted);line-height:1}
 details.more summary::-webkit-details-marker{display:none}
-details.more summary:hover,details.more[open] summary{background:var(--bg);color:var(--ink)}
-details.more .menu{position:absolute;right:0;top:40px;z-index:5;background:var(--surface);border-radius:14px;box-shadow:0 12px 30px -10px rgba(11,27,51,.3);padding:8px;display:flex;flex-direction:column;gap:6px;min-width:150px}
+details.more summary:hover,details.more[open] summary{background:var(--soft);color:var(--ink)}
+details.more .menu{position:absolute;right:0;top:40px;z-index:5;background:var(--surface);border-radius:14px;border:1px solid var(--line);box-shadow:0 8px 24px -10px rgba(28,25,23,.25);padding:8px;display:flex;flex-direction:column;gap:6px;min-width:150px}
 details.more .menu .tg{width:100%;text-align:left;border-radius:10px}
 .list{overflow:visible}
 .list:has(details.more[open]){position:relative;z-index:10}
@@ -153,11 +160,11 @@ details.more[open]{z-index:10}
 .tag.tt{background:transparent;border:1.5px solid currentColor;padding:0 6px}
 .tt-pr{color:#4338CA}.tt-pra{color:#A21CAF}.tt-miss{color:#0F766E}.tt-pb{color:#1D4ED8}.tt-coop{color:#B45309}.tt-dc{color:#15803D}.tt-mem{color:#475569}
 :root[data-theme="dark"] .tt-pr{color:#A5B4FC}:root[data-theme="dark"] .tt-pra{color:#F0ABFC}:root[data-theme="dark"] .tt-miss{color:#5EEAD4}:root[data-theme="dark"] .tt-pb{color:#93C5FD}:root[data-theme="dark"] .tt-coop{color:#FCD34D}:root[data-theme="dark"] .tt-dc{color:#86EFAC}:root[data-theme="dark"] .tt-mem{color:#CBD5E1}
-@media print{:root,:root[data-theme="dark"]{--bg:#fff;--surface:#fff;--ink:#0B1B33;--muted:#5B6B85;--line:#E3E8F1}header,nav,.subnav,#toast,.noprint{display:none!important}body{background:#fff;padding:0}main{max-width:none;padding:0}}
+@media print{:root,:root[data-theme="dark"]{--bg:#fff;--surface:#fff;--ink:#1C1917;--muted:#78716C;--line:#E7E5E4;--soft:#F5F5F4}header,nav,.subnav,#toast,.noprint{display:none!important}body{background:#fff;padding:0}main{max-width:none;padding:0}}
 </style>
 </head>
 <body>
-<header><h1>Escola Bíblica Dominical</h1><p id="hd"></p><button id="tema" type="button" class="noprint" aria-label="Mudar para o modo escuro" title="Mudar para o modo escuro">☾</button></header>
+<header><img src="logo-header.png" alt="" width="42" height="23"><h1>Escola Bíblica Dominical</h1><p id="hd"></p><button id="tema" type="button" class="noprint" aria-label="Mudar para o modo escuro" title="Mudar para o modo escuro">☾</button></header>
 <div class="subnav" id="sub" aria-label="Gerenciar" hidden></div>
 <main id="app"></main>
 <nav aria-label="Seções">
@@ -167,13 +174,12 @@ details.more[open]{z-index:10}
 <button data-v="grupo">Gerenciar</button>
 </nav>
 <div id="toast" role="status" aria-live="polite"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 
 
 function startEbd(){
 // ===== CONFIGURAÇÃO (veja o PASSO-A-PASSO.md) =====
-// A chave 'sb_publishable_' é PÚBLICA por design (vai no navegador); a proteção real vem do RLS. NUNCA coloque aqui a chave 'sb_secret_' / service_role.
 const SUPABASE_URL='https://rvxeemtvwgjxmxaljgfj.supabase.co',SUPABASE_KEY='sb_publishable_oZLsGNCrvZoirwjpw_NP2A_Omx8zQI1';
 // WhatsApp do administrador (opcional): só números, com país e DDD. Ex.: '5511999999999'. Deixe vazio para não mostrar o botão.
 const ADMIN_WHATSAPP='5511940417946';
@@ -272,7 +278,7 @@ const metaTc=document.querySelector('meta[name="theme-color"]');
 const temaAtual=()=>document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light';
 function aplicaTema(t,salva){const r=document.documentElement,b=$('#tema'),d=t==='dark';
  if(d)r.setAttribute('data-theme','dark');else r.removeAttribute('data-theme');
- if(metaTc)metaTc.setAttribute('content',d?'#121A18':'#0f1f3d');
+ if(metaTc)metaTc.setAttribute('content',d?'#1C1917':'#FFFFFF');
  if(b){const tx=d?'Mudar para o modo claro':'Mudar para o modo escuro';b.textContent=d?'☀':'☾';b.setAttribute('aria-label',tx);b.title=tx}
  if(salva){try{localStorage.setItem('ebd_tema',t)}catch(x){}}}
 $('#tema').addEventListener('click',()=>aplicaTema(temaAtual()==='dark'?'light':'dark',true));
