@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Escola Bíblica Dominical</title>
 <meta name="theme-color" content="#0f1f3d">
+<script>(function(){try{var t=localStorage.getItem("ebd_tema");if(!t&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)t="dark";if(t==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}})()</script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="EBD IADP">
@@ -19,13 +20,15 @@
 
 :root{--bg:#F5F7FB;--surface:#FFFFFF;--ink:#0B1B33;--muted:#5B6B85;--line:#E3E8F1;--brand:#2563EB;--onbrand:#FFFFFF;--accent:#F59E0B;--ok:#16A34A;--bad:#DC2626;--navy:#0B1B33;--shadow:0 1px 2px rgba(11,27,51,.04),0 8px 24px -12px rgba(11,27,51,.12);
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-:root[data-theme="dark"]{--bg:#121A18;--surface:#1B2623;--ink:#E8EEEA;--muted:#9AABA4;--line:#2E3D38;--brand:#2B5A4D;--onbrand:#F2F5F1;--ok:#5CC49A;--bad:#E8806F}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#121A18;--surface:#1B2623;--ink:#E8EEEA;--muted:#9AABA4;--line:#2E3D38;--brand:#2B5A4D;--onbrand:#F2F5F1;--ok:#5CC49A;--bad:#E8806F}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Figtree,system-ui,sans-serif;padding-bottom:84px}
 h1,h2{font-family:Outfit,Figtree,sans-serif;margin:0;letter-spacing:-.01em}
 header{background:var(--brand);color:var(--onbrand);padding:20px 20px 18px}
 header h1{font-size:26px;font-weight:800}
+header{position:relative;padding-right:64px}
+#tema{position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.14);color:var(--onbrand);font-size:19px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
 header p{margin:2px 0 0;opacity:.8;font-size:14px}
 main{max-width:640px;margin:0 auto;padding:20px}
 h2{font-size:20px;font-weight:600;margin-bottom:12px}
@@ -150,11 +153,11 @@ details.more[open]{z-index:10}
 .tag.tt{background:transparent;border:1.5px solid currentColor;padding:0 6px}
 .tt-pr{color:#4338CA}.tt-pra{color:#A21CAF}.tt-miss{color:#0F766E}.tt-pb{color:#1D4ED8}.tt-coop{color:#B45309}.tt-dc{color:#15803D}.tt-mem{color:#475569}
 :root[data-theme="dark"] .tt-pr{color:#A5B4FC}:root[data-theme="dark"] .tt-pra{color:#F0ABFC}:root[data-theme="dark"] .tt-miss{color:#5EEAD4}:root[data-theme="dark"] .tt-pb{color:#93C5FD}:root[data-theme="dark"] .tt-coop{color:#FCD34D}:root[data-theme="dark"] .tt-dc{color:#86EFAC}:root[data-theme="dark"] .tt-mem{color:#CBD5E1}
-@media print{header,nav,.subnav,#toast,.noprint{display:none!important}body{background:#fff;padding:0}main{max-width:none;padding:0}}
+@media print{:root,:root[data-theme="dark"]{--bg:#fff;--surface:#fff;--ink:#0B1B33;--muted:#5B6B85;--line:#E3E8F1}header,nav,.subnav,#toast,.noprint{display:none!important}body{background:#fff;padding:0}main{max-width:none;padding:0}}
 </style>
 </head>
 <body>
-<header><h1>Escola Bíblica Dominical</h1><p id="hd"></p></header>
+<header><h1>Escola Bíblica Dominical</h1><p id="hd"></p><button id="tema" type="button" class="noprint" aria-label="Mudar para o modo escuro" title="Mudar para o modo escuro">☾</button></header>
 <div class="subnav" id="sub" aria-label="Gerenciar" hidden></div>
 <main id="app"></main>
 <nav aria-label="Seções">
@@ -263,6 +266,17 @@ let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',
 const expT=new Set();
 let expP=false,expF=false;const opP=new Set();
 $('#app').addEventListener('toggle',e=>{const d=e.target;if(d&&d.dataset&&d.dataset.pn){d.open?opP.add(d.dataset.pn):opP.delete(d.dataset.pn)}},true);
+// Modo escuro: escolha salva no aparelho; sem escolha, segue o tema do sistema.
+const metaTc=document.querySelector('meta[name="theme-color"]');
+const temaAtual=()=>document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light';
+function aplicaTema(t,salva){const r=document.documentElement,b=$('#tema'),d=t==='dark';
+ if(d)r.setAttribute('data-theme','dark');else r.removeAttribute('data-theme');
+ if(metaTc)metaTc.setAttribute('content',d?'#121A18':'#0f1f3d');
+ if(b){const tx=d?'Mudar para o modo claro':'Mudar para o modo escuro';b.textContent=d?'☀':'☾';b.setAttribute('aria-label',tx);b.title=tx}
+ if(salva){try{localStorage.setItem('ebd_tema',t)}catch(x){}}}
+$('#tema').addEventListener('click',()=>aplicaTema(temaAtual()==='dark'?'light':'dark',true));
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',e=>{try{if(localStorage.getItem('ebd_tema'))return}catch(x){}aplicaTema(e.matches?'dark':'light',false)})}catch(x){}
+aplicaTema(temaAtual(),false);
 const turma=id=>S.turmas.find(t=>t.id===id);
 const TITULOS=[['Pr.','Pr. (Pastor)'],['Pra.','Pra. (Pastora)'],['Miss.','Miss. (Missionário/a)'],['Pb.','Pb. (Presbítero)'],['Coop.','Coop. (Cooperador/a)'],['Dc.','Dc. (Diácono)'],['Membro','Membro']];
 const nm=a=>(a.titulo&&a.titulo!=='Membro'?a.titulo+' ':'')+a.nome;
