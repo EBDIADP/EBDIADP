@@ -193,6 +193,7 @@ O banco (Supabase) recusa gravações fora destas regras, mesmo que alguém tent
 | Criar, alterar e excluir aulas e avisos | Administrador e coordenador; líder e secretário(a) apenas da própria turma |
 | Salvar chamadas | Administrador e coordenador; líder e secretário(a) da própria turma; professor(a), apenas das aulas em que é o(a) responsável |
 | Excluir chamadas | Administrador e coordenador; líder e secretário(a) da própria turma |
+| Aprovar ou recusar inscrições de alunos (formulário) | Administrador e coordenador; líder e secretário só da própria turma |
 | Ver a lista de usuários, mudar perfil, ativar, excluir | Só o administrador |
 | Ver o histórico de alterações (Auditoria) | Só o administrador |
 | Nunca ficar sem administrador ativo | Sempre |
@@ -338,3 +339,29 @@ O site precisa estar em um endereço `https://` (GitHub Pages, Netlify, Cloudfla
 - Ele busca sempre a versão mais nova do site. Depois de atualizar os arquivos na hospedagem, feche e abra o app uma ou duas vezes.
 - Esse app não aparece na Play Store nem na App Store. Cada pessoa instala pelo navegador, e você pode mandar o endereço pelo WhatsApp.
 - Para trocar o ícone, substitua os arquivos `.png` mantendo os mesmos nomes e tamanhos (192, 512, 512 e 180 pixels).
+
+## Formulário de inscrição de alunos
+
+Em vez de cadastrar tudo na mão, a pessoa (ou o responsável) preenche um formulário público e o aluno
+entra no app como **inscrição pendente**, até alguém liberar.
+
+**Como usar**
+1. Rode o `inscricoes.sql` no SQL Editor do Supabase (uma vez; pode repetir sem problema).
+2. Suba para o GitHub o arquivo `inscricao.html` (junto com `logo-header.png` e `icon-192.png`, que já existem).
+3. No app, abra **Controle › Inscrições** e toque em **Copiar link** (ou **Compartilhar**). É esse link que vai para o grupo da igreja.
+
+**O que a pessoa preenche:** turma, nome completo, data de nascimento, título e se também é professor
+(não aparece em Desbravadores), se é batizado (não aparece em Desbravadores), responsável (só Desbravadores),
+WhatsApp (opcional) e a autorização de uso dos dados.
+
+**Quem aprova:** administrador, coordenador e o líder ou secretário **da turma escolhida**. O app mostra um aviso na
+tela, um selo em **Inscrições** e uma faixa no topo. **Aprovar** cria o aluno na turma (com o nome ajustado, título e
+dados informados); **Recusar** não cadastra nada. Se duas pessoas tentarem decidir a mesma inscrição, só a primeira vale.
+
+**Proteções:** o formulário só consegue enviar (não lê nada do banco); as regras de cada turma são conferidas no
+servidor; a mesma pessoa não entra duas vezes como pendente; há limite de envios por minuto e um campo escondido
+contra robôs. O WhatsApp informado fica só na inscrição e não é copiado para o cadastro do aluno.
+
+**Atenção (LGPD):** o formulário coleta dados pessoais, inclusive de menores. Use só para a organização da EBD e
+apague inscrições antigas que não forem mais necessárias. Para ver as pendentes direto no banco:
+`select * from inscricoes where status = 'pendente';`

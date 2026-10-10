@@ -268,9 +268,9 @@ async function checaNovas(){if(vendo||!me||me.perfil!=='admin'||pend||document.v
  try{const antes=pendentes().map(u=>u.id).join();await pullUsers();avisaNovas();
   const ae=document.activeElement;if(pendentes().map(u=>u.id).join()!==antes&&!editU&&(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName)))render()}catch(x){}finally{vendo=false}}
 setInterval(checaNovas,60000);
-const SUBS=[['painel','Dashboard'],['avisos','Avisos'],['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['relatorio','Relatório'],['financeiro','Financeiro'],['turmas','Turmas'],['alunos','Alunos'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários'],['auditoria','Auditoria'],['backup','Backup']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
+const SUBS=[['painel','Dashboard'],['avisos','Avisos'],['chamada','Chamada'],['agenda','Agenda'],['registro','Histórico'],['faltas','Faltas'],['relatorio','Relatório'],['financeiro','Financeiro'],['turmas','Turmas'],['alunos','Alunos'],['inscricoes','Inscrições'],['professores','Professores'],['cadastro','Cadastro'],['usuarios','Usuários'],['auditoria','Auditoria'],['backup','Backup']],GROUP=SUBS.map(x=>x[0]);let sub='chamada';
 // Abas principais e as sub-abas de cada uma (a chave 'grupo' é a aba Gerenciar)
-const GRUPOS=[['g-painel','Dashboard',['painel','avisos']],['g-aulas','Aulas',['chamada','agenda']],['g-controle','Controle',['faltas','registro','relatorio','turmas','alunos','professores','cadastro','financeiro']],['grupo','Gerenciar',['usuarios','auditoria','backup']]],subG={},grupoDe=v=>GRUPOS.find(g=>g[2].includes(v)),subLabel=v=>(SUBS.find(x=>x[0]===v)||[0,v])[1];
+const GRUPOS=[['g-painel','Dashboard',['painel','avisos']],['g-aulas','Aulas',['chamada','agenda']],['g-controle','Controle',['faltas','registro','relatorio','turmas','alunos','inscricoes','professores','cadastro','financeiro']],['grupo','Gerenciar',['usuarios','auditoria','backup']]],subG={},grupoDe=v=>GRUPOS.find(g=>g[2].includes(v)),subLabel=v=>(SUBS.find(x=>x[0]===v)||[0,v])[1];
 let regF='',delV='',delA='',delG='',editA='',editT='',editH='',delH='',editV='',editG='',workH=new Set(),selA='',delT='',viewA='';let view='painel',cur=S.turmas[0]?S.turmas[0].id:'',work=null,workJ={},workHJ={};
 const expT=new Set();
 let expP=false,expF=false;const opP=new Set();
@@ -342,6 +342,45 @@ function avisaAulas(){if(!ehProf()||!meuAluno())return;const v=lerVistas(),h=ymd
  if(novas.length)toast(novas.length===1?'Nova aula agendada para você: '+fmtD(novas[0].data)+' · '+turma(novas[0].turma).nome:novas.length+' novas aulas agendadas para você',6000)}
 function faixaAulasProf(){const N=aulasNovasProf();if(!N.length)return '';
  return '<div class="novas" role="alert"><b>'+(N.length===1?'Nova aula agendada para você':N.length+' novas aulas agendadas para você')+'</b>'+N.slice(0,4).map(x=>'<span class="sub">'+esc(turma(x.turma).nome)+' · '+fmtD(x.data)+(x.tema?' · '+esc(x.tema):'')+'</span>').join('')+(N.length>4?'<span class="sub">e mais '+(N.length-4)+'</span>':'')+'<div class="acts"><button class="btn" style="margin-top:0" data-aulaver="1">Ver na agenda</button><button class="btn" style="margin-top:0;background:none;color:var(--ink);border:1px solid var(--line)" data-aulaok="1">Ok</button></div></div>'}
+// ---------- Inscrições de alunos (formulário público inscricao.html) ----------
+let INS=[],insRec='',insBusy=false;
+const insAv=new Set();
+const podeInscr=()=>!!me&&me.perfil!=='professor';
+const linkForm=()=>location.origin+location.pathname.replace(/[^/]*$/,'')+'inscricao.html';
+async function pullIns(){if(!sb||!podeInscr())return;try{const {data,error}=await sb.from('inscricoes').select('*').eq('status','pendente').order('criado_em',{ascending:true});if(!error&&Array.isArray(data))INS=data}catch(x){}}
+function avisaIns(){if(!podeInscr())return;const novas=INS.filter(x=>!insAv.has(x.id));novas.forEach(x=>insAv.add(x.id));if(novas.length)toast(novas.length===1?'Nova inscrição aguardando aprovação: '+capNome(novas[0].nome):novas.length+' novas inscrições aguardando aprovação',6000)}
+function faixaIns(){const n=INS.length;if(!n)return '';return '<div class="novas" role="alert"><b>'+(n===1?'1 inscrição aguardando aprovação':n+' inscrições aguardando aprovação')+'</b><span class="sub">'+INS.slice(0,3).map(x=>esc(capNome(x.nome))+' · '+esc((turma(x.turma_id)||{nome:'?'}).nome)).join(', ')+(n>3?' e mais '+(n-3):'')+'</span><div class="acts"><button class="btn" style="margin-top:0" data-insver="1">Ver inscrições</button></div></div>'}
+async function copiaLink(){try{await navigator.clipboard.writeText(linkForm());toast('Link copiado')}catch(x){const i=$('#lkf');if(i){i.focus();i.select()}toast('Selecione o link e copie')}}
+function cardIns(x){const t=turma(x.turma_id),p=[];
+ p.push('<b style="display:inline">'+esc(t?t.nome:'Turma removida')+'</b>');
+ p.push('Nasc. '+esc(x.nasc.split('-').reverse().join('/'))+' ('+idade(x.nasc)+' anos)');
+ if(t&&!semBat(t)){if(x.batizado==='sim')p.push('Batizado(a)');if(x.batizado==='nao')p.push('Não batizado(a)')}
+ if(x.resp)p.push('Responsável: '+esc(capNome(x.resp)));
+ if(x.contato)p.push('Contato: '+esc(x.contato));
+ p.push('Enviada em '+esc(new Date(x.criado_em).toLocaleDateString('pt-BR')));
+ const tg=(x.titulo?' '+tagTit(x.titulo):'')+(x.professor?' <span class="tag">Professor(a)</span>':'');
+ const bt=insRec===x.id?'<span class="sub">Recusar esta inscrição?</span><button class="tg bad" data-insnook="'+esc(x.id)+'">Confirmar</button><button class="tg" data-insnoc="1">Cancelar</button>':(t?'<button class="btn" style="margin-top:0" data-insok="'+esc(x.id)+'">Aprovar</button>':'')+'<button class="tg bad" data-insno="'+esc(x.id)+'">Recusar</button>';
+ return '<div class="item"><b>'+esc(capNome(x.nome))+tg+'</b><span class="sub" style="display:block;margin:2px 0 10px">'+p.join(' · ')+'</span><div class="acts" style="margin:0">'+bt+'</div></div>'}
+function vInscricoes(){
+ return '<h2>Inscrições</h2><p class="sub">Quem preencher o formulário aparece aqui como pendente. Ao aprovar, o aluno entra na turma; ao recusar, nada é cadastrado.</p>'
+ +'<div class="sec"><label for="lkf">Link do formulário</label><input id="lkf" readonly value="'+esc(linkForm())+'"><div class="acts"><button class="btn" data-cplink="1">Copiar link</button>'+(navigator.share?'<button class="tg" data-shlink="1">Compartilhar</button>':'')+'</div></div>'
+ +'<div class="sec"><h2>Pendentes ('+INS.length+')</h2>'+(INS.length?'<div class="list">'+INS.map(cardIns).join('')+'</div>':'<p class="sub">Nenhuma inscrição aguardando aprovação.</p>')+'</div>'}
+async function decideIns(x,st,extra){const {data,error}=await sb.from('inscricoes').update(Object.assign({status:st,decidido_em:new Date().toISOString(),decidido_por:me.id},extra||{})).eq('id',x.id).eq('status','pendente').select('id');return {ok:!error&&Array.isArray(data)&&data.length>0,error}}
+async function aprovaIns(id){const x=INS.find(i=>i.id===id);if(!x||insBusy)return;const t=turma(x.turma_id);
+ if(!t){toast('A turma dessa inscrição não existe mais. Recuse e peça um novo envio.');return}
+ if(!tOk(t.id)){toast('Você não gerencia essa turma');return}
+ const nome=capNome(x.nome);
+ if(t.alunos.some(a=>!a.arq&&String(a.nome||'').trim().toLowerCase()===nome.toLowerCase()&&a.nasc===x.nasc)){toast('Já existe um aluno com esse nome e data de nascimento nessa turma. Recuse a inscrição.');return}
+ insBusy=true;
+ try{const novo={id:uid(),nome,titulo:t.semProf?'':x.titulo,professor:t.semProf?false:!!x.professor,nasc:x.nasc,batizado:semBat(t)?'':x.batizado,resp:t.exigeResp?capNome(x.resp):'',desde:ymd(new Date())};
+  const r=await decideIns(x,'aprovada',{aluno_id:novo.id});
+  if(!r.ok){toast(r.error?'Não foi possível aprovar. Tente de novo.':'Essa inscrição já foi decidida por outra pessoa.');await pullIns();render();return}
+  t.alunos.push(novo);cur=t.id;save();INS=INS.filter(i=>i.id!==x.id);toast('Aluno adicionado à turma '+t.nome);render()
+ }finally{insBusy=false}}
+async function recusaIns(id){const x=INS.find(i=>i.id===id);if(!x||insBusy)return;insBusy=true;insRec='';
+ try{const r=await decideIns(x,'recusada');if(!r.ok){toast(r.error?'Não foi possível recusar. Tente de novo.':'Essa inscrição já foi decidida por outra pessoa.');await pullIns();render();return}
+  INS=INS.filter(i=>i.id!==x.id);toast('Inscrição recusada');render()
+ }finally{insBusy=false}}
 const semAula=()=>ehEquipe()?(minhaT()?'Nenhuma chamada liberada para a sua turma. A chamada abre no dia das aulas agendadas.':semTurma):ehProf()?(meuAluno()?'Nenhuma chamada liberada para você. A chamada abre no dia das aulas em que você é o(a) professor(a).':'Seu usuário ainda não está vinculado a um aluno(a) professor(a). Peça ao administrador para fazer o vínculo em Gerenciar › Usuários.'):'Nenhuma chamada liberada. Agende uma aula em Gerenciar › Agenda: a chamada abre no dia marcado.';
 const vinc=u=>{const bad=t=>' · <span style="color:var(--bad);font-weight:700">'+t+'</span>',r=alunoDe(u.aluno_id);let x=r?' · Aluno(a): '+esc(nm(r.a))+' ('+esc(r.t.nome)+')':((u.perfil==='professor'&&!temTes(u))||u.perfil==='lider'?bad('sem vínculo com aluno'):'');if(u.perfil==='lider'||u.perfil==='secretario'){const t=turma(u.turma_id);x=(t?' · '+(u.perfil==='lider'?'Líder':'Secretário(a)')+' da turma '+esc(t.nome):bad('sem vínculo com turma'))+x}return x};
 const admins=()=>S.usuarios.filter(u=>u.perfil==='admin'&&u.ativo!==false);
@@ -594,7 +633,7 @@ function vAgenda(){
 // Atualização automática dos dados: a cada 60 s, só com o app visível, online e sem ninguém digitando ou com algo por salvar.
 // Se qualquer alteração local acontecer enquanto os dados são buscados, a atualização é descartada (nada do usuário se perde).
 let atualizando=false;
-const VIEWS_LIVRES=['painel','chamada','registro','faltas','relatorio','turmas','alunos','professores','auditoria'];
+const VIEWS_LIVRES=['painel','chamada','registro','faltas','relatorio','turmas','alunos','inscricoes','professores','auditoria'];
 const ocupado=()=>{const ae=document.activeElement;
  if(!me||pend||saveErr||selA||work||workH.size||editA||editT||editH||editV||editG||editU||delV||delA||delG||delH||delT||delU)return true;
  if(ae&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName))return true;
@@ -605,6 +644,7 @@ async function atualizaAuto(){
  try{const antes=JSON.stringify(remoto);
   const ok=await pull(()=>mut===m0&&!ocupado());
   if(ok)avisaAulas();
+  if(ok){const k0=INS.map(i=>i.id).join();await pullIns();avisaIns();if(INS.map(i=>i.id).join()!==k0&&VIEWS_LIVRES.includes(view)&&!ocupado())render()}
   if(ok&&JSON.stringify(remoto)!==antes&&VIEWS_LIVRES.includes(view)&&!ocupado()){render();toast('Dados atualizados',1500)}
  }catch(x){}finally{atualizando=false}}
 setInterval(atualizaAuto,60000);
@@ -625,11 +665,12 @@ function render(){
  if(!me){nv.style.display='none';$('#sub').hidden=true;$('#hd').textContent=''+dateLabel;$('#app').innerHTML=vLogin();return}
  nv.style.display='';GRUPOS.forEach(([k,l,vs])=>{const gb=nv.querySelector('[data-v="'+k+'"]');gb.hidden=!vs.some(can);gb.innerHTML=(k==='g-painel'&&!can('painel')?'Avisos':l)+(k==='grupo'?selo(pendentes().length):'')});if(!can(view))view=can('painel')?'painel':'chamada';
  $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pRot(me)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
- $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():view==='backup'?vBackup():view==='financeiro'?vFinanceiro():vAvisos();
+ $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='inscricoes'?vInscricoes():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():view==='backup'?vBackup():view==='financeiro'?vFinanceiro():vAvisos();
  if(ehProf()){if(view==='agenda')marcaAulasVistas();else if(!(view==='chamada'&&selA)){const f=faixaAulasProf();if(f)$('#app').insertAdjacentHTML('afterbegin',f)}}
+ else if(podeInscr()&&view!=='inscricoes'&&!(view==='chamada'&&selA)){const f=faixaIns();if(f)$('#app').insertAdjacentHTML('afterbegin',f)}
  const gv=grupoDe(view);if(gv){sub=view;subG[gv[0]]=view}
  const sn=$('#sub');sn.hidden=!gv;
- sn.innerHTML=gv?gv[2].filter(can).map(v=>'<button data-s="'+v+'" aria-current="'+(v===view?'page':'false')+'">'+subLabel(v)+(v==='usuarios'?selo(pendentes().length):'')+'</button>').join(''):'';
+ sn.innerHTML=gv?gv[2].filter(can).map(v=>'<button data-s="'+v+'" aria-current="'+(v===view?'page':'false')+'">'+subLabel(v)+(v==='usuarios'?selo(pendentes().length):v==='inscricoes'?selo(INS.length):'')+'</button>').join(''):'';
  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===(gv?gv[0]:view)?'page':'false'));
  try{document.querySelector('nav button[aria-current="page"]').scrollIntoView({inline:'center',block:'nearest'})}catch(e){}
  if(view==='chamada'&&selA)updCount();
@@ -953,7 +994,7 @@ $('#app').addEventListener('change',e=>{if(e.target.id==='bkf'&&e.target.files[0
 $('#app').addEventListener('click',e=>{const c=k=>e.target.closest(k);
  if(c('[data-bkj]'))bkBaixar();else if(c('[data-bkc]'))bkCsv();else if(c('[data-bkgo]'))bkRestaurar();else if(c('[data-bkno]')){BK=null;bkMsg='';render()}});
 async function boot(){
- vistos=null;F=novoF();
+ vistos=null;F=novoF();INS=[];insRec='';insAv.clear();
  if(!sb){acesso='config';me=null;render();return}
  if(modo==='nova'){acesso='';me=null;render();return}
  const {data:{session}}=await sb.auth.getSession();
@@ -963,7 +1004,8 @@ async function boot(){
  if(!p||!p.ativo){me=null;acesso='pendente';pendNome=(p&&(p.nome||p.email))||session.user.email||'';render();return}
  me={id:p.id,nome:p.nome||p.email,login:p.email,perfil:p.perfil,ativo:true,alunoId:p.aluno_id||null,turmaId:p.turma_id||null,extras:Array.isArray(p.perfis_extra)?p.perfis_extra:[]};acesso='';
  try{await pull();if(me.perfil==='admin'){await pullUsers();if(!S.turmas.length){S.turmas=seed().turmas;norm();save()}}}catch(e){toast('Erro ao carregar os dados')}
- if(ehEquipe()&&me.turmaId)cur=me.turmaId;view=can('painel')?'painel':'chamada';render();scrollTo(0,0);if(me.perfil==='admin')avisaNovas();else avisaAulas()}
+ await pullIns();
+ if(ehEquipe()&&me.turmaId)cur=me.turmaId;view=can('painel')?'painel':'chamada';render();scrollTo(0,0);if(me.perfil==='admin')avisaNovas();else avisaAulas();avisaIns()}
 $('#app').addEventListener('click',async e=>{
  const id=e.target.id,B=e.target.closest('[data-ue],[data-ud],[data-uok],[data-uno],[data-uek]'),D=B?B.dataset:{};
  if(id==='irCriar'||id==='irEntrar'){modo=id==='irCriar'?'criar':'entrar';render();return}
@@ -980,6 +1022,15 @@ $('#app').addEventListener('click',async e=>{
   const {error}=await sb.auth.updateUser({password:sn});if(error){toast('Não foi possível salvar a senha');return}
   modo='entrar';history.replaceState(null,'',location.pathname);toast('Senha alterada');await boot();return}
  if(me&&ehProf()&&e.target.closest('[data-aulaok],[data-aulaver]')){const ver=!!e.target.closest('[data-aulaver]');marcaAulasVistas();if(ver)view='agenda';render();scrollTo(0,0);return}
+ if(me&&podeInscr()){
+  if(e.target.closest('[data-insver]')){view='inscricoes';render();scrollTo(0,0);return}
+  if(e.target.closest('[data-cplink]')){copiaLink();return}
+  if(e.target.closest('[data-shlink]')){try{await navigator.share({title:'Inscrição - Escola Bíblica Dominical',url:linkForm()})}catch(x){}return}
+  const iok=e.target.closest('[data-insok]');if(iok){aprovaIns(iok.dataset.insok);return}
+  const ino=e.target.closest('[data-insno]');if(ino){insRec=ino.dataset.insno;render();return}
+  if(e.target.closest('[data-insnoc]')){insRec='';render();return}
+  const ink=e.target.closest('[data-insnook]');if(ink){recusaIns(ink.dataset.insnook);return}
+ }
  if(!me||me.perfil!=='admin')return;
  if(e.target.closest('[data-rev]')){view='usuarios';sub='usuarios';editU='';delU='';render();scrollTo(0,0);return}
  if(D.ue){editU=D.ue;delU='';render();return}
@@ -999,7 +1050,7 @@ $('#app').addEventListener('click',async e=>{
 });
 if(sb)sb.auth.onAuthStateChange((ev)=>{if(ev==='PASSWORD_RECOVERY'){modo='nova';me=null;render()}});
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!me||pend)return;
- try{await pull();if(me.perfil==='admin'){await pullUsers();avisaNovas()}else avisaAulas();const ae=document.activeElement;if(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName))render()}catch(x){}});
+ try{await pull();if(me.perfil==='admin'){await pullUsers();avisaNovas()}else avisaAulas();await pullIns();avisaIns();const ae=document.activeElement;if(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName))render()}catch(x){}});
 
 render();
 boot();
