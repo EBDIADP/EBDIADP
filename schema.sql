@@ -32,7 +32,7 @@ create table if not exists public.perfis (
             check (perfil in ('admin','coordenador','secretario','lider','professor')),
   ativo     boolean not null default false,
   aluno_id  text,   -- vínculo com o cadastro de aluno (professor, líder, secretário, admin)
-  turma_id  text,   -- turma de líder e secretário
+  turma_id  text,   -- turma principal de líder e secretário (as demais ficam em turma_ids)
   criado_em timestamptz not null default now(),
   aprovado_em timestamptz,                         -- quando a conta foi liberada (aviso de novas contas)
   perfis_extra text[] not null default '{}'        -- perfis adicionais (hoje só 'tesoureiro')
@@ -42,6 +42,10 @@ create table if not exists public.perfis (
 alter table public.perfis drop constraint if exists perfis_perfil_check;
 alter table public.perfis add constraint perfis_perfil_check
   check (perfil in ('admin','coordenador','secretario','lider','professor'));
+
+-- Líder e secretário podem ter mais de uma turma: turma_ids guarda todas (turma_id é a principal).
+alter table public.perfis add column if not exists turma_ids text[] not null default '{}';
+update public.perfis set turma_ids = array[turma_id] where turma_id is not null and turma_ids = '{}';
 -- Para bancos que já existiam antes dessas duas colunas (create table if not exists não as adiciona):
 alter table public.perfis add column if not exists aprovado_em timestamptz;
 alter table public.perfis add column if not exists perfis_extra text[] not null default '{}';
@@ -87,7 +91,8 @@ create or replace function public.pode_gravar_turma(tid text) returns boolean
   language sql stable security definer set search_path = public as
 $$ select coalesce((
      select perfil in ('admin','coordenador')
-         or (perfil in ('lider','secretario') and coalesce(tid,'') <> '' and turma_id::text = tid)
+         or (perfil in ('lider','secretario') and coalesce(tid,'') <> ''
+             and (turma_id::text = tid or tid = any(turma_ids)))
      from public.perfis where id = auth.uid() and ativo), false) $$;
 
 -- true se o usuário logado é professor(a) ativo(a) e é o(a) responsável pela chamada da chave

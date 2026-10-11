@@ -350,9 +350,8 @@ entra no app como **inscrição pendente**, até alguém liberar.
 2. Suba para o GitHub o arquivo `inscricao.html` (junto com `logo-header.png` e `icon-192.png`, que já existem).
 3. No app, abra **Controle › Inscrições** e toque em **Copiar link** (ou **Compartilhar**). É esse link que vai para o grupo da igreja.
 
-**O que a pessoa preenche:** turma, nome completo, data de nascimento, título e se também é professor
-(não aparece em Desbravadores), se é batizado (não aparece em Desbravadores), responsável (só Desbravadores),
-WhatsApp (opcional) e a autorização de uso dos dados.
+**O que a pessoa preenche (tudo obrigatório):** turma, nome completo, data de nascimento, título (não aparece em Desbravadores),
+se é batizado (não aparece em Desbravadores), responsável (só Desbravadores) e a autorização de uso dos dados. A opção "também é professor(a)" é só uma marcação (não aparece em Desbravadores).
 
 **Quem aprova:** administrador, coordenador e o líder ou secretário **da turma escolhida**. O app mostra um aviso na
 tela, um selo em **Inscrições** e uma faixa no topo. **Aprovar** cria o aluno na turma (com o nome ajustado, título e
@@ -360,8 +359,15 @@ dados informados); **Recusar** não cadastra nada. Se duas pessoas tentarem deci
 
 **Proteções:** o formulário só consegue enviar (não lê nada do banco); as regras de cada turma são conferidas no
 servidor; a mesma pessoa não entra duas vezes como pendente; há limite de envios por minuto e um campo escondido
-contra robôs. O WhatsApp informado fica só na inscrição e não é copiado para o cadastro do aluno.
+contra robôs.
 
 **Atenção (LGPD):** o formulário coleta dados pessoais, inclusive de menores. Use só para a organização da EBD e
 apague inscrições antigas que não forem mais necessárias. Para ver as pendentes direto no banco:
 `select * from inscricoes where status = 'pendente';`
+
+## Líder ou secretário em mais de uma turma
+
+Em **Gerenciar › Usuários**, ao editar um usuário com perfil Líder ou Secretário(a), marque **uma ou mais** turmas em
+"Turmas vinculadas". A pessoa passa a ver e gerenciar (chamada, agenda, avisos, cadastro de alunos e aprovação de
+inscrições) todas as turmas marcadas, e nenhuma além delas. Quem tem só uma turma continua vendo tudo como antes.
+Para bancos já existentes, rode o `schema.sql` de novo (ele cria a coluna `turma_ids` e copia a turma atual de cada perfil).

@@ -79,9 +79,6 @@ button.sec{font:inherit;font-weight:500;background:var(--surface);color:var(--in
           <input id="resp" type="text" autocomplete="off" maxlength="120">
         </div>
 
-        <label for="contato">WhatsApp ou telefone <span class="opt">(opcional)</span></label>
-        <input id="contato" type="tel" inputmode="tel" autocomplete="tel" maxlength="40">
-
         <div class="hp" aria-hidden="true"><label for="site">Não preencha este campo</label><input id="site" type="text" tabindex="-1" autocomplete="off"></div>
 
         <label class="chk"><input type="checkbox" id="lgpd" required><span>Autorizo o uso destes dados para a organização da Escola Bíblica Dominical. Se o aluno for menor de idade, quem preenche é o responsável.</span></label>
@@ -166,8 +163,7 @@ $('#f').addEventListener('submit',async function(ev){
     titulo:t.sem_prof?'':$('#titulo').value,
     professor:t.sem_prof?false:$('#prof').checked,
     batizado:t.sem_bat?'':$('#bat').value,
-    resp:t.exige_resp?resp:'',
-    contato:cap($('#contato').value)
+    resp:t.exige_resp?resp:''
   };
   var b=$('#enviar');b.disabled=true;b.textContent='Enviando…';
   try{
