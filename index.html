@@ -161,6 +161,70 @@ details.more[open]{z-index:10}
 .tt-pr{color:#4338CA}.tt-pra{color:#A21CAF}.tt-miss{color:#0F766E}.tt-pb{color:#1D4ED8}.tt-coop{color:#B45309}.tt-dc{color:#15803D}.tt-mem{color:#475569}
 :root[data-theme="dark"] .tt-pr{color:#A5B4FC}:root[data-theme="dark"] .tt-pra{color:#F0ABFC}:root[data-theme="dark"] .tt-miss{color:#5EEAD4}:root[data-theme="dark"] .tt-pb{color:#93C5FD}:root[data-theme="dark"] .tt-coop{color:#FCD34D}:root[data-theme="dark"] .tt-dc{color:#86EFAC}:root[data-theme="dark"] .tt-mem{color:#CBD5E1}
 @media print{:root,:root[data-theme="dark"]{--bg:#fff;--surface:#fff;--ink:#1C1917;--muted:#78716C;--line:#E7E5E4;--soft:#F5F5F4}header,nav,.subnav,#toast,.noprint{display:none!important}body{background:#fff;padding:0}main{max-width:none;padding:0}}
+
+/* ===== Visual v2: só CSS, sem mexer na lógica ===== */
+body{font-feature-settings:"tnum" 1}
+main{padding-top:16px}
+main>h2:first-child,main>.novas+h2{font-size:24px;font-weight:650;letter-spacing:-.015em;margin-bottom:4px}
+.sec>h2{font-size:17px;font-weight:600;margin-bottom:10px}
+.sub{line-height:1.45}
+/* números e valores */
+.kv{align-items:center;min-height:48px}
+.kv b{font-variant-numeric:tabular-nums;font-weight:600}
+.kv span{color:var(--muted)}
+/* resumo em cards de número */
+.tot{padding:16px}
+.tot>b{display:block;font-size:15px;font-weight:600}
+.tgrid{gap:10px;margin-top:12px}
+.tgrid>*{padding:12px 14px;border:1px solid var(--line);background:var(--bg)}
+.tgrid>*:first-child{background:var(--brand);border-color:var(--brand);color:var(--onbrand)}
+.tgrid>*:first-child .l{color:var(--onbrand);opacity:.85}
+.tot .n{font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
+.tot .l{font-size:13px;margin-top:2px}
+/* barra de frequência */
+.bar{margin:18px 0 8px}
+.bar b:last-child{font-size:20px;font-variant-numeric:tabular-nums}
+.meter{height:10px;border-radius:5px;background:var(--soft);border:1px solid var(--line)}
+.meter i{border-radius:5px;background:var(--ok)}
+/* turmas viram cards separados e recolhíveis */
+.list:has(>details.dt){border:0;box-shadow:none;background:transparent;display:grid;gap:10px;overflow:visible}
+details.dt{border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+details.dt:last-child{border:1px solid var(--line)}
+details.dt summary{padding:14px 16px;min-height:60px}
+details.dt summary>b{font-size:20px;font-variant-numeric:tabular-nums;margin-left:auto}
+details.dt summary::after{content:"";width:18px;height:18px;flex:none;background:var(--muted);-webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat;transition:transform .15s}
+details.dt[open] summary::after{transform:rotate(180deg)}
+details.dt[open] summary{border-bottom:1px solid var(--line)}
+details.dt .meter{margin:12px 16px 4px!important}
+details.dt .kv{padding-left:16px;padding-right:16px}
+details.dt .freq{padding-left:16px;padding-right:16px}
+:root{--chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6l6-6'/%3E%3C/svg%3E")}
+/* avisos e alertas */
+.novas{background:color-mix(in srgb,var(--accent) 12%,var(--surface));border-color:color-mix(in srgb,var(--accent) 55%,var(--line));padding:14px 16px}
+/* listas em linhas: mais respiro e toque */
+.item{padding:14px 16px}
+.item.sub{padding-top:12px;padding-bottom:12px}
+.row{padding:14px 16px;min-height:56px}
+.row:hover,.item.al:hover{background:var(--soft)}
+/* controles */
+.btn,.tg,.subnav button{min-height:44px}
+.tg{padding:8px 16px}
+input,select,textarea{min-height:46px;border-width:1.5px}
+textarea{min-height:90px}
+/* barra de navegação com ícones */
+nav{justify-content:space-around;padding-top:4px;gap:2px}
+nav button[data-v]{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:1 1 0;min-width:68px;max-width:200px;padding:7px 8px 6px;font-size:12px;font-weight:500;line-height:1.1;color:var(--muted)}
+nav button[data-v]::before{content:"";width:22px;height:22px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+nav button[aria-current="page"]{background:transparent;box-shadow:none;color:var(--ink);font-weight:600}
+nav button[aria-current="page"]{position:relative}
+nav button[aria-current="page"]::after{content:"";position:absolute;top:0;left:30%;right:30%;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
+nav button[data-v="g-painel"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4h6v8h-6z'/%3E%3Cpath d='M4 16h6v4h-6z'/%3E%3Cpath d='M14 12h6v8h-6z'/%3E%3Cpath d='M14 4h6v4h-6z'/%3E%3C/svg%3E")}
+nav button[data-v="g-aulas"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11.5 21h-5.5a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v6'/%3E%3Cpath d='M16 3v4'/%3E%3Cpath d='M8 3v4'/%3E%3Cpath d='M4 11h16'/%3E%3Cpath d='M15 19l2 2l4 -4'/%3E%3C/svg%3E")}
+nav button[data-v="g-controle"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2'/%3E%3Cpath d='M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z'/%3E%3Cpath d='M9 12h.01'/%3E%3Cpath d='M13 12h2'/%3E%3Cpath d='M9 16h.01'/%3E%3Cpath d='M13 16h2'/%3E%3C/svg%3E")}
+nav button[data-v="grupo"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 6m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0'/%3E%3Cpath d='M4 6h8'/%3E%3Cpath d='M16 6h4'/%3E%3Cpath d='M8 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0'/%3E%3Cpath d='M4 12h2'/%3E%3Cpath d='M10 12h10'/%3E%3Cpath d='M17 18m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0'/%3E%3Cpath d='M4 18h11'/%3E%3Cpath d='M19 18h1'/%3E%3C/svg%3E")}
+body{padding-bottom:96px}
+#toast{bottom:92px}
+@media (prefers-reduced-motion:reduce){details.dt summary::after{transition:none}}
 </style>
 </head>
 <body>
