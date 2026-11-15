@@ -368,8 +368,10 @@ nav .nbrand.refresh-logo:focus-visible{outline:2px solid var(--accent);outline-o
  html{overflow-x:clip}
  body{width:100vw;max-width:none;margin-inline:0}
  body{padding-bottom:calc(136px + env(safe-area-inset-bottom,0px))}
- nav{touch-action:pan-y;transition:transform .18s ease,opacity .18s ease}
- body.nav-scrolling nav:not(:focus-within){transform:translateY(calc(100% + 24px));opacity:.15;pointer-events:none}
+ input[type=date]{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+ input[type=date]::-webkit-date-and-time-value{width:100%;min-width:0;text-align:left}
+ nav{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:none;touch-action:pan-y;transition:opacity .18s ease,visibility .18s ease}
+ body.nav-scrolling nav:not(:focus-within){opacity:0;visibility:hidden;pointer-events:none}
 }
 @media (prefers-reduced-motion:reduce){nav{transition:none!important}}
 
@@ -769,10 +771,8 @@ function vPainel(){
  +'<div class="dm">'+dm+'</div>'+dd
  +'<div class="tl"><span>Por turma</span><span class="cp">'+(ehEquipe()?'Sua turma':'Geral')+' '+pc+'%</span></div><div class="list">'+(all.length?all.map(({t,s})=>{
   const lk=s.keys[s.keys.length-1],le=ex(lk)||{},last=lk?S.pres[lk].length:0;
-  const tof=s.keys.reduce((n,k)=>n+((ex(k)||{}).oferta||0),0),tvis=s.keys.reduce((n,k)=>n+((ex(k)||{}).visitantes||0),0);
   return '<details class="dt"><summary><span>'+esc(t.nome)+'</span><span class="mt"><i style="width:'+s.p+'%"></i></span><b>'+s.p+'%</b></summary>'
-  +'<div class="item sub">'+(lk?'Última chamada: '+last+' de '+eleg(t,lk).length+' presentes · '+(le.biblias||0)+' bíblias físicas · '+brl(le.oferta)+(le.visitantes?' · '+le.visitantes+' visitante(s)':''):'Sem chamada salva')+'</div>'
-  +kv('Contribuições no período',brl(tof))+kv('Visitantes no período',tvis||'Nenhum')
+  +'<div class="item sub">'+(lk?'Última chamada · '+dBR(lk.split('|')[0])+': '+last+' de '+eleg(t,lk).length+' presentes · '+(le.biblias||0)+' bíblias físicas · '+brl(le.oferta)+(le.visitantes?' · '+le.visitantes+' visitante(s)':''):'Sem chamada salva')+'</div>'
   +(ativos(t).length?ativos(t).map(a=>{const r=rowsA(a,t),n=r.filter(x=>x.ok).length,q=r.length?Math.round(n/r.length*100):0;
    return '<div class="freq"><div><span>'+esc(nm(a))+'</span><b>'+q+'%</b></div><div class="meter"><i style="width:'+q+'%"></i></div></div>'}).join(''):'<div class="item sub">Sem alunos.</div>')
   +'</details>'}).join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>')+'</div>';
