@@ -369,8 +369,11 @@ nav .nbrand.refresh-logo:focus-visible{outline:2px solid var(--accent);outline-o
  body{width:100vw;max-width:none;margin-inline:0}
  body{padding-bottom:calc(136px + env(safe-area-inset-bottom,0px))}
  input[type=date]{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box}
- input[type=date]::-webkit-date-and-time-value{width:100%;min-width:0;text-align:left}
- nav{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:none;touch-action:pan-y;transition:opacity .18s ease,visibility .18s ease}
+.date-box{width:100%;min-width:0;max-width:100%;overflow:hidden;background:var(--surface);border:1.5px solid var(--line);border-radius:14px}
+ .date-box:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+ .date-box input[type=date]{display:block;width:100%;min-width:0;max-width:100%;margin:0;padding:11px 14px;border:0;background:transparent;box-sizing:border-box;appearance:none;-webkit-appearance:none}
+ .date-box input[type=date]::-webkit-date-and-time-value{width:100%;min-width:0;text-align:left}
+ nav{position:fixed;left:12px;right:12px;bottom:8px;transform:none;z-index:30;touch-action:pan-y;transition:opacity .18s ease,visibility .18s ease}
  body.nav-scrolling nav:not(:focus-within){opacity:0;visibility:hidden;pointer-events:none}
 }
 @media (prefers-reduced-motion:reduce){nav{transition:none!important}}
@@ -896,7 +899,7 @@ function vAgenda(){
   return '<div class="item"><b style="display:inline;text-transform:capitalize">'+dl+'</b><div>'+esc(x.tema)+'</div>'+(x.topicos?'<div class="sub" style="white-space:pre-line">'+esc(x.topicos)+'</div>':'')+'<span class="sub">Professor(a): '+(x.prof?esc(x.prof):'a definir')+'</span>'
   +(!edita()?'':delG===x.id?'<div class="acts"><span class="sub">Excluir esta aula?</span><button class="tg bad" data-delgok="'+x.id+'">Confirmar exclusão</button><button class="tg" data-delgno="1">Cancelar</button></div>':'<div class="acts" style="justify-content:flex-end"><details class="more"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-eg="'+x.id+'">Editar</button><button class="tg bad" data-delg="'+x.id+'">Excluir</button></div></details></div>')+'</div>'};
  const form=(podeAgendar()?'<div class="sec"><h2>Agendar aula</h2><label for="gt">Turma</label><select id="gt"'+(unicaT()?' disabled':'')+'>'+opts(unicaT()?me.turmaIds[0]:cur)+'</select>'
- +'<label for="gd">Data</label><input id="gd" type="date" value="'+dateKey+'"><p class="sub">'+(ehGestor()?'Você pode agendar em qualquer data.':'Aulas só podem ser agendadas aos domingos.')+'</p>'
+ +'<label for="gd">Data</label><div class="date-box"><input id="gd" type="date" value="'+dateKey+'"></div><p class="sub">'+(ehGestor()?'Você pode agendar em qualquer data.':'Aulas só podem ser agendadas aos domingos.')+'</p>'
  +'<label for="gp">Professor(a)</label><select id="gp"><option value="">A definir</option>'+P.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('')+'</select>'
  +'<p class="sub">'+(P.length?'Só aparecem aqui os alunos marcados como professor(a) no Cadastro.':'Nenhum professor cadastrado ainda. Marque "também é professor(a)" no Cadastro de aluno para ele aparecer aqui.')+'</p>'
  +'<label for="gm">Tema da aula</label><input id="gm"><label for="gtp">Tópicos (opcional)</label><textarea id="gtp" placeholder="Um tópico por linha"></textarea><button class="btn" id="addG">Agendar aula</button></div>':'');
