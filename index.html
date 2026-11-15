@@ -762,6 +762,22 @@ function render(){
  if(view==='chamada'&&selA)updCount();
  if(view==='registro'&&editH)jusH();
 }
+const busca=$('#venus-search-input');
+busca.addEventListener('keydown',e=>{
+ if(e.key!=='Enter')return;
+ e.preventDefault();
+ const q=busca.value.trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+ if(!q)return;
+ const norm=v=>String(v||'').toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+ const achados=[];
+ if(can('alunos'))S.turmas.forEach(t=>(t.alunos||[]).forEach(a=>{if(norm(a.nome).includes(q))achados.push({view:'alunos',label:nm(a)+' · '+t.nome,turma:t.id})}));
+ if(can('turmas'))S.turmas.forEach(t=>{if(norm(t.nome).includes(q))achados.push({view:'turmas',label:t.nome})});
+ if(can('agenda'))(S.aulas||[]).forEach(a=>{const texto=Object.values(a).filter(v=>typeof v==='string').join(' ');if(norm(texto).includes(q))achados.push({view:'agenda',label:a.titulo||a.tema||a.assunto||a.nome||'Aula agendada'})});
+ if(!achados.length){toast('Nenhum resultado encontrado para “'+busca.value.trim()+'”.');return}
+ const r=achados[0];view=r.view;render();scrollTo(0,0);
+ toast('Encontrado: '+r.label+(achados.length>1?' · '+achados.length+' resultados':'')+'.');
+});
+busca.addEventListener('keydown',e=>{if(e.key==='Escape'){busca.value='';busca.blur()}});
 $('.venus-alert').addEventListener('click',()=>{if(!can('avisos'))return;view='avisos';render();scrollTo(0,0)});
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b){const gg=GRUPOS.find(g=>g[0]===b.dataset.v);view=gg?(subG[gg[0]]&&can(subG[gg[0]])?subG[gg[0]]:(gg[2].find(can)||'chamada')):b.dataset.v;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
 $('#sub').addEventListener('click',e=>{const b=e.target.closest('button');if(b){view=b.dataset.s;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
