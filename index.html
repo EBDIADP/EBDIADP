@@ -757,6 +757,22 @@ function render(){
  if(view==='chamada'&&selA)updCount();
  if(view==='registro'&&editH)jusH();
 }
+
+// Venus quick navigation and contextual search
+document.querySelector('.venus-alert').addEventListener('click',()=>{
+ if(pendentes().length&&me&&me.perfil==='admin'){view='usuarios';sub='usuarios';}
+ else {view='avisos';sub='avisos';}
+ render();scrollTo(0,0);
+});
+$('#app').addEventListener('click',e=>{
+ const b=e.target.closest('[data-shortcut]');
+ if(b){const v=b.dataset.shortcut;if(can(v)){view=v;render();scrollTo(0,0)}}
+});
+$('#venus-search').addEventListener('input',e=>{
+ const q=e.target.value.trim().toLocaleLowerCase('pt-BR');
+ const nodes=$('#app .row, #app .item, #app details.dt, #app .vdash-rank');
+ nodes.forEach(n=>{n.hidden=!!q&&!n.textContent.toLocaleLowerCase('pt-BR').includes(q)});
+});
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b){const gg=GRUPOS.find(g=>g[0]===b.dataset.v);view=gg?(subG[gg[0]]&&can(subG[gg[0]])?subG[gg[0]]:(gg[2].find(can)||'chamada')):b.dataset.v;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
 $('#sub').addEventListener('click',e=>{const b=e.target.closest('button');if(b){view=b.dataset.s;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
 $('#app').addEventListener('click',e=>{
