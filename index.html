@@ -337,16 +337,7 @@ nav{top:8px;bottom:8px;left:8px;right:auto;width:216px;flex-direction:column;jus
 :root[data-theme="dark"] nav{box-shadow:none}
 nav .nbrand{display:flex;align-items:center;gap:8px;padding:2px 8px 16px;color:#F3EBE4;font-size:15px;font-weight:500}
 nav .nbrand .lg{display:grid;width:26px;height:26px;border-radius:8px}
-.refresh-logo{appearance:none;border:0;padding:0;margin:0;line-height:1;cursor:pointer}
-header .lg.refresh-logo{flex:0 0 30px;min-width:30px;min-height:30px;box-sizing:border-box}
-nav .nbrand.refresh-logo{width:100%;min-height:0;padding:2px 8px 16px;background:none;color:#F3EBE4;text-align:left;font:inherit;border-radius:0;border-top:0}
-nav .nbrand.refresh-logo:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
-@media screen and (max-width:959px){
- body{padding-bottom:calc(136px + env(safe-area-inset-bottom,0px))}
- nav{touch-action:pan-y;transition:transform .18s ease,opacity .18s ease}
- body.nav-scrolling nav:not(:focus-within){transform:translateY(calc(100% + 24px));opacity:.15;pointer-events:none}
-}
-@media (prefers-reduced-motion:reduce){nav{transition:none!important}}
+
 nav .nb{display:flex;flex:0 0 auto;width:auto;height:auto;justify-content:flex-start;align-items:center;gap:9px;padding:9px 12px;border-radius:999px;font-size:14px;text-align:left}
 nav .nb svg{width:18px;height:18px}
 nav .nb:not(.m1){display:flex}
@@ -364,6 +355,18 @@ nav .lkc{display:block;margin-top:auto;background:var(--accent);border-radius:16
 #toast{bottom:24px}
 }
 }
+
+/* Ajustes do logo clicável e da navegação móvel */
+.refresh-logo{appearance:none;border:0;padding:0;margin:0;line-height:1;cursor:pointer}
+header .lg.refresh-logo{flex:0 0 30px;min-width:30px;min-height:30px;box-sizing:border-box}
+nav .nbrand.refresh-logo{display:flex;flex:0 0 auto;align-items:center;width:100%;min-height:0;padding:2px 8px 16px;background:none;color:#F3EBE4;text-align:left;font:inherit;border-radius:0;border-top:0}
+nav .nbrand.refresh-logo:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+@media screen and (max-width:959px){
+ body{padding-bottom:calc(136px + env(safe-area-inset-bottom,0px))}
+ nav{touch-action:pan-y;transition:transform .18s ease,opacity .18s ease}
+ body.nav-scrolling nav:not(:focus-within){transform:translateY(calc(100% + 24px));opacity:.15;pointer-events:none}
+}
+@media (prefers-reduced-motion:reduce){nav{transition:none!important}}
 
 /* busca no celular e ficha do aluno */
 @media screen{
