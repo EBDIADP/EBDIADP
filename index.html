@@ -226,7 +226,6 @@ body{padding-bottom:96px}
 #toast{bottom:92px}
 @media (prefers-reduced-motion:reduce){details.dt summary::after{transition:none}}
 </style>
-<link rel="stylesheet" href="css/system.css">
 </head>
 <body>
 <header><img src="logo-header.png" alt="" width="42" height="23"><h1>Escola Bíblica Dominical</h1><p id="hd"></p><button id="tema" type="button" class="noprint" aria-label="Mudar para o modo escuro" title="Mudar para o modo escuro">☾</button></header>
@@ -552,28 +551,22 @@ function vPainel(){
  const latest=Object.keys(S.pres).filter(proprio).map(k=>k.split('|')[0]).sort().pop();
  const sm={pres:0,poss:0,bib:0,of:0,vis:0};
  if(latest)TV().forEach(t=>{const k=latest+'|'+t.id,e=ex(k)||{};sm.pres+=(S.pres[k]||[]).length;if(S.pres[k])sm.poss+=eleg(t,k).length;sm.bib+=e.biblias||0;sm.of+=e.oferta||0;sm.vis+=e.visitantes||0});
- const lbl=latest?new Date(latest+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long'}):'Sem chamada registrada';
- const PN=pendentes();
- const faixa=PN.length?'<div class="novas" role="alert"><b>'+(PN.length===1?'1 conta aguardando liberação':PN.length+' contas aguardando liberação')+'</b><span class="sub">'+PN.slice(0,5).map(u=>esc(u.nome)).join(', ')+(PN.length>5?' e mais '+(PN.length-5):'')+'</span><div class="acts"><button class="btn" style="margin-top:0" data-rev="1">Revisar agora</button></div></div>':'';
- const totalAlunos=T||0;
- const classes=all.length?all.map(({t,s})=>'<div class="ds-class"><div class="ds-class-name">'+esc(t.nome)+'<small>'+s.tot+' aluno(s) · '+(s.keys.length?s.keys.length+' chamada(s)':'sem chamada')+'</small></div><strong>'+s.p+'%</strong><div class="meter"><i style="width:'+s.p+'%"></i></div></div>').join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>';
- const now=new Date();
- const meses=[];
- for(let i=6;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');let pr=0,po=0;Object.keys(S.pres).filter(k=>proprio(k)&&k.startsWith(key+'-')).forEach(k=>{const t=S.turmas.find(x=>x.id===k.split('|')[1]);if(!t)return;pr+=(S.pres[k]||[]).length;po+=eleg(t,k).length});meses.push({l:d.toLocaleDateString('pt-BR',{month:'short'}).replace('.',''),q:po?Math.round(pr/po*100):0});}
- const max=Math.max(1,...meses.map(m=>m.q));
- const chart=meses.map(m=>'<div class="ds-month"><div class="ds-columns"><i style="height:'+Math.max(12,Math.round(m.q/max*92))+'px"></i><i style="height:'+Math.max(10,Math.round((100-m.q)/100*70))+'px"></i></div><b>'+esc(m.l)+'</b></div>').join('');
- return faixa+'<div class="dashboard">'
- +'<div class="dashboard-head"><div><h2>Visão geral</h2><p class="sub">Acompanhe a frequência da sua EBD</p></div><div class="dashboard-date">'+(latest?esc(lbl):'Hoje')+'</div></div>'
- +'<div class="dashboard-grid">'
- +'<section class="ds-card hero"><div class="ds-kicker">Última chamada</div><div class="sub" style="margin-top:6px">'+(latest?esc(lbl):'Nenhuma chamada registrada')+'</div><div class="ds-stat"><div><strong class="ds-number">'+sm.pres+'<small> de '+sm.poss+'</small></strong><div class="sub">presentes</div></div><strong class="ds-number">'+pc+'<small>%</small></strong></div><div class="ds-bars">'+(all.length?all.slice(0,3).map(({t,s})=>'<div class="ds-bar-row"><span>'+esc(t.nome)+'</span><div class="meter"><i style="width:'+s.p+'%"></i></div><span>'+s.p+'%</span></div>').join(''):'<span class="sub">Cadastre uma turma para começar.</span>')+'</div></section>'
- +'<section class="ds-card accent"><div class="ds-kicker">Contribuições</div><div class="ds-stat"><strong>'+brl(sm.of)+'</strong><span>'+ (latest?'+12% na última aula':'') +'</span></div></section>'
- +'<section class="ds-card peach"><div class="ds-kicker">Índice de frequência</div><div class="ds-stat"><strong>'+pc+'%</strong><span>+10%</span></div><div class="meter" style="margin-top:14px;background:rgba(31,22,17,.12)"><i style="width:'+pc+'%;background:#1F1611"></i></div></section>'
- +'<section class="ds-card soft"><div class="ds-kicker">Bíblias físicas</div><div class="ds-stat"><strong>'+sm.bib+'</strong><span>de '+totalAlunos+' alunos</span></div><p class="sub" style="margin:8px 0 0">'+(sm.vis||0)+' visitante(s) na aula</p></section>'
- +'<section class="ds-card ds-chart"><div class="ds-chart-head"><div><h3>Frequência mensal</h3><div class="sub">Média de presença por mês</div></div><strong>'+pc+'%</strong></div><div class="ds-chart-bars">'+chart+'</div></section>'
- +'<section class="ds-card ds-table"><div class="ds-chart-head"><div><h3>Por turma</h3><div class="sub">Frequência e participação</div></div></div><div class="ds-table">'+classes+'</div></section>'
- +'<section class="ds-card ds-inscription"><div><h3>Link de inscrição</h3><div class="sub" style="color:rgba(31,22,17,.7)">Compartilhe com a igreja e receba novos alunos.</div></div><button class="btn" data-cplink="1">Copiar link</button></section>'
- +'</div></div>';
+ const lbl=latest?new Date(latest+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long'}):'';
+ const PN=pendentes(),faixa=PN.length?'<div class="novas" role="alert"><b>'+(PN.length===1?'1 conta aguardando liberação':PN.length+' contas aguardando liberação')+'</b><span class="sub">'+PN.slice(0,5).map(u=>esc(u.nome)).join(', ')+(PN.length>5?' e mais '+(PN.length-5):'')+'</span><div class="acts"><button class="btn" style="margin-top:0" data-rev="1">Revisar agora</button></div></div>':'';
+ return faixa+'<h2>Dashboard geral</h2><p class="sub">Frequência de cada turma, calculada sobre as aulas com chamada salva.</p>'
+ +'<div class="bar"><b>'+(ehEquipe()?'Sua turma':'Todas as turmas')+'</b><b>'+pc+'%</b></div><div class="meter"><i style="width:'+pc+'%"></i></div>'
+ +(latest?'<div class="sec"><h2>Última chamada: '+lbl+'</h2><div class="list">'+kv('Presentes',sm.pres+' de '+sm.poss)+kv('Bíblias físicas',sm.bib)+kv('Contribuições',brl(sm.of))+kv('Visitantes',sm.vis||'Nenhum')+'</div></div>':'')
+ +'<div class="sec"><h2>Por turma</h2><div class="list">'+(all.length?all.map(({t,s})=>{
+  const lk=s.keys[s.keys.length-1],le=ex(lk)||{},last=lk?S.pres[lk].length:0;
+  const tof=s.keys.reduce((n,k)=>n+((ex(k)||{}).oferta||0),0),tvis=s.keys.reduce((n,k)=>n+((ex(k)||{}).visitantes||0),0);
+  return '<details class="dt"><summary><span><b>'+esc(t.nome)+'</b><span class="sub">'+(lk?'Última chamada: '+last+' de '+(lk?eleg(t,lk).length:0)+' presentes · '+(le.biblias||0)+' bíblias físicas · '+brl(le.oferta)+(le.visitantes?' · '+le.visitantes+' visitante(s)':''):'Sem chamada salva')+'</span></span><b>'+s.p+'%</b></summary>'
+  +'<div class="meter" style="margin:0 12px 8px"><i style="width:'+s.p+'%"></i></div>'
+  +kv('Contribuições no período',brl(tof))+kv('Visitantes no período',tvis||'Nenhum')
+  +(ativos(t).length?ativos(t).map(a=>{const r=rowsA(a,t),n=r.filter(x=>x.ok).length,q=r.length?Math.round(n/r.length*100):0;
+   return '<div class="freq"><div><span>'+esc(nm(a))+'</span><b>'+q+'%</b></div><div class="meter"><i style="width:'+q+'%"></i></div></div>'}).join(''):'<div class="item sub">Sem alunos.</div>')
+  +'</details>'}).join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>')+'</div></div>';
 }
+
 function hForm(k,t){const list=t.alunos.filter(a=>workH.has(a.id)||(a.ativo!==false&&!a.arq&&!emAula(a,t,k.split('|')[0]))),e=ex(k)||{};
  return '<div class="item"><b>Editando esta chamada</b><span class="sub">Toque no nome para marcar presente ou ausente.</span></div><div class="list" style="margin:0 12px 12px">'
  +list.map(a=>'<button class="row" data-ha="'+a.id+'" data-n="'+esc(a.nome)+'" aria-pressed="'+workH.has(a.id)+'"><span class="chk">✓</span>'+esc(nm(a))+'<span class="st">'+(workH.has(a.id)?'Presente':'Ausente')+'</span></button>').join('')+'</div>'
