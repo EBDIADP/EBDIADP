@@ -668,7 +668,7 @@ function vChamada(){
    fut=ok.filter(x=>x.data>hoje).sort((a,b)=>a.data.localeCompare(b.data));
   const card=(x,aberta)=>{const feita=!!S.pres[aulaKey(x)];
    return '<div class="item"><b style="display:inline;text-transform:capitalize">'+fmtD(x.data)+'</b><div>'+esc(x.tema)+'</div><span class="sub">Professor(a): '+(x.prof?esc(x.prof):'a definir')+(feita?' · chamada salva':'')+'</span>'
-   +(aberta?'<div class="acts"><button class="tg" data-ab="'+x.id+'">'+(feita?'Editar chamada':'Fazer chamada')+'</button></div>':'<div class="sub" style="margin-top:6px">Chamada disponível a partir de '+x.data.split('-').reverse().join('/')+'</div>')+'</div>'};
+   +(aberta?'<div class="acts"><button class="tg" data-ab="'+x.id+'">'+(feita?'Editar chamada':'Fazer chamada')+'</button><button class="tg" data-linkch="'+x.id+'">Compartilhar chamada sem login</button></div>':'<div class="sub" style="margin-top:6px">Chamada disponível a partir de '+x.data.split('-').reverse().join('/')+'</div>')+'</div>'};
   let maisF=0;
   const grupos=TV().map(t=>{
    const d=disp.filter(x=>x.turma===t.id),f=fut.filter(x=>x.turma===t.id);
@@ -1052,6 +1052,7 @@ $('#ficha').addEventListener('click',e=>{
 $('#lupa').addEventListener('click',()=>{const s=document.querySelector('.srch'),on=!s.classList.contains('on');s.classList.toggle('on',on);if(on)$('#busca').focus();else $('#res').hidden=true});
 
 $('#app').addEventListener('click',e=>{if(e.target.closest('[data-goal]'))irPara('alunos')});
+$('#app').addEventListener('click',async e=>{const b=e.target.closest('[data-linkch]');if(!b)return;const a=S.aulas.find(x=>x.id===b.dataset.linkch);if(!a||!minha(a)){toast('Você não pode compartilhar esta chamada');return}b.disabled=true;try{const {data,error}=await sb.rpc('criar_link_chamada',{p_turma_id:a.turma,p_data:a.data});if(error)throw error;const url=new URL('chamada.html',location.href);url.hash=data;try{await navigator.clipboard.writeText(url.href);toast('Link de chamada copiado. Válido por 30 dias e permite um envio.')}catch(_){window.prompt('Copie o link da chamada (válido por 30 dias):',url.href)}}catch(err){console.error(err);toast('Não foi possível criar o link. Confira se chamada-sem-login.sql foi aplicado no Supabase.')}finally{b.disabled=false}});
 function render(){
  S.turmas.forEach(t=>t.alunos.sort((x,y)=>String(x.nome||'').localeCompare(String(y.nome||''),'pt-BR',{sensitivity:'base'})));
  const nv=document.querySelector('nav');
