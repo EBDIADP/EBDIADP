@@ -437,9 +437,12 @@ nav{
   box-shadow:none
 }
 nav button{
-  flex:0 0 auto;border:0;border-radius:10px;background:transparent;color:#D9CCC2;
+  flex:0 0 auto !important;min-width:0;max-width:none;width:100%;height:42px;
+  border:0;border-radius:10px;background:transparent;color:#D9CCC2;
   padding:10px 12px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer
 }
+nav button[data-v]{flex:0 0 auto !important;min-width:0;max-width:none;width:100%;height:42px;padding:10px 12px;font-size:13px;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;line-height:1.1}
+nav button[data-v]::before{display:none}
 nav button i{font-size:17px;width:20px;text-align:center}
 nav button[aria-current="page"]{background:#F3EBE4;color:var(--rb-brown);box-shadow:none;border:0}
 nav button[data-v="g-painel"]{margin-top:42px}
@@ -459,6 +462,7 @@ nav button[data-v="grupo"]{margin-top:auto}
   .app-header{margin-left:218px;padding-left:18px}
 }
 @media(max-width:900px){
+  nav button[data-v]{width:44px;height:48px;min-width:44px;max-width:44px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
   .app-header{min-height:64px;padding:10px 12px}
   .app-header .brand-copy{display:block}
   .app-header .brand-copy h1{font-size:14px;margin:0}
