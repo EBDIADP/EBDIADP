@@ -122,3 +122,72 @@ nav button[data-v]{gap:12px}
 .venus-nav-icon{width:22px;height:22px;display:inline-grid;place-items:center;flex:none;border-radius:7px;color:currentColor;font-size:17px;font-weight:800;line-height:1}
 nav button[data-v="financeiro"] .venus-nav-icon{font-size:12px}
 @media(max-width:900px){nav button[data-v]{gap:3px}.venus-nav-icon{font-size:15px;width:20px;height:20px}}
+
+
+/* Mobile Venus polish: keep search reachable and make the full module menu usable */
+@media(max-width:900px){
+  header{
+    height:108px;
+    min-height:108px;
+    padding:10px 14px 9px;
+    display:flex;
+    flex-wrap:wrap;
+    align-content:center;
+    column-gap:10px;
+    row-gap:7px;
+  }
+  .venus-brand{order:1;flex:1 1 auto;min-width:0}
+  .venus-brand .venus-mark{width:34px;height:34px}
+  .venus-brand strong{font-size:14px}
+  .venus-alert{order:2;flex:none}
+  #hd{order:3;max-width:112px;margin-left:0;font-size:10px}
+  #tema{order:4;flex:none}
+  .venus-search{
+    display:flex;
+    order:5;
+    flex:1 0 100%;
+    width:100%;
+    max-width:none;
+    height:35px;
+    padding:0 11px;
+    font-size:12px;
+  }
+  .venus-search input{display:block;font-size:12px}
+  main#app{margin:108px 0 0;padding:18px 14px 30px;min-height:calc(100vh - 108px)}
+  .subnav{
+    position:fixed;
+    z-index:75;
+    top:108px;
+    left:0;
+    right:0;
+    padding:8px 12px;
+    background:var(--surface);
+    border-bottom:1px solid var(--line);
+    box-shadow:0 4px 14px rgba(31,25,73,.04);
+  }
+  body:has(.subnav:not([hidden])) main#app{margin-top:154px}
+  nav{
+    height:76px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    justify-content:flex-start;
+    align-items:stretch;
+    scroll-snap-type:x mandatory;
+    overscroll-behavior-x:contain;
+    scrollbar-width:thin;
+    -webkit-overflow-scrolling:touch;
+  }
+  nav button[data-v]{
+    flex:0 0 72px;
+    min-width:72px;
+    max-width:72px;
+    scroll-snap-align:start;
+    white-space:normal;
+  }
+}
+@media(max-width:580px){
+  header{padding-left:12px;padding-right:12px}
+  #hd{max-width:92px}
+  .venus-search{height:34px}
+  main#app{padding-left:12px;padding-right:12px}
+}
