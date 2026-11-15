@@ -771,7 +771,11 @@ $('#app').addEventListener('click',e=>{
 $('#venus-search').addEventListener('input',e=>{
  const q=e.target.value.trim().toLocaleLowerCase('pt-BR');
  const nodes=document.querySelectorAll('#app .row, #app .item, #app details.dt, #app .vdash-rank');
- nodes.forEach(n=>{n.hidden=!!q&&!n.textContent.toLocaleLowerCase('pt-BR').includes(q)});
+ nodes.forEach(n=>{
+  if(n.dataset.venusSearchHidden===undefined)n.dataset.venusSearchHidden=n.hidden?'1':'0';
+  const originallyHidden=n.dataset.venusSearchHidden==='1';
+  n.hidden=originallyHidden||(!!q&&!n.textContent.toLocaleLowerCase('pt-BR').includes(q));
+ });
 });
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b){const gg=GRUPOS.find(g=>g[0]===b.dataset.v);view=gg?(subG[gg[0]]&&can(subG[gg[0]])?subG[gg[0]]:(gg[2].find(can)||'chamada')):b.dataset.v;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
 $('#sub').addEventListener('click',e=>{const b=e.target.closest('button');if(b){view=b.dataset.s;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
