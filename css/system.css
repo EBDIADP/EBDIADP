@@ -1,0 +1,433 @@
+/* EBD IADP — Design System
+   Visual direction: iOS/iPadOS 26-inspired, adapted to the warm EBD brand.
+   Loaded once from index.html after the legacy stylesheet so the application logic
+   and existing component markup remain untouched.
+*/
+
+:root{
+  --ds-bg:#F3EBE4;
+  --ds-surface:#FFFFFF;
+  --ds-ink:#1F1611;
+  --ds-muted:#6F675F;
+  --ds-line:#E5DED7;
+  --ds-amber:#F5B83D;
+  --ds-peach:#E5AE92;
+  --ds-soft:#F8F3EF;
+  --ds-green:#5DCAA5;
+  --ds-shadow:0 12px 32px rgba(31,22,17,.07);
+  --ds-shadow-sm:0 5px 18px rgba(31,22,17,.06);
+  --ds-radius:20px;
+}
+
+html,body{background:var(--ds-bg);color:var(--ds-ink)}
+body{font-family:Figtree,system-ui,sans-serif}
+h1,h2,h3,.ds-number{font-family:Outfit,Figtree,system-ui,sans-serif}
+
+:root[data-theme="dark"]{
+  --ds-bg:#0B0B0B;
+  --ds-surface:#181513;
+  --ds-ink:#F8F1EA;
+  --ds-muted:#B7ACA3;
+  --ds-line:#332C28;
+  --ds-soft:#211D1A;
+  --ds-shadow:0 14px 34px rgba(0,0,0,.28);
+  --ds-shadow-sm:0 6px 20px rgba(0,0,0,.24);
+}
+
+/* Keep the existing application shell, but give it the dashboard hierarchy. */
+header{
+  background:var(--ds-surface)!important;
+  color:var(--ds-ink)!important;
+  border-bottom:1px solid var(--ds-line)!important;
+}
+header p{color:var(--ds-muted)!important}
+#tema{
+  border-color:var(--ds-line)!important;
+  background:var(--ds-soft)!important;
+  color:var(--ds-ink)!important;
+}
+main{
+  width:100%;
+  max-width:1400px!important;
+  padding:24px clamp(18px,3vw,40px) 110px!important;
+}
+.subnav{
+  width:100%;
+  max-width:1400px!important;
+  padding:14px clamp(18px,3vw,40px) 0!important;
+}
+.subnav button{
+  background:var(--ds-surface)!important;
+  color:var(--ds-muted)!important;
+  border-color:var(--ds-line)!important;
+  border-radius:12px!important;
+}
+.subnav button[aria-current="page"]{
+  background:var(--ds-ink)!important;
+  color:var(--ds-surface)!important;
+  border-color:var(--ds-ink)!important;
+}
+
+.btn{
+  background:var(--ds-ink)!important;
+  color:var(--ds-surface)!important;
+  border-radius:12px!important;
+  min-height:44px;
+}
+.tg{
+  background:var(--ds-surface)!important;
+  color:var(--ds-ink)!important;
+  border-color:var(--ds-line)!important;
+  border-radius:12px!important;
+}
+input,select,textarea{
+  background:var(--ds-surface)!important;
+  color:var(--ds-ink)!important;
+  border-color:var(--ds-line)!important;
+  border-radius:12px!important;
+}
+:focus-visible{outline-color:var(--ds-amber)!important}
+
+.list{
+  background:var(--ds-surface)!important;
+  border-color:var(--ds-line)!important;
+  border-radius:18px!important;
+  box-shadow:var(--ds-shadow-sm)!important;
+}
+.item,.row,.freq,.kv,details.dt{
+  background:var(--ds-surface);
+  border-color:var(--ds-line);
+}
+.row:hover,.item.al:hover{background:var(--ds-soft)!important}
+
+/* Dashboard */
+.dashboard{width:100%}
+.dashboard-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:24px;
+  margin:4px 0 24px;
+}
+.dashboard-head h2{
+  margin:0;
+  font-size:clamp(28px,3vw,38px)!important;
+  font-weight:800!important;
+  letter-spacing:-.035em;
+}
+.dashboard-head .sub{margin-top:4px}
+.dashboard-date{
+  color:var(--ds-muted);
+  font-size:14px;
+  font-weight:600;
+  white-space:nowrap;
+  padding-bottom:4px;
+}
+.dashboard-grid{
+  display:grid;
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:18px;
+}
+.ds-card{
+  min-width:0;
+  background:var(--ds-surface);
+  color:var(--ds-ink);
+  border:1px solid var(--ds-line);
+  border-radius:var(--ds-radius);
+  box-shadow:var(--ds-shadow-sm);
+  padding:22px;
+  overflow:hidden;
+}
+.ds-card h3{
+  margin:0;
+  font:700 17px/1.2 Outfit,Figtree,sans-serif;
+  letter-spacing:-.01em;
+}
+.ds-kicker{
+  color:var(--ds-muted);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.ds-card.hero{
+  grid-column:span 6;
+  background:var(--ds-ink);
+  color:#FFF9F3;
+  border-color:var(--ds-ink);
+  min-height:280px;
+}
+.ds-card.hero .sub{color:rgba(255,249,243,.7)}
+.ds-card.accent{
+  grid-column:span 3;
+  background:var(--ds-amber);
+  border-color:var(--ds-amber);
+}
+.ds-card.peach{
+  grid-column:span 3;
+  background:var(--ds-peach);
+  border-color:var(--ds-peach);
+}
+.ds-card.soft{
+  grid-column:span 3;
+  background:var(--ds-soft);
+}
+.ds-card.ds-chart{
+  grid-column:span 6;
+  min-height:300px;
+}
+.ds-card.ds-table{
+  grid-column:span 6;
+}
+.ds-card.ds-inscription{
+  grid-column:span 12;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  background:var(--ds-amber);
+  border-color:var(--ds-amber);
+}
+.ds-card.ds-inscription .btn{
+  background:var(--ds-ink)!important;
+  color:#FFF9F3!important;
+  flex:none;
+}
+.ds-stat{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+  margin-top:18px;
+}
+.ds-stat strong{
+  font:800 clamp(30px,4vw,48px)/1 Outfit,Figtree,sans-serif;
+  letter-spacing:-.045em;
+}
+.ds-stat strong small{
+  font:600 18px/1 Figtree,sans-serif;
+  letter-spacing:0;
+  opacity:.72;
+}
+.ds-stat span{
+  color:var(--ds-muted);
+  font-size:13px;
+  font-weight:700;
+}
+.hero .ds-stat span,.hero .ds-stat .sub{color:rgba(255,249,243,.7)}
+.ds-bars{margin-top:24px;display:grid;gap:12px}
+.ds-bar-row{
+  display:grid;
+  grid-template-columns:minmax(90px,1fr) minmax(80px,2fr) 42px;
+  align-items:center;
+  gap:10px;
+  font-size:12px;
+  font-weight:700;
+}
+.ds-bar-row .meter{margin:0;height:7px;background:rgba(255,255,255,.16);border:0}
+.ds-bar-row .meter i{background:var(--ds-amber)}
+.ds-chart-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+.ds-chart-head>strong{
+  font:800 28px/1 Outfit,Figtree,sans-serif;
+}
+.ds-chart-bars{
+  height:190px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:24px;
+  padding-top:8px;
+}
+.ds-month{
+  min-width:0;
+  flex:1;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  align-items:center;
+  gap:8px;
+}
+.ds-columns{
+  height:150px;
+  width:100%;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  gap:3px;
+}
+.ds-columns i{
+  display:block;
+  width:11px;
+  max-width:32%;
+  border-radius:7px 7px 3px 3px;
+  background:var(--ds-amber);
+}
+.ds-columns i:nth-child(2){background:var(--ds-peach);opacity:.75}
+.ds-month b{
+  color:var(--ds-muted);
+  font-size:11px;
+  font-weight:700;
+  text-transform:capitalize;
+}
+.ds-class{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 48px;
+  gap:8px 14px;
+  align-items:center;
+  padding:15px 0;
+  border-bottom:1px solid var(--ds-line);
+}
+.ds-class:last-child{border-bottom:0}
+.ds-class-name{
+  min-width:0;
+  font-weight:800;
+  font-size:14px;
+}
+.ds-class-name small{
+  display:block;
+  color:var(--ds-muted);
+  font-size:12px;
+  font-weight:500;
+  margin-top:3px;
+}
+.ds-class>strong{
+  text-align:right;
+  font:800 20px/1 Outfit,Figtree,sans-serif;
+}
+.ds-class .meter{
+  grid-column:1/-1;
+  margin:0;
+  height:7px;
+  background:var(--ds-soft);
+  border:0;
+}
+.ds-class .meter i{background:var(--ds-green);border-radius:5px}
+
+/* The existing top navigation becomes the desktop rail at the same breakpoint
+   used by the design system. Mobile keeps the original bottom navigation. */
+@media (min-width:900px){
+  body{
+    padding-left:244px!important;
+    padding-bottom:0!important;
+  }
+  header{
+    position:sticky!important;
+    top:0;
+    z-index:20;
+    min-height:74px;
+    padding:16px 32px!important;
+  }
+  header img{
+    width:38px!important;
+    padding:4px!important;
+    border-radius:12px!important;
+  }
+  header h1{font-size:18px!important}
+  main{padding-bottom:60px!important}
+  nav{
+    position:fixed!important;
+    z-index:30;
+    top:0!important;
+    bottom:0!important;
+    left:0!important;
+    right:auto!important;
+    width:244px!important;
+    height:100vh;
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:flex-start!important;
+    align-items:stretch!important;
+    gap:6px!important;
+    padding:22px 14px!important;
+    background:var(--ds-ink)!important;
+    border:0!important;
+    border-radius:0!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+  }
+  nav::before{
+    content:"EBD IADP";
+    display:block;
+    color:#FFF9F3;
+    font:800 25px/1 Outfit,Figtree,sans-serif;
+    letter-spacing:-.035em;
+    padding:4px 12px 26px;
+  }
+  nav button[data-v]{
+    flex:none!important;
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+    height:48px!important;
+    display:flex!important;
+    flex-direction:row!important;
+    justify-content:flex-start!important;
+    align-items:center!important;
+    gap:12px!important;
+    padding:0 14px!important;
+    border:0!important;
+    border-radius:14px!important;
+    color:rgba(255,249,243,.68)!important;
+    font-size:14px!important;
+    font-weight:700!important;
+    text-align:left!important;
+  }
+  nav button[data-v]::before{
+    width:20px!important;
+    height:20px!important;
+    flex:none;
+  }
+  nav button[aria-current="page"]{
+    background:var(--ds-amber)!important;
+    color:var(--ds-ink)!important;
+    box-shadow:none!important;
+  }
+  nav button[aria-current="page"]::after{display:none!important}
+  nav button:hover{background:rgba(255,255,255,.08)!important;color:#FFF9F3!important}
+  nav button[aria-current="page"]:hover{background:var(--ds-amber)!important;color:var(--ds-ink)!important}
+  #toast{bottom:28px!important}
+}
+
+@media (max-width:899px){
+  .dashboard-head{
+    align-items:flex-start;
+    margin-bottom:18px;
+  }
+  .dashboard-grid{grid-template-columns:1fr;gap:14px}
+  .ds-card,.ds-card.hero,.ds-card.accent,.ds-card.peach,.ds-card.soft,.ds-card.ds-chart,.ds-card.ds-table,.ds-card.ds-inscription{
+    grid-column:auto;
+  }
+  .ds-card.hero{min-height:0}
+  .ds-card.ds-inscription{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .ds-card.ds-inscription .btn{width:100%}
+  .ds-chart-bars{height:160px}
+  .ds-columns{height:125px}
+}
+
+@media (max-width:600px){
+  main{padding:18px 14px 108px!important}
+  .dashboard-head h2{font-size:29px!important}
+  .dashboard-date{display:none}
+  .ds-card{padding:18px;border-radius:18px}
+  .ds-stat strong{font-size:38px}
+  .ds-card.hero .ds-stat{align-items:center}
+  .ds-bar-row{grid-template-columns:minmax(75px,1fr) minmax(70px,1.4fr) 36px}
+  .ds-chart-bars{gap:5px}
+  .ds-columns{gap:2px}
+  .ds-columns i{width:9px}
+}
+
+/* Accessibility / reduced motion */
+@media (prefers-reduced-motion:reduce){
+  .btn{transition:none!important}
+}
