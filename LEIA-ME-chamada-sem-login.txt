@@ -3,13 +3,13 @@ CHAMADA COMPARTILHADA SEM LOGIN
 O que foi incluído
 - Em Chamada, o usuário autorizado pode tocar em “Compartilhar chamada sem login”.
 - O sistema copia um link limitado à turma e à data daquela aula.
-- A pessoa abre o link sem conta, marca presenças e envia. A gravação entra na tabela chamadas já usada pelo app.
+- A pessoa abre o link sem conta, marca presenças e envia. Também pode registrar justificativas de falta, Bíblias físicas, contribuições, visitantes e clima. Tema, professor(a) e tópicos vêm da aula agendada. A gravação entra na tabela chamadas já usada pelo app.
 - O link vence em 30 dias, aceita um envio e é invalidado quando um novo link para a mesma chamada é criado.
 - O token secreto fica no fragmento (#...) do endereço e só seu hash é guardado no banco. O acesso ao link permite visualizar os nomes da turma e enviar a chamada; compartilhe apenas com quem deve ter esse acesso.
 
 ATIVAÇÃO NECESSÁRIA NO SUPABASE
 1. Abra o projeto Supabase da EBD e entre em SQL Editor.
-2. Abra chamada-sem-login.sql, copie todo o conteúdo, cole no editor e execute.
+2. Abra chamada-sem-login.sql, copie todo o conteúdo, cole no editor e execute. Se já havia ativado a versão anterior, execute novamente para atualizar a gravação dos demais campos.
 3. Publique os arquivos desta pasta juntos no mesmo endereço do site. A página chamada.html deve ficar ao lado de index.html.
 4. Entre no app, abra Chamada e toque em “Compartilhar chamada sem login” na aula desejada.
 

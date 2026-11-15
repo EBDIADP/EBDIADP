@@ -40,7 +40,7 @@ end $$;
 
 create or replace function public.obter_chamada_publica(p_token text)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare l public.chamada_links%rowtype; t jsonb; c jsonb; v_key text;
+declare l public.chamada_links%rowtype; t jsonb; c jsonb; g jsonb; v_key text;
 begin
   if p_token is null or p_token !~ '^[0-9a-f]{64}$' then return jsonb_build_object('ok',false,'error','Link inválido'); end if;
   select * into l from public.chamada_links where token_hash=encode(extensions.digest(p_token,'sha256'),'hex');
@@ -51,8 +51,11 @@ begin
   if l.usado_em is not null then
     return jsonb_build_object('ok',true,'turma',coalesce(t->>'nome','Turma'),'data',l.dia,'usado',true,'alunos','[]'::jsonb,'presentes','[]'::jsonb);
   end if;
+  select dados into g from public.aulas where dados->>'turma'=l.turma_id and dados->>'data'=l.dia::text limit 1;
   select dados into c from public.chamadas where id=v_key;
   return jsonb_build_object('ok',true,'turma',coalesce(t->>'nome','Turma'),'data',l.dia,
+    'tema',coalesce(c->'e'->>'tema',g->>'tema',''),'prof',coalesce(c->'e'->>'prof',g->>'prof',''),
+    'topicos',coalesce(c->'e'->>'topicos',g->>'topicos',''),'extras',coalesce(c->'e','{}'::jsonb),
     'usado',l.usado_em is not null,
     'alunos',coalesce((select jsonb_agg(jsonb_build_object('id',a->>'id','nome',
       (case when coalesce(a->>'titulo','') not in ('','Membro') then (a->>'titulo')||' ' else '' end)||(a->>'nome')) order by a->>'nome')
@@ -61,9 +64,10 @@ begin
     'presentes',coalesce(c->'p','[]'::jsonb));
 end $$;
 
-create or replace function public.salvar_chamada_publica(p_token text,p_presentes text[])
+drop function if exists public.salvar_chamada_publica(text,text[]);
+create or replace function public.salvar_chamada_publica(p_token text,p_presentes text[],p_extras jsonb)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare l public.chamada_links%rowtype; v_key text; v_old jsonb; v_ids text[]; v_roster text[];
+declare l public.chamada_links%rowtype; v_key text; v_old jsonb; v_aula jsonb; v_ids text[]; v_roster text[]; v_just jsonb; v_bib integer; v_vis integer; v_oferta numeric; v_clima text;
 begin
   if p_token is null or p_token !~ '^[0-9a-f]{64}$' then return jsonb_build_object('ok',false,'error','Link inválido'); end if;
   select * into l from public.chamada_links where token_hash=encode(extensions.digest(p_token,'sha256'),'hex') for update;
@@ -76,17 +80,33 @@ begin
   if cardinality(v_ids)<>(select count(distinct x) from unnest(v_ids) x) or exists(select 1 from unnest(v_ids) x where not x=any(v_roster)) then
     return jsonb_build_object('ok',false,'error','A lista de presenças contém dados inválidos.');
   end if;
+  v_bib := coalesce(nullif(p_extras->>'biblias','')::integer,0);
+  v_vis := coalesce(nullif(p_extras->>'visitantes','')::integer,0);
+  v_oferta := coalesce(nullif(p_extras->>'oferta','')::numeric,0);
+  v_clima := coalesce(p_extras->>'clima','');
+  v_just := coalesce(p_extras->'just','{}'::jsonb);
+  if v_bib<0 or v_vis<0 or v_oferta<0 or v_clima not in ('','ensolarado','nublado','chuvoso') then
+    return jsonb_build_object('ok',false,'error','Confira Bíblias, visitantes, contribuições e clima.');
+  end if;
+  if jsonb_typeof(v_just)<>'object' or exists(
+    select 1 from jsonb_each_text(v_just) j
+    where j.key=any(v_ids) or not j.key=any(v_roster) or j.value not in ('Trabalho','Evento externo','Doença','Outro')) then
+    return jsonb_build_object('ok',false,'error','Confira as justificativas das faltas.');
+  end if;
   v_key := l.dia::text || '|' || l.turma_id;
+  select dados into v_aula from public.aulas where dados->>'turma'=l.turma_id and dados->>'data'=l.dia::text limit 1;
   select dados into v_old from public.chamadas where id=v_key;
-  insert into public.chamadas(id,dados) values(v_key,jsonb_build_object('p',to_jsonb(v_ids),'e',coalesce(v_old->'e','{}'::jsonb)))
-    on conflict(id) do update set dados=public.chamadas.dados || jsonb_build_object('p',to_jsonb(v_ids));
+  insert into public.chamadas(id,dados) values(v_key,jsonb_build_object('p',to_jsonb(v_ids),'e',coalesce(v_old->'e','{}'::jsonb) ||
+    jsonb_build_object('biblias',v_bib,'oferta',v_oferta,'visitantes',v_vis,'clima',v_clima,'just',v_just,'tema',coalesce(v_aula->>'tema',''),'prof',coalesce(v_aula->>'prof',''),'topicos',coalesce(v_aula->>'topicos',''))))
+    on conflict(id) do update set dados=public.chamadas.dados || jsonb_build_object('p',to_jsonb(v_ids),
+      'e',coalesce(public.chamadas.dados->'e','{}'::jsonb) || jsonb_build_object('biblias',v_bib,'oferta',v_oferta,'visitantes',v_vis,'clima',v_clima,'just',v_just,'tema',coalesce(v_aula->>'tema',''),'prof',coalesce(v_aula->>'prof',''),'topicos',coalesce(v_aula->>'topicos','')));
   update public.chamada_links set usado_em=now() where token_hash=l.token_hash;
   return jsonb_build_object('ok',true);
 end $$;
 
 revoke execute on function public.criar_link_chamada(text,date) from public, anon;
 revoke execute on function public.obter_chamada_publica(text) from public;
-revoke execute on function public.salvar_chamada_publica(text,text[]) from public;
+revoke execute on function public.salvar_chamada_publica(text,text[],jsonb) from public;
 grant execute on function public.criar_link_chamada(text,date) to authenticated;
 grant execute on function public.obter_chamada_publica(text) to anon, authenticated;
-grant execute on function public.salvar_chamada_publica(text,text[]) to anon, authenticated;
+grant execute on function public.salvar_chamada_publica(text,text[],jsonb) to anon, authenticated;
