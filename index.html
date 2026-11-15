@@ -339,6 +339,9 @@ nav{top:8px;bottom:8px;left:8px;right:auto;width:216px;flex-direction:column;jus
 :root[data-theme="dark"] nav{box-shadow:none}
 nav .nbrand{display:flex;align-items:center;gap:8px;padding:2px 8px 16px;color:#F3EBE4;font-size:15px;font-weight:500}
 nav .nbrand .lg{display:grid;width:26px;height:26px;border-radius:8px}
+.refresh-logo{appearance:none;border:0;cursor:pointer}
+nav .nbrand.refresh-logo{width:100%;background:none;text-align:left;font:inherit;border-radius:0;border-top:0}
+nav .nbrand.refresh-logo:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
 nav .nb{display:flex;flex:0 0 auto;width:auto;height:auto;justify-content:flex-start;align-items:center;gap:9px;padding:9px 12px;border-radius:999px;font-size:14px;text-align:left}
 nav .nb svg{width:18px;height:18px}
 nav .nb:not(.m1){display:flex}
@@ -390,7 +393,7 @@ nav .lkc{display:block;margin-top:auto;background:var(--accent);border-radius:16
 </style>
 </head>
 <body>
-<header><span class="lg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c2 -2.96 0 -7 -1 -8c0 3.038 -1.773 4.741 -3 6c-1.226 1.26 -2 3.24 -2 5a6 6 0 1 0 12 0c0 -1.532 -1.056 -3.94 -2 -5c-1.786 3 -2.791 3 -4 2z"/></svg></span><span class="av" id="av" aria-hidden="true"></span><div class="who" id="who"></div><div class="hdt"><h1>Escola Bíblica Dominical</h1><p id="hd"></p></div><div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg><input id="busca" type="search" placeholder="Buscar aluno" autocomplete="off" aria-label="Buscar aluno"><div id="res" hidden></div></div><button class="bell" id="lupa" type="button" aria-label="Buscar aluno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg></button><button class="refresh noprint" id="atualizarPagina" type="button" aria-label="Atualizar página" title="Atualizar página" onclick="location.reload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5"/><path d="M20 12a8 8 0 1 1-2.34-5.66L20 7"/></svg></button><button class="bell" id="sino" type="button" aria-label="Avisos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg><span class="bd" hidden>0</span></button><button id="tema" type="button" class="noprint" aria-label="Mudar para o modo escuro" title="Mudar para o modo escuro">☾</button></header>
+<header><button type="button" class="lg refresh-logo" data-refresh-logo aria-label="Atualizar página" title="Atualizar página"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c2 -2.96 0 -7 -1 -8c0 3.038 -1.773 4.741 -3 6c-1.226 1.26 -2 3.24 -2 5a6 6 0 1 0 12 0c0 -1.532 -1.056 -3.94 -2 -5c-1.786 3 -2.791 3 -4 2z"/></svg></button><span class="av" id="av" aria-hidden="true"></span><div class="who" id="who"></div><div class="hdt"><h1>Escola Bíblica Dominical</h1><p id="hd"></p></div><div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg><input id="busca" type="search" placeholder="Buscar aluno" autocomplete="off" aria-label="Buscar aluno"><div id="res" hidden></div></div><button class="bell" id="lupa" type="button" aria-label="Buscar aluno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg></button><button class="bell" id="sino" type="button" aria-label="Avisos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg><span class="bd" hidden>0</span></button><button id="tema" type="button" class="noprint" aria-label="Mudar para o modo escuro" title="Mudar para o modo escuro">☾</button></header>
 <div class="subnav" id="sub" aria-label="Gerenciar" hidden></div>
 <main id="app"></main>
 <nav aria-label="Seções"></nav>
@@ -507,6 +510,7 @@ function aplicaTema(t,salva){const r=document.documentElement,b=$('#tema'),d=t==
  if(b){const tx=d?'Mudar para o modo claro':'Mudar para o modo escuro';b.textContent=d?'☀':'☾';b.setAttribute('aria-label',tx);b.title=tx}
  if(salva){try{localStorage.setItem('ebd_tema',t)}catch(x){}}}
 $('#tema').addEventListener('click',()=>aplicaTema(temaAtual()==='dark'?'light':'dark',true));
+document.addEventListener('click',e=>{if(e.target.closest('[data-refresh-logo]'))location.reload()});
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',e=>{try{if(localStorage.getItem('ebd_tema'))return}catch(x){}aplicaTema(e.matches?'dark':'light',false)})}catch(x){}
 aplicaTema(temaAtual(),false);
 const turma=id=>S.turmas.find(t=>t.id===id);
@@ -952,7 +956,7 @@ const NAVI=[['painel','Dashboard',1,1],['chamada','Chamada',1,1],['agenda','Agen
 function itensNav(){const sp=!can('painel');return NAVI.map(([v,l,d,m])=>sp&&v==='painel'?{v:'avisos',l:'Avisos',d,m}:{v,l,d,m}).filter(x=>can(x.v))}
 function montaNav(){
  const it=itensNav(),nv=document.querySelector('nav'),dv=new Set(it.filter(x=>x.d).map(x=>x.v)),mv=new Set(it.filter(x=>x.m).map(x=>x.v)),pn=pendentes().length;
- nv.innerHTML='<div class="nbrand"><span class="lg" aria-hidden="true">'+ic('chama')+'</span><span>EBD IADP</span></div>'
+ nv.innerHTML='<button type="button" class="nbrand refresh-logo" data-refresh-logo aria-label="Atualizar página" title="Atualizar página"><span class="lg" aria-hidden="true">'+ic('chama')+'</span><span>EBD IADP</span></button>'
   +it.map(x=>'<button class="nb'+(x.d?' d1':'')+(x.m?' m1':'')+'" data-v="'+x.v+'" aria-current="'+(x.v===view?'page':'false')+'">'+ic(x.v)+'<span class="nl">'+x.l+'</span>'+(x.v==='inscricoes'&&podeInscr()?selo(INS.length):'')+'</button>').join('')
   +'<button class="nb mais d1 m1'+(!mv.has(view)?' amm':'')+(!dv.has(view)?' amd':'')+'" data-v="mais" aria-haspopup="dialog" aria-expanded="'+!$('#mais').hidden+'">'+ic('mais')+'<span class="nl">Mais</span>'+selo(pn)+'</button>'
   +(podeInscr()?'<div class="lkc"><b>Link de inscrição</b><span>Compartilhe com a igreja e receba novos alunos.</span><button type="button" data-copia="1">'+ic('copia')+'Copiar link</button></div>':'');
@@ -1428,3 +1432,4 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostnam
 </script>
 </body>
 </html>
+
