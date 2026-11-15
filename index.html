@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;800&family=Figtree:wght@400;500;700&family=DM+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;800&family=Figtree:wght@400;500;700&display=swap">
 <style>
 /* EBD app */
 
@@ -226,17 +226,16 @@ body{padding-bottom:96px}
 #toast{bottom:92px}
 @media (prefers-reduced-motion:reduce){details.dt summary::after{transition:none}}
 </style>
-<link rel="stylesheet" href="venus.css">
 </head>
 <body>
-<header><div class="venus-brand"><span class="venus-mark">✝</span><span><strong>VENUS</strong><small>EBD • PAINEL ADMINISTRATIVO</small></span></div><div class="venus-search"><span aria-hidden="true">⌕</span><input id="venus-search" type="search" placeholder="Buscar alunos, turmas, aulas..." aria-label="Buscar no sistema"></div><button class="venus-alert" type="button" aria-label="Notificações" title="Notificações">♧</button><p id="hd"></p><img src="logo-header.png" alt="" width="42" height="23"><h1>Escola Bíblica Dominical</h1><button id="tema" type="button" class="noprint" aria-label="Mudar para o modo escuro" title="Mudar para o modo escuro">☾</button></header>
+<header><img src="logo-header.png" alt="" width="42" height="23"><h1>Escola Bíblica Dominical</h1><p id="hd"></p><button id="tema" type="button" class="noprint" aria-label="Mudar para o modo escuro" title="Mudar para o modo escuro">☾</button></header>
 <div class="subnav" id="sub" aria-label="Gerenciar" hidden></div>
 <main id="app"></main>
 <nav aria-label="Seções">
-<button data-v="g-painel"><span class="venus-nav-icon">▦</span>Dashboard</button>
-<button data-v="g-aulas"><span class="venus-nav-icon">▣</span>Aulas</button>
-<button data-v="g-controle"><span class="venus-nav-icon">☷</span>Controle</button>
-<button data-v="grupo"><span class="venus-nav-icon">⚙</span>Gerenciar</button>
+<button data-v="g-painel">Dashboard</button>
+<button data-v="g-aulas">Aulas</button>
+<button data-v="g-controle">Controle</button>
+<button data-v="grupo">Gerenciar</button>
 </nav>
 <div id="toast" role="status" aria-live="polite"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
@@ -548,40 +547,26 @@ function vFaltas(){
 }
 function vPainel(){
  const all=TV().map(t=>({t,s:stats(t)}));
- const totalAlunos=all.reduce((n,x)=>n+ativos(x.t).length,0);
  const T=all.reduce((n,x)=>n+x.s.tot,0),P=all.reduce((n,x)=>n+x.s.poss,0),pc=P?Math.round(T/P*100):0;
  const latest=Object.keys(S.pres).filter(proprio).map(k=>k.split('|')[0]).sort().pop();
  const sm={pres:0,poss:0,bib:0,of:0,vis:0};
  if(latest)TV().forEach(t=>{const k=latest+'|'+t.id,e=ex(k)||{};sm.pres+=(S.pres[k]||[]).length;if(S.pres[k])sm.poss+=eleg(t,k).length;sm.bib+=e.biblias||0;sm.of+=e.oferta||0;sm.vis+=e.visitantes||0});
- const lbl=latest?new Date(latest+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long'}):'Ainda sem chamada';
- const PN=pendentes(),faixa=PN.length?'<div class="novas" role="alert"><b>'+PN.length+' conta(s) aguardando liberação</b><span class="sub">'+PN.slice(0,5).map(u=>esc(u.nome)).join(', ')+(PN.length>5?' e mais '+(PN.length-5):'')+'</span><div class="acts"><button class="btn" style="margin-top:0" data-rev="1">Revisar agora</button></div></div>':'';
- const future=S.aulas.filter(x=>x.data>=ymd(today)&&turma(x.turma)&&minha(x)).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,4);
- const totalOferta=Object.keys(S.extras||{}).filter(proprio).reduce((n,k)=>n+((ex(k)||{}).oferta||0),0);
- const max=Math.max(1,...all.map(x=>x.s.p));
- const rank=all.slice().sort((a,b)=>b.s.p-a.s.p).slice(0,5);
- const barColors=['#6d28d9','#3b82f6','#10b981','#f59e0b','#ec4899'];
- const donut='conic-gradient(#6d28d9 0 '+pc+'%, #e9e7f2 '+pc+'% 100%)';
- const svgTrend='<svg class="vdash-spark" viewBox="0 0 160 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 29 C18 27 24 11 42 18 S68 27 84 12 S112 16 128 7 S145 12 160 2" fill="none" stroke="#8b5cf6" stroke-width="2.5" stroke-linecap="round"/></svg>';
- const cards=[
-  ['♙','purple','Alunos ativos',totalAlunos.toLocaleString('pt-BR'),'Em todas as turmas'],
-  ['▦','blue','Turmas cadastradas',all.length.toLocaleString('pt-BR'),'Turmas sob sua gestão'],
-  ['◷','green','Frequência geral',pc+'%','Com base nas chamadas salvas'],
-  ['R$','orange','Ofertas registradas',brl(totalOferta),'Total registrado no período']
- ];
- return faixa+'<div class="vdash-head"><div><h2>Dashboard geral</h2><p class="sub">Visão geral da Escola Bíblica Dominical e indicadores de acompanhamento.</p></div><span class="vdash-date">'+new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})+'</span></div>'
- +'<section class="vdash-kpis" aria-label="Indicadores principais">'+cards.map((c,i)=>'<article class="vdash-kpi"><div class="vdash-kpi-top"><span class="vdash-icon '+c[1]+'">'+c[0]+'</span><div><div class="vdash-label">'+c[2]+'</div><div class="vdash-value">'+c[3]+'</div></div></div><div class="vdash-note">'+c[4]+'</div>'+(i===2?'<div class="meter" style="margin-top:12px"><i style="width:'+pc+'%"></i></div>':svgTrend)+'</article>').join('')+'</section>'
- +'<section class="vdash-grid">'
- +'<article class="vdash-panel"><div class="vdash-panel-head"><h3><span class="vi">▥</span> Frequência por turma</h3><span class="sub">Geral</span></div>'
- +(all.length?'<svg class="vdash-chart" viewBox="0 0 620 220" role="img" aria-label="Gráfico de frequência por turma">'+[0,25,50,75,100].map(v=>'<line x1="165" y1="'+(190-v*1.65)+'" x2="600" y2="'+(190-v*1.65)+'" stroke="var(--line)" stroke-dasharray="3 4"/><text x="150" y="'+(194-v*1.65)+'" fill="var(--muted)" font-size="10" text-anchor="end">'+v+'%</text>').join('')+all.slice(0,5).map((x,i)=>'<text x="0" y="'+(31+i*39)+'" fill="var(--ink)" font-size="11">'+esc(x.t.nome.slice(0,22))+'</text><rect x="165" y="'+(17+i*39)+'" width="435" height="17" rx="8" fill="var(--soft)"/><rect x="165" y="'+(17+i*39)+'" width="'+(435*x.s.p/100)+'" height="17" rx="8" fill="'+barColors[i]+'"/><text x="'+Math.min(610,174+435*x.s.p/100)+'" y="'+(30+i*39)+'" fill="var(--ink)" font-size="10" font-weight="700">'+x.s.p+'%</text>').join('')+'</svg>':'<div class="vdash-empty">Cadastre turmas e salve chamadas para visualizar a frequência.</div>')+'</article>'
- +'<article class="vdash-panel"><div class="vdash-panel-head"><h3><span class="vi">◉</span> Presença geral</h3></div><div class="vdash-donut-wrap"><div class="vdash-donut" style="background:'+donut+'"><div class="vdash-donut-center">'+pc+'%<small>frequência</small></div></div><div class="vdash-legend"><div class="vdash-legend-row"><i class="vdash-dot" style="background:#6d28d9"></i>Presentes <b>'+T+'</b></div><div class="vdash-legend-row"><i class="vdash-dot" style="background:#e9e7f2"></i>Possíveis <b>'+P+'</b></div><div class="vdash-legend-row"><i class="vdash-dot" style="background:#10b981"></i>Bíblias <b>'+sm.bib+'</b></div></div></div><p class="sub">Última chamada: '+esc(lbl)+'</p></article>'
- +'<article class="vdash-panel vdash-upcoming"><h3>▣ &nbsp; Próximas aulas</h3><div class="vdash-lesson-list">'+(future.length?future.map(x=>{const d=new Date(x.data+'T12:00:00');return '<div class="vdash-lesson"><span class="vdash-day">'+d.toLocaleDateString('pt-BR',{month:'short'}).toUpperCase()+'<b>'+d.getDate()+'</b></span><span class="vdash-lesson-info"><b>'+esc(x.tema||'Aula programada')+'</b><small>'+esc((turma(x.turma)||{nome:'Turma'}).nome)+' · '+esc(x.prof||'Professor não informado')+'</small></span></div>'}).join(''):'<div class="vdash-empty">Nenhuma aula futura agendada.</div>')+'</div></article>'
- +'</section><section class="vdash-bottom">'
- +'<article class="vdash-panel"><div class="vdash-panel-head"><h3>Turmas em destaque</h3><span class="sub">Frequência</span></div>'+(rank.length?rank.map((x,i)=>'<div class="vdash-rank"><span class="vdash-rank-num">'+(i+1)+'</span><span class="vdash-rank-name">'+esc(x.t.nome)+'</span><div class="meter"><i style="width:'+x.s.p+'%;background:'+barColors[i]+'"></i></div><strong>'+x.s.p+'%</strong></div>').join(''):'<div class="vdash-empty">Sem turmas cadastradas.</div>')+'</article>'
- +'<article class="vdash-panel"><div class="vdash-panel-head"><h3>Última chamada</h3><span class="sub">'+esc(lbl)+'</span></div><div class="vdash-money"><div><div class="vdash-label">Presentes registrados</div><strong>'+sm.pres+' / '+sm.poss+'</strong><p class="sub">'+sm.vis+' visitante(s) · '+sm.bib+' Bíblia(s)</p></div><svg viewBox="0 0 180 90" aria-hidden="true"><path d="M0 72 C28 68 30 48 55 55 S84 68 105 35 S140 46 180 8" fill="none" stroke="#7c3aed" stroke-width="4" stroke-linecap="round"/><path d="M0 72 C28 68 30 48 55 55 S84 68 105 35 S140 46 180 8 L180 90 L0 90Z" fill="#7c3aed" opacity=".09"/></svg></div><div class="kv"><span>Contribuições</span><b>'+brl(sm.of)+'</b></div></article>'
- +'<article class="vdash-panel"><div class="vdash-panel-head"><h3>Atalhos</h3></div><div class="vdash-legend">'+[['chamada','Registrar chamada','＋'],['agenda','Agendar aula','▣'],['alunos','Ver alunos','♙'],['relatorio','Relatórios','▤']].filter(x=>can(x[0])).map(x=>'<button class="row" data-shortcut="'+x[0]+'" style="border:0;border-bottom:1px solid var(--line);border-radius:8px;text-align:left;width:100%;cursor:pointer"><b style="color:var(--brand);font-size:18px">'+x[2]+'</b>'+x[1]+' <span style="margin-left:auto;color:var(--muted)">›</span></button>').join('')+'</div></article>'
- +'</section><div class="vdash-foot"><span>VENUS • Painel administrativo EBD</span><span>Dados atualizados conforme as informações salvas no sistema.</span></div>'
- +'<div class="sec"><h2>Detalhamento por turma</h2><div class="list">'+(all.length?all.map(({t,s})=>{const lk=s.keys[s.keys.length-1],le=ex(lk)||{},last=lk?S.pres[lk].length:0;const tof=s.keys.reduce((n,k)=>n+((ex(k)||{}).oferta||0),0),tvis=s.keys.reduce((n,k)=>n+((ex(k)||{}).visitantes||0),0);return '<details class="dt"><summary><span><b>'+esc(t.nome)+'</b><span class="sub">'+(lk?'Última chamada: '+last+' de '+(lk?eleg(t,lk).length:0)+' presentes · '+(le.biblias||0)+' bíblias físicas · '+brl(le.oferta)+(le.visitantes?' · '+le.visitantes+' visitante(s)':''):'Sem chamada salva')+'</span></span><b>'+s.p+'%</b></summary><div class="meter" style="margin:0 12px 8px"><i style="width:'+s.p+'%"></i></div>'+kv('Contribuições no período',brl(tof))+kv('Visitantes no período',tvis||'Nenhum')+(ativos(t).length?ativos(t).map(a=>{const r=rowsA(a,t),n=r.filter(x=>x.ok).length,q=r.length?Math.round(n/r.length*100):0;return '<div class="freq"><div><span>'+esc(nm(a))+'</span><b>'+q+'%</b></div><div class="meter"><i style="width:'+q+'%"></i></div></div>'}).join(''):'<div class="item sub">Sem alunos.</div>')+'</details>'}).join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>')+'</div></div>';
+ const lbl=latest?new Date(latest+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long'}):'';
+ const PN=pendentes(),faixa=PN.length?'<div class="novas" role="alert"><b>'+(PN.length===1?'1 conta aguardando liberação':PN.length+' contas aguardando liberação')+'</b><span class="sub">'+PN.slice(0,5).map(u=>esc(u.nome)).join(', ')+(PN.length>5?' e mais '+(PN.length-5):'')+'</span><div class="acts"><button class="btn" style="margin-top:0" data-rev="1">Revisar agora</button></div></div>':'';
+ return faixa+'<h2>Dashboard geral</h2><p class="sub">Frequência de cada turma, calculada sobre as aulas com chamada salva.</p>'
+ +'<div class="bar"><b>'+(ehEquipe()?'Sua turma':'Todas as turmas')+'</b><b>'+pc+'%</b></div><div class="meter"><i style="width:'+pc+'%"></i></div>'
+ +(latest?'<div class="sec"><h2>Última chamada: '+lbl+'</h2><div class="list">'+kv('Presentes',sm.pres+' de '+sm.poss)+kv('Bíblias físicas',sm.bib)+kv('Contribuições',brl(sm.of))+kv('Visitantes',sm.vis||'Nenhum')+'</div></div>':'')
+ +'<div class="sec"><h2>Por turma</h2><div class="list">'+(all.length?all.map(({t,s})=>{
+  const lk=s.keys[s.keys.length-1],le=ex(lk)||{},last=lk?S.pres[lk].length:0;
+  const tof=s.keys.reduce((n,k)=>n+((ex(k)||{}).oferta||0),0),tvis=s.keys.reduce((n,k)=>n+((ex(k)||{}).visitantes||0),0);
+  return '<details class="dt"><summary><span><b>'+esc(t.nome)+'</b><span class="sub">'+(lk?'Última chamada: '+last+' de '+(lk?eleg(t,lk).length:0)+' presentes · '+(le.biblias||0)+' bíblias físicas · '+brl(le.oferta)+(le.visitantes?' · '+le.visitantes+' visitante(s)':''):'Sem chamada salva')+'</span></span><b>'+s.p+'%</b></summary>'
+  +'<div class="meter" style="margin:0 12px 8px"><i style="width:'+s.p+'%"></i></div>'
+  +kv('Contribuições no período',brl(tof))+kv('Visitantes no período',tvis||'Nenhum')
+  +(ativos(t).length?ativos(t).map(a=>{const r=rowsA(a,t),n=r.filter(x=>x.ok).length,q=r.length?Math.round(n/r.length*100):0;
+   return '<div class="freq"><div><span>'+esc(nm(a))+'</span><b>'+q+'%</b></div><div class="meter"><i style="width:'+q+'%"></i></div></div>'}).join(''):'<div class="item sub">Sem alunos.</div>')
+  +'</details>'}).join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>')+'</div></div>';
 }
+
 function hForm(k,t){const list=t.alunos.filter(a=>workH.has(a.id)||(a.ativo!==false&&!a.arq&&!emAula(a,t,k.split('|')[0]))),e=ex(k)||{};
  return '<div class="item"><b>Editando esta chamada</b><span class="sub">Toque no nome para marcar presente ou ausente.</span></div><div class="list" style="margin:0 12px 12px">'
  +list.map(a=>'<button class="row" data-ha="'+a.id+'" data-n="'+esc(a.nome)+'" aria-pressed="'+workH.has(a.id)+'"><span class="chk">✓</span>'+esc(nm(a))+'<span class="st">'+(workH.has(a.id)?'Presente':'Ausente')+'</span></button>').join('')+'</div>'
@@ -757,26 +742,6 @@ function render(){
  if(view==='chamada'&&selA)updCount();
  if(view==='registro'&&editH)jusH();
 }
-
-// Venus quick navigation and contextual search
-document.querySelector('.venus-alert').addEventListener('click',()=>{
- if(pendentes().length&&me&&me.perfil==='admin'){view='usuarios';sub='usuarios';}
- else {view='avisos';sub='avisos';}
- render();scrollTo(0,0);
-});
-$('#app').addEventListener('click',e=>{
- const b=e.target.closest('[data-shortcut]');
- if(b){const v=b.dataset.shortcut;if(can(v)){view=v;render();scrollTo(0,0)}}
-});
-$('#venus-search').addEventListener('input',e=>{
- const q=e.target.value.trim().toLocaleLowerCase('pt-BR');
- const nodes=document.querySelectorAll('#app .row, #app .item, #app details.dt, #app .vdash-rank');
- nodes.forEach(n=>{
-  if(n.dataset.venusSearchHidden===undefined)n.dataset.venusSearchHidden=n.hidden?'1':'0';
-  const originallyHidden=n.dataset.venusSearchHidden==='1';
-  n.hidden=originallyHidden||(!!q&&!n.textContent.toLocaleLowerCase('pt-BR').includes(q));
- });
-});
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b){const gg=GRUPOS.find(g=>g[0]===b.dataset.v);view=gg?(subG[gg[0]]&&can(subG[gg[0]])?subG[gg[0]]:(gg[2].find(can)||'chamada')):b.dataset.v;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
 $('#sub').addEventListener('click',e=>{const b=e.target.closest('button');if(b){view=b.dataset.s;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
 $('#app').addEventListener('click',e=>{
