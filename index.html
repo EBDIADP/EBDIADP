@@ -749,7 +749,418 @@ function render(){
  S.turmas.forEach(t=>t.alunos.sort((x,y)=>String(x.nome||'').localeCompare(String(y.nome||''),'pt-BR',{sensitivity:'base'})));
  const nv=document.querySelector('nav');
  if(!me){nv.style.display='none';$('#sub').hidden=true;$('#hd').textContent=''+dateLabel;$('#app').innerHTML=vLogin();return}
- nv.style.display='';GRUPOS.forEach(([k,l,vs])=>{const gb=nv.querySelector('[data-v="'+k+'"]');gb.hidden=!vs.some(can);gb.innerHTML=(k==='g-painel'&&!can('painel')?'Avisos':l)+(k==='grupo'?selo(pendentes().length):'')});if(!can(view))view=can('painel')?'painel':'chamada';
+ nv.style.display='';const menu=[['painel','Dashboard','▦'],['turmas','Turmas','♧'],['alunos','Alunos','♟'],['professores','Professores','♙'],['agenda','Aulas','▣'],['chamada','Frequência','✓'],['financeiro','Contribuições','R
+ $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pRot(me)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
+ $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='inscricoes'?vInscricoes():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():view==='backup'?vBackup():view==='financeiro'?vFinanceiro():vAvisos();
+ if(ehProf()){if(view==='agenda')marcaAulasVistas();else if(!(view==='chamada'&&selA)){const f=faixaAulasProf();if(f)$('#app').insertAdjacentHTML('afterbegin',f)}}
+ else if(podeInscr()&&view!=='inscricoes'&&!(view==='chamada'&&selA)){const f=faixaIns();if(f)$('#app').insertAdjacentHTML('afterbegin',f)}
+ const gv=grupoDe(view);if(gv){sub=view;subG[gv[0]]=view}
+ const sn=$('#sub');sn.hidden=!gv;
+ sn.innerHTML=gv?gv[2].filter(can).map(v=>'<button data-s="'+v+'" aria-current="'+(v===view?'page':'false')+'">'+subLabel(v)+(v==='usuarios'?selo(pendentes().length):v==='inscricoes'?selo(INS.length):'')+'</button>').join(''):'';
+ document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===view?'page':'false'));
+ try{document.querySelector('nav button[aria-current="page"]').scrollIntoView({inline:'center',block:'nearest'})}catch(e){}
+ if(view==='chamada'&&selA)updCount();
+ if(view==='registro'&&editH)jusH();
+}
+document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b){const gg=GRUPOS.find(g=>g[0]===b.dataset.v);view=gg?(subG[gg[0]]&&can(subG[gg[0]])?subG[gg[0]]:(gg[2].find(can)||'chamada')):b.dataset.v;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
+$('#sub').addEventListener('click',e=>{const b=e.target.closest('button');if(b){view=b.dataset.s;delV='';delA='';delG='';editA='';editT='';editH='';selA='';delT='';delH='';editV='';editG='';viewA='';work=null;render();scrollTo(0,0)}});
+$('#app').addEventListener('click',e=>{const b=e.target.closest('[data-open-agenda]');if(b){view='agenda';render();scrollTo(0,0)}});
+$('#app').addEventListener('click',e=>{
+ const r=e.target.closest('.row[data-a]');
+ if(r){const id=r.dataset.a;work.has(id)?work.delete(id):work.add(id);r.setAttribute('aria-pressed',work.has(id));updCount();return}
+  const vf=e.target.closest('[data-vf]');
+ if(vf){expF=!expF;render();return}
+ const vp=e.target.closest('[data-vp]');
+ if(vp){expP=!expP;render();return}
+  const vt=e.target.closest('[data-vt]');
+ if(vt){const id=vt.dataset.vt;expT.has(id)?expT.delete(id):expT.add(id);render();return}
+ const fa=e.target.closest('[data-fa],[data-fe]');
+ if(fa){const id=fa.dataset.fa;if(id&&!alOk(id))return;viewA=(id&&viewA!==id)?id:'';render();return}
+ const dt=e.target.closest('[data-delt],[data-deltok],[data-deltno]');
+ if(dt){const D=dt.dataset;
+  if(D.delt){if(!ehGestor())return;delT=D.delt}
+  else if(D.deltok){if(!ehGestor())return;const id=D.deltok;S.turmas=S.turmas.filter(t=>t.id!==id);Object.keys(S.pres).filter(k=>k.endsWith('|'+id)).forEach(k=>{delete S.pres[k];delete S.extras[k]});S.aulas=S.aulas.filter(x=>x.turma!==id);if(cur===id)cur=(S.turmas[0]||{}).id||'';delT='';selA='';work=null;save();toast('Turma excluída')}
+  else delT='';
+  render();return}
+ const ab=e.target.closest('[data-ab],[data-av]');
+ if(ab){selA=ab.dataset.ab||'';work=null;render();scrollTo(0,0);return}
+ const hd=e.target.closest('[data-hdel],[data-hdelok],[data-hdelno]');
+ if(hd){if(soLeitura())return;const D=hd.dataset;
+  if(D.hdel){if(!proprio(D.hdel))return;delH=D.hdel}
+  else if(D.hdelok){const k=D.hdelok;if(!proprio(k))return;delete S.pres[k];if(S.extras)delete S.extras[k];delH='';editH='';save();toast('Chamada excluída')}
+  else delH='';
+  render();return}
+ const he=e.target.closest('[data-hedit],[data-hok],[data-hno],[data-ha]');
+ if(he){const D=he.dataset;
+  if(D.ha){workH.has(D.ha)?workH.delete(D.ha):workH.add(D.ha);he.setAttribute('aria-pressed',workH.has(D.ha));he.querySelector('.st').textContent=workH.has(D.ha)?'Presente':'Ausente';jusH();return}
+  if(D.hedit){if(!proprio(D.hedit))return;editH=D.hedit;workH=new Set(S.pres[editH]||[]);workHJ=Object.assign({},(ex(editH)||{}).just||{})}
+  else if(D.hok){if(!proprio(editH))return;S.pres[editH]=[...workH];S.extras[editH]={...(S.extras[editH]||{}),biblias:Math.max(0,+$('#hb').value||0),oferta:Math.max(0,+$('#ho').value||0),visitantes:Math.max(0,+$('#hv').value||0),clima:$('#hc').value,just:jOnly(workHJ,workH)};editH='';work=null;workHJ={};save();toast('Chamada atualizada')}
+  else{editH=''}
+  render();return}
+ const ed=e.target.closest('[data-eda],[data-edok],[data-edno],[data-edt],[data-etok],[data-etno]');
+ if(ed){const D=ed.dataset;
+  if(D.eda){if(ehProf()||!alOk(D.eda))return;editA=D.eda}
+  else if(D.edok){if(ehProf()||!alOk(D.edok))return;const al=S.turmas.flatMap(t=>t.alunos).find(x=>x.id===D.edok),n=capNome($('#en').value);if(!n){toast('Informe o nome');return}if($('#ed').value>ymd(new Date())){toast('A data de nascimento não pode estar no futuro');return}const tt=S.turmas.find(x=>x.alunos.some(y=>y.id===al.id));if(!$('#ed').value){toast('Informe a data de nascimento');return}if(!(tt&&tt.semProf)&&!$('#et').value){toast('Escolha o título');return}if(!semBat(tt)&&!$('#eb').value){toast('Informe se o aluno é batizado');return}if(tt&&tt.exigeResp&&!capNome($('#er').value)){toast('Informe o responsável pelo aluno');return}if(tt&&tt.exigeResp){al.resp=capNome($('#er').value)}const antes=nm(al);al.nome=n;al.nasc=$('#ed').value;if(!semBat(tt))al.batizado=$('#eb').value;al.titulo=tt&&tt.semProf?'':$('#et').value;al.professor=tt&&tt.semProf?false:$('#ep').checked;renomeiaProf(antes,nm(al));
+   let msg='Cadastro atualizado';const sel=$('#eat'),nt=sel&&ehGestor()?turma(sel.value):null;
+   if(nt&&tt&&nt.id!==tt.id){const am=new Date(today);am.setDate(am.getDate()+1);tt.alunos=tt.alunos.filter(y=>y.id!==al.id);al.ant=(al.ant||[]).concat({turma:tt.id,desde:al.desde||'',ate:ymd(today)});al.desde=ymd(am);
+    if(nt.semProf){al.titulo='';al.professor=false}nt.alunos.push(al);msg='Aluno movido para '+nt.nome+(nt.exigeResp&&!al.resp?'. Edite o aluno para informar o responsável':'')}
+   editA='';save();toast(msg)}
+  else if(D.edno)editA='';
+  else if(D.edt){if(ehProf()||!tOk(D.edt))return;editT=D.edt}
+  else if(D.etok){if(ehProf()||!tOk(D.etok))return;const t=turma(D.etok),n=(ehGestor()?$('#etn').value.trim():turma(D.etok).nome);if(!n){toast('Informe o nome da turma');return}const l1=$('#el1').value,l2=$('#el2').value,s1=$('#es1').value,s2=$('#es2').value;if(l1&&l1===l2){toast('A mesma pessoa não pode ser primeiro(a) e segundo(a) líder');return}if(s1&&s1===s2){toast('A mesma pessoa não pode ser primeiro(a) e segundo(a) secretário(a)');return}t.lider1=l1;t.lider2=l2;t.sec1=s1;t.sec2=s2;t.exigeResp=$('#etr').checked;t.semProf=$('#etsp').checked;if(t.semProf)t.alunos.forEach(a=>{a.professor=false;a.titulo=''});t.nome=n;editT='';save();toast('Turma atualizada')}
+  else editT='';
+  render();return}
+ const ev=e.target.closest('[data-ev],[data-evok],[data-evno]');
+ if(ev){if(soLeitura())return;const D=ev.dataset;
+  if(D.ev){const v0=S.avisos.find(z=>z.id===D.ev);if(!v0||!avOk(v0))return;editV=D.ev;delV=''}
+  else if(D.evok){const v=S.avisos.find(z=>z.id===D.evok),t=$('#evt').value.trim(),x=$('#evx').value.trim();if(!v||!avOk(v))return;if(!t||!x){toast('Preencha título e mensagem');return}v.titulo=t;v.texto=x;v.turma=ehEquipe()?(tOk($('#evs').value)?$('#evs').value:me.turmaIds[0]):$('#evs').value;editV='';save();toast('Aviso atualizado')}
+  else editV='';
+  render();return}
+ const eg=e.target.closest('[data-eg],[data-egok],[data-egno]');
+ if(eg){if(soLeitura())return;const D=eg.dataset;
+  if(D.eg){const g0=S.aulas.find(z=>z.id===D.eg);if(!g0||!minha(g0))return;editG=D.eg;delG=''}
+  else if(D.egok){const A=S.aulas.find(z=>z.id===D.egok);if(!A||!minha(A))return;
+   const lock=!!S.pres[aulaKey(A)],tid=lock?A.turma:$('#egt').value,d=lock?A.data:$('#egd').value,tm=$('#egm').value.trim();let pr=$('#egp').value;if(pr&&pr!==A.prof&&!profs().includes(pr)){toast('Escolha um professor cadastrado');return}
+   if(!tid||!d||!tm||!tOk(tid)){toast('Informe turma, data e tema');return}
+   if(d!==A.data&&!dom(d)){toast(msgDom);return}
+   if(S.aulas.some(z=>z.id!==A.id&&z.turma===tid&&z.data===d)){toast('Essa turma já tem aula agendada nesse dia');return}
+   const conf=pr&&S.aulas.some(z=>z.id!==A.id&&z.data===d&&z.prof===pr&&z.turma!==tid);
+   A.turma=tid;A.data=d;A.prof=pr;A.tema=tm;A.topicos=$('#egtp').value.trim();editG='';save();toast(conf?'Aula atualizada. Atenção: esse professor já tem aula em outra turma nesse dia':'Aula atualizada')}
+  else editG='';
+  render();return}
+ const dg=e.target.closest('[data-delg],[data-delgok],[data-delgno]');
+ if(dg){if(soLeitura())return;if(dg.dataset.delg){const g0=S.aulas.find(z=>z.id===dg.dataset.delg);if(!g0||!minha(g0))return;delG=dg.dataset.delg}else if(dg.dataset.delgok){const g0=S.aulas.find(z=>z.id===dg.dataset.delgok);if(!g0||!minha(g0))return;S.aulas=S.aulas.filter(x=>x.id!==dg.dataset.delgok);delG='';save();toast('Aula excluída')}else{delG=''}render();return}
+ const da=e.target.closest('[data-dela],[data-delaok],[data-delano]');
+ if(da){if(ehProf())return;if(da.dataset.dela){if(!alOk(da.dataset.dela))return;delA=da.dataset.dela}else if(da.dataset.delaok){const id=da.dataset.delaok;if(!alOk(id))return;S.turmas.forEach(t=>{t.alunos=t.alunos.filter(x=>x.id!==id)});Object.keys(S.pres).forEach(k=>{S.pres[k]=S.pres[k].filter(i=>i!==id)});delA='';work=null;save();toast('Aluno excluído')}else{delA=''}render();return}
+ const ar=e.target.closest('[data-arq],[data-rest]');
+ if(ar){const al=S.turmas.flatMap(t=>t.alunos).find(x=>x.id===(ar.dataset.arq||ar.dataset.rest));if(al&&!ehProf()&&alOk(al.id)){al.arq=ar.hasAttribute('data-arq');work=null;save();toast(al.arq?'Aluno arquivado':'Aluno restaurado');render()}return}
+ const dv=e.target.closest('[data-delv],[data-delok],[data-delno]');
+ if(dv){if(soLeitura())return;if(dv.dataset.delv){delV=dv.dataset.delv}else if(dv.dataset.delok){const v0=S.avisos.find(v=>v.id===dv.dataset.delok);if(!v0||!avOk(v0))return;S.avisos=S.avisos.filter(v=>v.id!==dv.dataset.delok);delV='';save();toast('Aviso excluído')}else{delV=''}render();return}
+ const tg=e.target.closest('[data-tg]');
+ if(tg){const al=S.turmas.flatMap(t=>t.alunos).find(x=>x.id===tg.dataset.tg);if(al&&!ehProf()&&alOk(al.id)){al.ativo=al.ativo===false;work=null;save();render()}return}
+ const id=e.target.id;
+ if(id==='salvar'){const A=S.aulas.find(x=>x.id===selA);if(!A||!minha(A))return;const key=aulaKey(A);
+  S.pres[key]=[...work];S.extras[key]={biblias:Math.max(0,+$('#xb').value||0),oferta:Math.max(0,+$('#xo').value||0),visitantes:Math.max(0,+$('#xv').value||0),clima:$('#xc').value,tema:A.tema,prof:A.prof,topicos:A.topicos||'',just:jOnly(workJ,work)};
+  selA='';work=null;workJ={};save();toast('Chamada salva');view='registro';render();scrollTo(0,0)}
+ if(id==='addT'){if(!ehGestor())return;const n=$('#tn').value.trim();if(!n){toast('Informe o nome da turma');return}
+  const t={id:uid(),nome:n,alunos:[]};S.turmas.push(t);if(!cur)cur=t.id;save();toast('Turma adicionada');render()}
+ if(id==='addA'){if(ehProf())return;const n=capNome($('#an').value),t=turma(unicaT()?me.turmaIds[0]:$('#as').value);if(!t||!tOk(t.id)){toast(ehEquipe()&&!me.turmaIds.length?'Seu usuário não está vinculado a uma turma':'Escolha a turma');return}if(!t.semProf&&!$('#at').value){toast('Escolha o título');return}if(!n){toast('Informe o nome do aluno');return}if(!$('#ad').value){toast('Informe a data de nascimento');return}if(!semBat(t)&&!$('#ab').value){toast('Informe se o aluno é batizado');return}if(t.exigeResp&&!capNome($('#ar').value)){toast('Informe o responsável pelo aluno');return}if($('#ad').value>ymd(new Date())){toast('A data de nascimento não pode estar no futuro');return}
+  t.alunos.push({id:uid(),nome:n,titulo:t.semProf?'':$('#at').value,professor:t.semProf?false:$('#ap').checked,nasc:$('#ad').value,batizado:semBat(t)?'':$('#ab').value,resp:t.exigeResp?capNome($('#ar').value):'',desde:ymd(new Date())});cur=t.id;work=null;save();toast('Aluno adicionado');render()}
+ if(id==='addG'){if(ehProf()||!podeAgendar())return;const tm=$('#gm').value.trim(),d=$('#gd').value,tid=unicaT()?me.turmaIds[0]:$('#gt').value;if(ehEquipe()&&!tOk(tid))return;let pr=$('#gp').value;if(pr&&!profs().includes(pr)){toast('Escolha um professor cadastrado');return}
+  if(!tid||!d||!tm){toast('Informe turma, data e tema');return}
+  if(!dom(d)){toast(msgDom);return}
+  if(S.aulas.some(x=>x.turma===tid&&x.data===d)){toast('Essa turma já tem aula agendada nesse dia');return}
+  const conf=pr&&S.aulas.some(x=>x.data===d&&x.prof===pr&&x.turma!==tid);
+  S.aulas.push({id:uid(),turma:tid,data:d,prof:pr,tema:tm,topicos:$('#gtp').value.trim()});save();toast(conf?'Aula agendada. Atenção: esse professor já tem aula em outra turma nesse dia':'Aula agendada');render()}
+ if(id==='addV'){if(soLeitura()||(ehEquipe()&&!me.turmaIds.length))return;const vt=unicaT()?me.turmaIds[0]:$('#vs').value;if(ehEquipe()&&!tOk(vt)){toast('Escolha a turma do aviso');return}const t=$('#vt').value.trim(),x=$('#vx').value.trim();if(!t||!x){toast('Preencha título e mensagem');return}
+  S.avisos.push({id:uid(),titulo:t,texto:x,turma:vt,data:ymd(new Date())});save();toast('Aviso publicado');render()}
+});
+$('#app').addEventListener('change',e=>{
+ if(e.target.id==='rf'){regF=e.target.value;render()}
+ if(e.target.id==='eup'){const l=e.target.value==='lider'||e.target.value==='secretario';$('#eutw').hidden=!l}
+ if(e.target.id==='as'){const tt=turma(e.target.value);$('#afw').hidden=!tt;$('#rsp').hidden=!(tt&&tt.exigeResp);$('#apw').hidden=!!(tt&&tt.semProf);$('#atw').hidden=!!(tt&&tt.semProf);$('#abw').hidden=semBat(tt)}
+ if(e.target.dataset.jc!==undefined){const v=e.target.value,i=e.target.dataset.jc;v?workJ[i]=v:delete workJ[i];return}
+ if(e.target.dataset.jh!==undefined){const v=e.target.value,i=e.target.dataset.jh;v?workHJ[i]=v:delete workHJ[i];return}
+ if((e.target.id==='gd'||e.target.id==='egd')&&e.target.value&&!dom(e.target.value)){const d=new Date(e.target.value+'T12:00:00');d.setDate(d.getDate()+(7-d.getDay())%7);e.target.value=ymd(d);toast(msgDom+': ajustei para o próximo domingo')}
+});
+$('#hd').addEventListener('click',async e=>{if(e.target.id==='sair'){try{await sb.auth.signOut()}catch(x){}me=null;S=vazio();F=novoF();acesso='';modo='entrar';view='painel';sub='chamada';render();scrollTo(0,0)}});
+$('#app').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'&&!me){const b=$('#entrar')||$('#criarConta')||$('#salvarSenha');if(b)b.click()}});
+// ===== Relatório trimestral =====
+let rAno=null,rTri=1;
+const TRIS=['1º trimestre (jan a mar)','2º trimestre (abr a jun)','3º trimestre (jul a set)','4º trimestre (out a dez)'];
+const triFaixa=(a,q)=>[a+'-'+String((q-1)*3+1).padStart(2,'0')+'-01',a+'-'+String(q*3).padStart(2,'0')+'-31'];
+function metrT(t,ini,fim){
+ const keys=keysT(t).filter(k=>{const d=k.split('|')[0];return d>=ini&&d<=fim});
+ let pres=0,poss=0,jus=0,bib=0,of=0,vis=0;
+ keys.forEach(k=>{const e=ex(k)||{},J=e.just||{},ids=S.pres[k],E=eleg(t,k);pres+=ids.length;poss+=E.length;jus+=E.filter(a=>!ids.includes(a.id)&&J[a.id]).length;bib+=e.biblias||0;of+=e.oferta||0;vis+=e.visitantes||0});
+ const n=keys.length,al=ativos(t).map(a=>{const r=rowsA(a,t).filter(x=>x.d>=ini&&x.d<=fim),p=r.filter(x=>x.ok).length;return {a,n:r.length,p,q:r.length?Math.round(p/r.length*100):0}});
+ return {n,pres,poss,jus,bib,of,vis,p:poss?Math.round(pres/poss*100):0,media:n?Math.round(pres/n*10)/10:0,al,integral:al.filter(x=>x.n>0&&x.p===x.n)}}
+function vRelatorio(){
+ if(rAno===null){rAno=today.getFullYear();rTri=Math.floor(today.getMonth()/3)+1}
+ const [i,f]=triFaixa(rAno,rTri),pa=rTri===1?[rAno-1,4]:[rAno,rTri-1],[pi,pf]=triFaixa(pa[0],pa[1]);
+ const all=TV().map(t=>({t,m:metrT(t,i,f),a:metrT(t,pi,pf)})),som=(k,o)=>all.reduce((n,x)=>n+x[o||'m'][k],0);
+ const n=som('n'),pres=som('pres'),poss=som('poss'),jus=som('jus'),p=poss?Math.round(pres/poss*100):0,pp=som('poss','a')?Math.round(som('pres','a')/som('poss','a')*100):0,ofP=som('of','a');
+ const vs=(a,b,fm)=>b>0?'<span class="sub"> · '+(a>=b?'+':'−')+fm(Math.abs(a-b))+' sobre o trimestre anterior</span>':'';
+ const ys=Object.keys(S.pres).map(k=>+k.slice(0,4)),y0=Math.min(today.getFullYear(),...ys);let anos='';for(let y=today.getFullYear();y>=y0;y--)anos+='<option'+(y===rAno?' selected':'')+'>'+y+'</option>';
+ return '<h2>Relatório trimestral</h2><p class="sub">Soma das chamadas salvas no trimestre. O número de alunos ativos é o de hoje.</p>'
+ +'<div class="noprint"><label for="rano">Ano</label><select id="rano">'+anos+'</select><label for="rtri">Trimestre</label><select id="rtri">'+TRIS.map((l,j)=>'<option value="'+(j+1)+'"'+(j+1===rTri?' selected':'')+'>'+l+'</option>').join('')+'</select><button class="btn full" data-print="1">Imprimir ou salvar em PDF</button></div>'
+ +'<div class="sec"><h2>'+TRIS[rTri-1]+' de '+rAno+' · '+(ehEquipe()?'sua turma':'todas as turmas')+'</h2>'+(n?'<div class="list">'+kv('Aulas com chamada',n)+kv('Frequência média',p+'%'+vs(p,pp,x=>x+' p.p.'))+kv('Média de presentes por aula',Math.round(pres/n*10)/10)+kv('Faltas (justificadas)',(poss-pres-jus)+' ('+jus+')')+kv('Visitantes',som('vis')||'Nenhum')+kv('Bíblias físicas',som('bib'))+kv('Contribuições','<span>'+brl(som('of'))+'</span>'+vs(som('of'),ofP,brl))+'</div>':'<div class="list"><div class="item sub">Nenhuma chamada salva neste trimestre.</div></div>')+'</div>'
+ +all.map(({t,m})=>'<div class="sec"><h2>'+esc(t.nome)+'</h2>'+(m.n?'<div class="list">'+kv('Aulas com chamada',m.n)+kv('Alunos ativos',ativos(t).length)+kv('Frequência média',m.p+'%')+kv('Média de presentes por aula',m.media)+kv('Faltas (justificadas)',(m.poss-m.pres-m.jus)+' ('+m.jus+')')+kv('Visitantes',m.vis||'Nenhum')+kv('Bíblias físicas',m.bib)+kv('Contribuições',brl(m.of))+'</div>'
+  +(m.integral.length?'<p class="sub"><b>Presença integral:</b> '+m.integral.map(x=>esc(nm(x.a))).join(', ')+'.</p>':'')
+  +'<details class="dt"><summary><b>Frequência por aluno</b></summary>'+m.al.map(x=>'<div class="freq"><div><span>'+esc(nm(x.a))+'</span><b>'+(x.n?x.q+'%':'—')+'</b></div><span class="sub">'+(x.n?x.p+' de '+x.n+' aula(s)':'Sem chamadas no período')+'</span></div>').join('')+'</details>'
+  :'<div class="list"><div class="item sub">Sem chamada salva neste trimestre.</div></div>')+'</div>').join('');
+}
+// ===== Auditoria (lê a tabela historico; veja auditoria.sql) =====
+let H={l:[],ok:false,ld:false,fim:false,f:'',err:''};
+const HF=[['','Tudo'],['chamadas','Chamadas'],['turmas','Turmas e alunos'],['aulas','Aulas'],['avisos','Avisos'],['perfis','Usuários']];
+async function carregaH(mais){
+ if(H.ld)return;H.ld=true;const f=H.f,ini=mais?H.l.length:0;
+ try{let q=sb.from('historico').select('*').order('quando',{ascending:false}).range(ini,ini+49);if(f)q=q.eq('tabela',f);
+  const {data,error}=await q;if(error)throw error;if(H.f!==f)return;
+  H.l=mais?H.l.concat(data):data;H.fim=data.length<50;H.err=''}
+ catch(e){if(H.f!==f)return;H.err=/42P01|PGRST205|historico/.test((e.code||'')+(e.message||''))?'sql':'erro'}
+ H.ok=true;H.ld=false;if(view==='auditoria')render()}
+const ROT={perfis_extra:'perfil adicional',nome:'nome',titulo:'título',professor:'professor(a)',ativo:'situação',arq:'arquivado',desde:'data de entrada',resp:'responsável',batizado:'batismo',nasc:'nascimento',ant:'histórico de turma',tema:'tema',topicos:'tópicos',prof:'professor(a)',data:'data',texto:'mensagem',turma:'turma',perfil:'perfil',aluno_id:'vínculo com aluno',turma_id:'vínculo com turma'};
+const difC=(a,b,sk)=>Object.keys(Object.assign({},a,b)).filter(k=>!(sk||[]).includes(k)&&JSON.stringify((a||{})[k])!==JSON.stringify((b||{})[k])).map(k=>ROT[k]||k);
+const dBR=d=>String(d).split('-').reverse().join('/'),tn=id=>{const t=turma(id);return t?t.nome:'turma removida'};
+function descH(h){const A=h.antes||{},D=h.depois||{},op=h.op,x=op==='DELETE'?A:D;
+ if(h.tabela==='turmas'){
+  if(op==='INSERT')return ['Criou a turma '+x.nome];if(op==='DELETE')return ['Excluiu a turma '+x.nome];
+  const o=[],ma=Object.fromEntries((A.alunos||[]).map(a=>[a.id,a])),mb=Object.fromEntries((D.alunos||[]).map(a=>[a.id,a]));
+  (D.alunos||[]).forEach(a=>{if(!ma[a.id])o.push('Incluiu '+a.nome+' em '+D.nome);else{const c=difC(ma[a.id],a);if(c.length)o.push('Alterou '+a.nome+' ('+c.join(', ')+')')}});
+  (A.alunos||[]).forEach(a=>{if(!mb[a.id])o.push('Removeu '+a.nome+' de '+A.nome)});
+  const c=difC(A,D,['alunos']);if(c.length)o.push('Alterou a turma '+D.nome+' ('+c.join(', ')+')');
+  return o.length?o:['Alterou a turma '+D.nome]}
+ if(h.tabela==='chamadas'){const [d,t]=h.registro.split('|'),ti='chamada de '+dBR(d)+' ('+tn(t)+')';
+  if(op==='INSERT')return ['Salvou a '+ti+': '+(x.p||[]).length+' presente(s)'];if(op==='DELETE')return ['Excluiu a '+ti];
+  const o=[],ea=A.e||{},ed=D.e||{};
+  if(JSON.stringify([...(A.p||[])].sort())!==JSON.stringify([...(D.p||[])].sort()))o.push('presentes '+(A.p||[]).length+' para '+(D.p||[]).length);
+  [['biblias','Bíblias'],['oferta','contribuições'],['visitantes','visitantes']].forEach(([k,l])=>{if(ea[k]!==ed[k])o.push(l+' '+(ea[k]??0)+' para '+(ed[k]??0))});
+  if(JSON.stringify(ea.just||{})!==JSON.stringify(ed.just||{}))o.push('justificativas');
+  return ['Editou a '+ti+(o.length?': '+o.join('; '):'')]}
+ if(h.tabela==='aulas'){const ti='aula de '+dBR(x.data)+' ('+tn(x.turma)+')';
+  if(op==='INSERT')return ['Agendou a '+ti];if(op==='DELETE')return ['Excluiu a '+ti];
+  const c=difC(A,D);return ['Editou a '+ti+(c.length?' ('+c.join(', ')+')':'')]}
+ if(h.tabela==='avisos'){const ti='aviso "'+x.titulo+'"';
+  if(op==='INSERT')return ['Publicou o '+ti];if(op==='DELETE')return ['Excluiu o '+ti];
+  const c=difC(A,D);return ['Editou o '+ti+(c.length?' ('+c.join(', ')+')':'')]}
+ const w=x.nome||x.email||'usuário';
+ if(op==='INSERT')return ['Nova conta criada: '+w];if(op==='DELETE')return ['Excluiu o usuário '+w];
+ const o=[];if(A.ativo!==D.ativo)o.push(D.ativo?'liberou o acesso':'desativou o acesso');
+ if(A.perfil!==D.perfil)o.push('perfil '+pNome(A.perfil)+' para '+pNome(D.perfil));
+ const c=difC(A,D,['ativo','perfil','criado_em','aprovado_em']);if(c.length)o.push('alterou '+c.join(', '));
+ return ['Usuário '+w+': '+(o.join('; ')||'sem mudança visível')]}
+const fdt=iso=>new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+function vAuditoria(){
+ if(!H.ok&&!H.ld)carregaH();
+ const filtro='<label for="hfil">Mostrar</label><select id="hfil">'+HF.map(([v,l])=>'<option value="'+v+'"'+(v===H.f?' selected':'')+'>'+l+'</option>').join('')+'</select>';
+ const corpo=H.err==='sql'?'<div class="item sub">A tabela de histórico ainda não existe. Rode o arquivo auditoria.sql no SQL Editor do Supabase.</div>'
+  :H.err?'<div class="item sub">Não foi possível carregar o histórico. Verifique a conexão e toque em Atualizar.</div>'
+  :!H.ok?'<div class="item sub">Carregando…</div>'
+  :H.l.length?H.l.map(h=>'<div class="item"><b style="display:inline">'+esc(h.quem_nome||'Sistema')+'</b> <span class="tag">'+esc((HF.find(x=>x[0]===h.tabela)||[0,h.tabela])[1])+'</span><span class="sub" style="display:block">'+fdt(h.quando)+'</span>'+descH(h).map(l=>'<div>'+esc(l)+'</div>').join('')+'</div>').join('')
+  :'<div class="item sub">Nenhuma alteração registrada.</div>';
+ return '<h2>Histórico de alterações</h2><p class="sub">Quem mudou o quê, do mais recente para o mais antigo. Só o administrador vê esta tela.</p>'+filtro
+  +'<div class="list" style="margin-top:12px">'+corpo+'</div>'
+  +'<div class="acts" style="margin-top:12px"><button class="tg" data-hatu="1">Atualizar</button>'+(H.ok&&!H.fim&&!H.err?'<button class="tg" data-hmais="1">Ver mais antigos</button>':'')+'</div>'}
+$('#app').addEventListener('change',e=>{const i=e.target.id;
+ if(i==='rano'||i==='rtri'){rAno=+$('#rano').value;rTri=+$('#rtri').value;render()}
+ if(i==='hfil'){H={l:[],ok:false,ld:false,fim:false,f:e.target.value,err:''};render()}});
+$('#app').addEventListener('click',e=>{
+ if(e.target.closest('[data-print]')){document.querySelectorAll('#app details').forEach(d=>{d.open=true});print();return}
+ if(e.target.closest('[data-hmais]')){carregaH(true);return}
+ if(e.target.closest('[data-hatu]')){H.ok=false;H.ld=false;H.l=[];H.err='';render()}});
+// ===== Financeiro (administrador e tesoureiro; veja financeiro.sql e tesoureiro.sql) =====
+// Entradas: contribuições das chamadas (automático) + entradas avulsas. Saídas: despesas lançadas aqui.
+const CAT_E=['Doação','Venda ou cantina','Outras entradas'],CAT_S=['Revistas e material','Lanche','Evento','Manutenção','Outras saídas'];
+const novoF=()=>({l:[],ok:false,ld:false,err:'',mes:'',form:'',del:''});
+let F=novoF();
+const c100=v=>Math.round((+String(v==null?'':v).replace(',','.')||0)*100),mesAtual=()=>ymd(today).slice(0,7);
+const mesRot=m=>{const [y,n]=m.split('-'),s=new Date(+y,+n-1,15).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});return s.charAt(0).toUpperCase()+s.slice(1)};
+const mesFim=m=>{const [y,n]=m.split('-');return m+'-'+String(new Date(+y,+n,0).getDate()).padStart(2,'0')};
+const catOpts=(tipo,sel)=>{const L=(tipo==='entrada'?CAT_E:CAT_S).slice();if(sel&&!L.includes(sel))L.push(sel);return L.map(c=>'<option'+(c===sel?' selected':'')+'>'+esc(c)+'</option>').join('')};
+const ofertasMes=m=>Object.keys(S.pres).filter(k=>k.slice(0,7)===m).map(k=>({d:k.slice(0,10),t:k.split('|')[1],c:c100((ex(k)||{}).oferta)})).filter(x=>x.c>0).sort((a,b)=>a.d.localeCompare(b.d));
+async function carregaF(){
+ if(F.ld)return;const f0=F,m=F.mes;F.ld=true;
+ try{const {data,error}=await sb.from('financeiro').select('*').gte('data',m+'-01').lte('data',mesFim(m)).order('data',{ascending:false}).order('criado_em',{ascending:false});
+  if(error)throw error;if(F!==f0)return;F.l=data;F.err=''}
+ catch(e){if(F!==f0)return;F.err=/42P01|PGRST205|financeiro/.test((e.code||'')+(e.message||''))?'sql':'erro'}
+ F.ok=true;F.ld=false;if(view==='financeiro')render()}
+function fForm(x){const tipo=x?x.tipo:'saida';
+ return '<div class="item"><label for="ftipo" style="margin-top:0">Tipo</label><select id="ftipo"><option value="saida"'+(tipo==='saida'?' selected':'')+'>Saída (despesa)</option><option value="entrada"'+(tipo==='entrada'?' selected':'')+'>Entrada avulsa (além das contribuições das aulas)</option></select>'
+ +'<label for="fcat">Categoria</label><select id="fcat">'+catOpts(tipo,x?x.categoria:'')+'</select>'
+ +'<label for="fdata">Data</label><input id="fdata" type="date" value="'+(x?x.data:(F.mes===mesAtual()?ymd(today):mesFim(F.mes)))+'">'
+ +'<label for="fval">Valor (R$)</label><input id="fval" type="number" min="0.01" step="0.01" inputmode="decimal" value="'+(x?x.valor_centavos/100:'')+'">'
+ +'<label for="ftur">Turma (opcional)</label><select id="ftur"><option value="">Geral (sem turma)</option>'+S.turmas.map(t=>'<option value="'+t.id+'"'+(x&&x.turma_id===t.id?' selected':'')+'>'+esc(t.nome)+'</option>').join('')+'</select>'
+ +'<label for="fdesc">Descrição</label><input id="fdesc" maxlength="120" value="'+(x?esc(x.descricao):'')+'">'
+ +'<div class="acts"><button class="btn" style="margin-top:0" data-fsave="'+(x?x.id:'novo')+'">Salvar</button><button class="tg" data-fno="1">Cancelar</button></div></div>'}
+function vFinanceiro(){
+ if(!F.mes)F.mes=mesAtual();
+ if(!F.ok&&!F.ld)carregaF();
+ const m=F.mes,L=F.l,ofs=ofertasMes(m),tof=ofs.reduce((n,x)=>n+x.c,0),pronto=F.ok&&!F.err,
+  soma=t=>L.filter(x=>x.tipo===t).reduce((n,x)=>n+x.valor_centavos,0),av=soma('entrada'),sai=soma('saida'),ent=tof+av,saldo=ent-sai;
+ const meses=[];for(let i=0;i<36;i++){const d=new Date(today.getFullYear(),today.getMonth()-i,1);meses.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))}
+ if(!meses.includes(m))meses.push(m);
+ const sel='<div class="noprint"><label for="fmes">Mês</label><select id="fmes">'+meses.map(x=>'<option value="'+x+'"'+(x===m?' selected':'')+'>'+mesRot(x)+'</option>').join('')+'</select></div>';
+ const aviso=F.err==='sql'?'<div class="item sub">A tabela do financeiro ainda não existe. Rode o arquivo financeiro.sql no SQL Editor do Supabase.</div>'
+  :F.err?'<div class="item sub">Não foi possível carregar os lançamentos. Verifique a conexão e toque em Atualizar.</div>':!F.ok?'<div class="item sub">Carregando…</div>':'';
+ const resumo=pronto?'<div class="list">'+kv('Contribuições das aulas',brl(tof/100))+kv('Outras entradas',brl(av/100))+kv('<b>Total de entradas</b>',brl(ent/100))+kv('Saídas','<span style="color:var(--bad)">'+brl(sai/100)+'</span>')+kv('<b>Saldo do mês</b>','<span style="color:'+(saldo<0?'var(--bad)':'var(--ok)')+'">'+brl(saldo/100)+'</span>')+'</div>':'<div class="list">'+aviso+'</div>';
+ const porT={};ofs.forEach(x=>{porT[x.t]=(porT[x.t]||0)+x.c});
+ const ofDet='<details class="dt"><summary><b>Contribuições das aulas ('+brl(tof/100)+')</b></summary>'+(ofs.length?Object.keys(porT).map(t=>kv(turma(t)?esc(turma(t).nome):'Turma removida',brl(porT[t]/100))).join('')+'<p class="sub" style="margin:8px 12px">Vêm do campo Contribuições de cada chamada. Para corrigir um valor, edite a chamada em Histórico.</p>':'<div class="item sub">Nenhuma contribuição registrada neste mês.</div>')+'</details>';
+ const fila=x=>F.form===x.id?fForm(x):'<div class="item al"><span><b>'+esc(x.descricao)+'</b><span class="sub" style="display:block"><span class="tag">'+esc(x.categoria)+'</span>'+(x.turma_id&&turma(x.turma_id)?' '+tagT(turma(x.turma_id)):'')+' '+dBR(x.data)+(x.criado_por_nome?' · '+esc(x.criado_por_nome):'')+'</span></span>'
+  +'<b style="color:'+(x.tipo==='saida'?'var(--bad)':'var(--ok)')+'">'+(x.tipo==='saida'?'−':'+')+brl(x.valor_centavos/100)+'</b>'
+  +(F.del===x.id?'<span class="acts" style="margin:0"><span class="sub">Excluir?</span><button class="tg bad" data-fok="'+x.id+'">Confirmar</button><button class="tg" data-fno="1">Cancelar</button></span>':'<details class="more noprint"><summary aria-label="Mais opções">⋯</summary><div class="menu"><button class="tg" data-fed="'+x.id+'">Editar</button><button class="tg bad" data-fdel="'+x.id+'">Excluir</button></div></details>')+'</div>';
+ return '<h2>Financeiro · '+mesRot(m)+'</h2><p class="sub">Ofertas e despesas da EBD. Só o administrador e quem tem o perfil Tesoureiro(a) veem esta tela.</p>'+sel+'<div class="sec">'+resumo+'</div>'
+  +(pronto?'<div class="sec">'+ofDet+'</div>':'')
+  +'<div class="sec"><h2>Lançamentos</h2><div class="acts noprint" style="margin:0 0 12px"><button class="btn" style="margin-top:0" data-fnovo="1">Novo lançamento</button></div><div class="list">'
+  +(F.form==='novo'?fForm(null):'')+(pronto?(L.length?L.map(fila).join(''):(F.form==='novo'?'':'<div class="item sub">Nenhum lançamento neste mês. Toque em Novo lançamento para registrar uma despesa ou entrada avulsa.</div>')):'')+'</div></div>'
+  +'<div class="acts noprint" style="margin-top:16px"><button class="tg" data-fatu="1">Atualizar</button><button class="tg" data-fcsv="1">Baixar planilha (CSV)</button><button class="tg" data-print="1">Imprimir ou salvar em PDF</button></div>'}
+$('#app').addEventListener('change',e=>{const i=e.target.id;
+ if(i==='fmes'){F={...novoF(),mes:e.target.value};render()}
+ if(i==='ftipo'){const c=$('#fcat');if(c)c.innerHTML=catOpts(e.target.value,'')}});
+$('#app').addEventListener('click',async e=>{
+ if(view!=='financeiro'||!ehTes())return;
+ const b=e.target.closest('[data-fnovo],[data-fed],[data-fdel],[data-fok],[data-fno],[data-fsave],[data-fatu],[data-fcsv]');if(!b)return;const D=b.dataset;
+ if(D.fnovo!==undefined){F.form='novo';F.del='';render();return}
+ if(D.fed){F.form=D.fed;F.del='';render();return}
+ if(D.fdel){F.del=D.fdel;F.form='';render();return}
+ if(D.fno!==undefined){F.form='';F.del='';render();return}
+ if(D.fatu!==undefined){F={...novoF(),mes:F.mes};render();return}
+ if(D.fok){b.disabled=true;const {error}=await sb.from('financeiro').delete().eq('id',D.fok);
+  if(error){b.disabled=false;toast('Não foi possível excluir. Tente de novo.');return}
+  F={...novoF(),mes:F.mes};toast('Lançamento excluído');render();return}
+ if(D.fsave){const tipo=$('#ftipo').value,cat=$('#fcat').value,data=$('#fdata').value,v=c100($('#fval').value),desc=$('#fdesc').value.trim().slice(0,120),tur=$('#ftur').value||null;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(data)||isNaN(new Date(data+'T12:00:00'))){toast('Informe a data');return}
+  if(!(v>0)||v>1e9){toast('Informe um valor maior que zero');return}
+  if(!desc){toast('Escreva uma descrição');return}
+  const row={tipo,categoria:cat,data,valor_centavos:v,descricao:desc,turma_id:tur};
+  b.disabled=true;
+  const r=D.fsave==='novo'?await sb.from('financeiro').insert({...row,criado_por_nome:me.nome}):await sb.from('financeiro').update(row).eq('id',D.fsave);
+  if(r.error){b.disabled=false;toast('Não foi possível salvar. Verifique a conexão e tente de novo.');return}
+  F={...novoF(),mes:data.slice(0,7)};toast('Lançamento salvo');render();return}
+ if(D.fcsv!==undefined){const m=F.mes,q=v=>{v=String(v==null?'':v);if(/^[=+@-]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'},val=c=>(c/100).toFixed(2).replace('.',',');
+  const R=ofertasMes(m).map(x=>({d:x.d,l:[dBR(x.d),'Entrada','Oferta da aula',tn(x.t),'Contribuições da chamada',val(x.c)]}))
+   .concat(F.l.map(x=>({d:x.data,l:[dBR(x.data),x.tipo==='saida'?'Saída':'Entrada',x.categoria,x.turma_id?tn(x.turma_id):'Geral',x.descricao,val(x.valor_centavos)]})))
+   .sort((a,b)=>a.d.localeCompare(b.d));
+  baixa('ebd-financeiro-'+m+'.csv','\ufeff'+[['Data','Tipo','Categoria','Turma','Descrição','Valor (R$)']].concat(R.map(x=>x.l)).map(l=>l.map(q).join(';')).join('\r\n'),'text/csv;charset=utf-8');toast('Planilha baixada')}});
+// ===== Backup e restauração (só administrador) =====
+let BK=null,bkMsg='',bkOcupado=false;
+const lerUlt=()=>{try{return localStorage.getItem('ebd_ult_backup')||''}catch(e){return ''}};
+function baixa(nome,txt,tipo){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:tipo}));a.download=nome;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+async function geraBackup(){const o={app:'ebd-iadp',versao:1,geradoEm:new Date().toISOString()};
+ for(const t of TAB)o[t]=await todos(t);
+ await pullUsers();o.usuarios=S.usuarios.map(u=>({nome:u.nome,email:u.login,perfil:u.perfil,ativo:u.ativo,aluno_id:u.aluno_id,turma_id:u.turma_id,turma_ids:u.turma_ids||[]}));return o}
+async function bkBaixar(){if(bkOcupado)return;bkOcupado=true;bkMsg='';
+ try{const o=await geraBackup();baixa('ebd-backup-'+ymd(new Date())+'.json',JSON.stringify(o),'application/json');
+  try{localStorage.setItem('ebd_ult_backup',new Date().toLocaleString('pt-BR'))}catch(e){}bkMsg='Backup baixado. Guarde o arquivo no Google Drive da igreja e em mais um lugar.'}
+ catch(e){bkMsg='Não foi possível gerar o backup. Verifique a conexão e tente de novo.'}
+ bkOcupado=false;render()}
+async function bkCsv(){if(bkOcupado)return;bkOcupado=true;bkMsg='';
+ try{const rows=await todos('chamadas');
+  const q=v=>{v=String(v==null?'':v);if(/^[=+@-]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
+  const L=[['Data','Turma','Presentes','Bíblias','Visitantes','Contribuições (R$)','Professor(a)','Tema']];
+  rows.sort((a,b)=>a.id.localeCompare(b.id)).forEach(r=>{const [d,t]=r.id.split('|'),e=r.dados.e||{},au=S.aulas.find(x=>x.turma===t&&x.data===d)||{};
+   L.push([dBR(d),tn(t),(r.dados.p||[]).length,e.biblias||0,e.visitantes||0,String(e.oferta||0).replace('.',','),e.prof||au.prof||'',e.tema||au.tema||''])});
+  baixa('ebd-chamadas-'+ymd(new Date())+'.csv','\ufeff'+L.map(l=>l.map(q).join(';')).join('\r\n'),'text/csv;charset=utf-8');bkMsg='Planilha de chamadas baixada.'}
+ catch(e){bkMsg='Não foi possível gerar a planilha. Verifique a conexão e tente de novo.'}
+ bkOcupado=false;render()}
+async function bkLer(file){bkMsg='';BK=null;
+ try{if(file.size>20e6)throw 0;let o=JSON.parse(await file.text());
+  if(o&&!o.app&&Array.isArray(o.turmas)&&o.pres&&typeof o.pres==='object'){const g=a=>(a||[]).map(x=>({id:x.id,dados:x}));o={app:'ebd-iadp',versao:1,geradoEm:null,turmas:g(o.turmas),aulas:g(o.aulas),avisos:g(o.avisos),chamadas:Object.keys(o.pres).map(k=>({id:k,dados:{p:o.pres[k],e:(o.extras||{})[k]||null}}))}}
+  if(!o||o.app!=='ebd-iadp'||o.versao!==1)throw 0;
+  const ok=(a,f)=>Array.isArray(a)&&a.every(r=>r&&typeof r.id==='string'&&r.dados&&typeof r.dados==='object'&&(!f||f(r)));
+  if(!ok(o.turmas,r=>Array.isArray(r.dados.alunos))||!ok(o.aulas)||!ok(o.avisos)||!ok(o.chamadas,r=>/^\d{4}-\d{2}-\d{2}\|.+$/.test(r.id)))throw 0;
+  BK={o,nome:file.name}}
+ catch(e){bkMsg='Arquivo inválido. Use um backup .json gerado por esta tela.'}
+ render()}
+async function bkRestaurar(){if(bkOcupado||!BK)return;
+ if(pend){toast('Aguarde o app terminar de salvar e tente de novo');return}
+ if($('#bkc').value.trim().toUpperCase()!=='RESTAURAR'){toast('Digite RESTAURAR para confirmar');return}
+ const subst=$('#bkm').value==='tudo';
+ if(subst&&!BK.o.turmas.length){toast('O arquivo não tem turmas; substituição cancelada');return}
+ bkOcupado=true;bkMsg='';render();
+ try{const seg=await geraBackup();baixa('ebd-antes-de-restaurar-'+ymd(new Date())+'.json',JSON.stringify(seg),'application/json');
+  for(const t of TAB){const rows=BK.o[t];
+   for(let i=0;i<rows.length;i+=200){const {error}=await sb.from(t).upsert(rows.slice(i,i+200).map(r=>({id:r.id,dados:r.dados})));if(error)throw error}
+   if(subst){const manter=new Set(rows.map(r=>r.id)),apagar=seg[t].map(r=>r.id).filter(id=>!manter.has(id));
+    for(let i=0;i<apagar.length;i+=100){const {error}=await sb.from(t).delete().in('id',apagar.slice(i,i+100));if(error)throw error}}}
+  await pull();BK=null;bkMsg='Backup restaurado. Uma cópia do estado anterior foi baixada (ebd-antes-de-restaurar).'}
+ catch(e){bkMsg='A restauração parou no meio ('+((e&&e.message)||'erro')+'). Os dados podem estar parcialmente restaurados. Escolha o mesmo arquivo e restaure de novo.';try{await pull()}catch(x){}}
+ bkOcupado=false;render()}
+function vBackup(){const dis=bkOcupado?' disabled':'',o=BK&&BK.o;
+ const conf=o?'<div class="list"><div class="item"><b>'+esc(BK.nome)+'</b><span class="sub">'+(o.geradoEm?'Gerado em '+esc(fdt(o.geradoEm)):'Backup no formato antigo')+'</span></div>'
+  +kv('Turmas',o.turmas.length)+kv('Alunos',o.turmas.reduce((n,r)=>n+r.dados.alunos.length,0))+kv('Aulas',o.aulas.length)+kv('Chamadas',o.chamadas.length)+kv('Avisos',o.avisos.length)+'</div>'
+  +'<label for="bkm">Como restaurar</label><select id="bkm"><option value="mesclar">Recuperar: grava o que está no arquivo e não apaga nada</option><option value="tudo">Substituir tudo: apaga o que não está no arquivo</option></select>'
+  +'<p class="sub">Itens que existem no arquivo voltam ao estado dele, inclusive a lista de alunos de cada turma. Antes de gravar, o app baixa uma cópia do estado atual.</p>'
+  +'<label for="bkc">Digite RESTAURAR para confirmar</label><input id="bkc" autocomplete="off"'+dis+'><div class="acts"><button class="btn" data-bkgo="1"'+dis+'>Restaurar agora</button><button class="tg" data-bkno="1"'+dis+'>Cancelar</button></div>'
+  :'<p class="sub">Escolha um backup .json gerado por esta tela. Nada é alterado antes da sua confirmação.</p><label for="bkf">Arquivo de backup</label><input id="bkf" type="file" accept=".json,application/json"'+dis+'>';
+ return '<h2>Backup e restauração</h2><p class="sub">Baixe uma cópia dos dados com frequência e guarde fora do celular (Google Drive da igreja e mais um lugar). As contas de login (e-mail e senha) ficam no Supabase e não entram no backup.</p>'
+  +(bkOcupado?'<div class="novas" role="status"><b>Aguarde…</b></div>':bkMsg?'<div class="novas" role="status"><b>'+esc(bkMsg)+'</b></div>':'')
+  +'<div class="sec"><h2>Baixar</h2><p class="sub">Último backup baixado neste aparelho: '+esc(lerUlt()||'nenhum')+'</p><button class="btn full" data-bkj="1"'+dis+'>Baixar backup completo (.json)</button><button class="btn full" data-bkc="1"'+dis+'>Baixar chamadas para Excel (.csv)</button></div>'
+  +'<div class="sec"><h2>Restaurar</h2>'+conf+'</div>'}
+$('#app').addEventListener('change',e=>{if(e.target.id==='bkf'&&e.target.files[0])bkLer(e.target.files[0])});
+$('#app').addEventListener('click',e=>{const c=k=>e.target.closest(k);
+ if(c('[data-bkj]'))bkBaixar();else if(c('[data-bkc]'))bkCsv();else if(c('[data-bkgo]'))bkRestaurar();else if(c('[data-bkno]')){BK=null;bkMsg='';render()}});
+async function boot(){
+ vistos=null;F=novoF();INS=[];insRec='';insAv.clear();
+ if(!sb){acesso='config';me=null;render();return}
+ if(modo==='nova'){acesso='';me=null;render();return}
+ const {data:{session}}=await sb.auth.getSession();
+ if(!session){me=null;S=vazio();acesso='';render();return}
+ const {data:p,error}=await sb.from('perfis').select('*').eq('id',session.user.id).maybeSingle();
+ if(error){toast('Erro ao conectar. Tente novamente.');me=null;acesso='';render();return}
+ if(!p||!p.ativo){me=null;acesso='pendente';pendNome=(p&&(p.nome||p.email))||session.user.email||'';render();return}
+ me={id:p.id,nome:p.nome||p.email,login:p.email,perfil:p.perfil,ativo:true,alunoId:p.aluno_id||null,turmaId:p.turma_id||null,turmaIds:[...new Set([p.turma_id].concat(Array.isArray(p.turma_ids)?p.turma_ids:[]).filter(Boolean))],extras:Array.isArray(p.perfis_extra)?p.perfis_extra:[]};acesso='';
+ try{await pull();if(me.perfil==='admin'){await pullUsers();if(!S.turmas.length){S.turmas=seed().turmas;norm();save()}}}catch(e){toast('Erro ao carregar os dados')}
+ await pullIns();
+ if(ehEquipe()&&me.turmaIds.length)cur=me.turmaIds[0];view=can('painel')?'painel':'chamada';render();scrollTo(0,0);if(me.perfil==='admin')avisaNovas();else avisaAulas();avisaIns()}
+$('#app').addEventListener('click',async e=>{
+ const id=e.target.id,B=e.target.closest('[data-ue],[data-ud],[data-uok],[data-uno],[data-uek]'),D=B?B.dataset:{};
+ if(id==='irCriar'||id==='irEntrar'){modo=id==='irCriar'?'criar':'entrar';render();return}
+ if(id==='esqueci'){const em=$('#lg').value.trim();if(!em){toast('Digite seu e-mail primeiro');return}const {error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:location.href.split('#')[0]});toast(error?'Não foi possível enviar o e-mail':'Enviamos um link para redefinir a senha');return}
+ if(id==='sairPend'){await sb.auth.signOut();acesso='';modo='entrar';render();return}
+ if(id==='entrar'){const em=$('#lg').value.trim().toLowerCase(),sn=$('#ls').value;if(!em||!sn){toast('Informe e-mail e senha');return}
+  const {error}=await sb.auth.signInWithPassword({email:em,password:sn});if(error){toast('E-mail ou senha incorretos');return}await boot();return}
+ if(id==='criarConta'){const n=capNome($('#cn').value),em=$('#cl').value.trim().toLowerCase(),sn=$('#cs').value;
+  if(!n||!em){toast('Informe nome e e-mail');return}if(sn.length<6){toast('A senha precisa ter ao menos 6 caracteres');return}if(sn!==$('#cr').value){toast('As senhas não conferem');return}
+  const {data,error}=await sb.auth.signUp({email:em,password:sn,options:{data:{nome:n},emailRedirectTo:location.href.split('#')[0]}});
+  if(error){toast('Não foi possível criar a conta: '+error.message);return}
+  if(data.session){await boot()}else{modo='entrar';render();toast('Conta criada. Confirme pelo e-mail e depois entre.')}return}
+ if(id==='salvarSenha'){const sn=$('#ns').value;if(sn.length<6){toast('A senha precisa ter ao menos 6 caracteres');return}
+  const {error}=await sb.auth.updateUser({password:sn});if(error){toast('Não foi possível salvar a senha');return}
+  modo='entrar';history.replaceState(null,'',location.pathname);toast('Senha alterada');await boot();return}
+ if(me&&ehProf()&&e.target.closest('[data-aulaok],[data-aulaver]')){const ver=!!e.target.closest('[data-aulaver]');marcaAulasVistas();if(ver)view='agenda';render();scrollTo(0,0);return}
+ if(me&&podeInscr()){
+  if(e.target.closest('[data-insver]')){view='inscricoes';render();scrollTo(0,0);return}
+  if(e.target.closest('[data-cplink]')){copiaLink();return}
+  if(e.target.closest('[data-shlink]')){try{await navigator.share({title:'Inscrição - Escola Bíblica Dominical',url:linkForm()})}catch(x){}return}
+  const iok=e.target.closest('[data-insok]');if(iok){aprovaIns(iok.dataset.insok);return}
+  const ino=e.target.closest('[data-insno]');if(ino){insRec=ino.dataset.insno;render();return}
+  if(e.target.closest('[data-insnoc]')){insRec='';render();return}
+  const ink=e.target.closest('[data-insnook]');if(ink){recusaIns(ink.dataset.insnook);return}
+ }
+ if(!me||me.perfil!=='admin')return;
+ if(e.target.closest('[data-rev]')){view='usuarios';sub='usuarios';editU='';delU='';render();scrollTo(0,0);return}
+ if(D.ue){editU=D.ue;delU='';render();return}
+ if(D.ud){delU=D.ud;editU='';render();return}
+ if(D.uno){editU='';delU='';render();return}
+ if(D.uok){const u=S.usuarios.find(x=>x.id===D.uok);if(!u||u.id===me.id)return;
+  if(u.perfil==='admin'&&u.ativo!==false&&admins().length<2){toast('Precisa existir ao menos um administrador ativo');return}
+  const {error}=await sb.from('perfis').delete().eq('id',u.id);if(error){toast('Não foi possível excluir');return}
+  S.usuarios=S.usuarios.filter(x=>x.id!==u.id);delU='';toast('Usuário excluído');render();return}
+ if(D.uek){const u=S.usuarios.find(x=>x.id===D.uek);if(!u)return;const n=capNome($('#eun').value),pf=$('#eup').value,at=$('#eua').checked,al=$('#eul').value||null,tus=(pf==='lider'||pf==='secretario')?[...document.querySelectorAll('#eutw input[data-tur]:checked')].map(i=>i.value):[],tu=tus[0]||null,ex2=($('#eutes')&&$('#eutes').checked)?['tesoureiro']:[];
+  if(!n){toast('Informe o nome');return}
+  if(u.id===me.id&&!at){toast('Você não pode desativar a si mesmo');return}
+  if(u.perfil==='admin'&&u.ativo!==false&&!(pf==='admin'&&at)&&admins().length<2){toast('Precisa existir ao menos um administrador ativo');return}
+  if(al){const dup=S.usuarios.find(x=>x.id!==u.id&&x.aluno_id===al);if(dup){toast('Esse aluno já está vinculado a '+dup.nome);return}}
+  const {error}=await sb.from('perfis').update(Object.assign({nome:n,perfil:pf,ativo:at,aluno_id:al,turma_id:tu},turmasCol?{turma_ids:tus}:{},extraCol?{perfis_extra:ex2}:{})).eq('id',u.id);if(error){toast('Não foi possível salvar: '+error.message);return}
+  u.nome=n;u.perfil=pf;u.ativo=at;u.aluno_id=al;u.turma_id=tu;u.turma_ids=tus;if(extraCol)u.extras=ex2;if(at&&!u.aprovado_em)u.aprovado_em=new Date().toISOString();editU='';toast('Usuário atualizado');render();return}
+});
+if(sb)sb.auth.onAuthStateChange((ev)=>{if(ev==='PASSWORD_RECOVERY'){modo='nova';me=null;render()}});
+document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!me||pend)return;
+ try{await pull();if(me.perfil==='admin'){await pullUsers();avisaNovas()}else avisaAulas();await pullIns();avisaIns();const ae=document.activeElement;if(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName))render()}catch(x){}});
+
+render();
+boot();
+
+}
+
+startEbd();
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+
+/* Busca rápida no conteúdo visível: filtra linhas/cartões sem alterar os dados */
+document.addEventListener('input',function(e){
+ if(e.target&&e.target.id==='venus-search-input'){
+  const q=e.target.value.trim().toLocaleLowerCase('pt-BR');
+  document.querySelectorAll('#app .item,#app .row,#app .vdash-lesson,#app details.dt').forEach(el=>{
+   el.hidden=!!q&&!el.textContent.toLocaleLowerCase('pt-BR').includes(q);
+  });
+ }
+});
+
+</script>
+</body>
+</html>
+],['relatorio','Relatórios','▤'],['cadastro','Cadastro','＋'],['inscricoes','Inscrições','↗'],['faltas','Faltas','!'],['registro','Histórico','◷'],['usuarios','Usuários','♙'],['auditoria','Auditoria','⌕'],['backup','Backup','⇩'],['avisos','Avisos','✉']];nv.innerHTML=menu.filter(x=>can(x[0])).map(([v,l,ic])=>'<button data-v="'+v+'" aria-current="'+(v===view?'page':'false')+'"><span class="venus-nav-icon">'+ic+'</span><span>'+l+'</span>'+(v==='usuarios'?selo(pendentes().length):'')+'</button>').join('');if(!can(view))view=can('painel')?'painel':'chamada';
  $('#hd').innerHTML=''+esc(dateLabel)+' · '+esc(me.nome)+' ('+pRot(me)+') · <button id="sair" style="background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0">Sair</button>';
  $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='inscricoes'?vInscricoes():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():view==='backup'?vBackup():view==='financeiro'?vFinanceiro():vAvisos();
  if(ehProf()){if(view==='agenda')marcaAulasVistas();else if(!(view==='chamada'&&selA)){const f=faixaAulasProf();if(f)$('#app').insertAdjacentHTML('afterbegin',f)}}
