@@ -365,6 +365,8 @@ nav .nbrand.refresh-logo:focus-visible{outline:2px solid var(--accent);outline-o
  html,body{scrollbar-width:none;-ms-overflow-style:none}
  html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0}
  nav .nbrand.refresh-logo{display:none}
+ html{overflow-x:clip}
+ body{width:100vw;max-width:none;margin-inline:0}
  body{padding-bottom:calc(136px + env(safe-area-inset-bottom,0px))}
  nav{touch-action:pan-y;transition:transform .18s ease,opacity .18s ease}
  body.nav-scrolling nav:not(:focus-within){transform:translateY(calc(100% + 24px));opacity:.15;pointer-events:none}
@@ -964,7 +966,7 @@ grafico:'<path d="M3 12m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1
 pontos:'<path d="M3 3v18h18"/><path d="M8 15l3 -3l3 2l4 -6"/>'};
 const ic=n=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICON[n]+'</svg>';
 // [tela, rótulo, no menu lateral, na barra do celular]
-const NAVI=[['painel','Dashboard',1,1],['chamada','Chamada',1,1],['agenda','Agenda',1,1],['registro','Histórico',1,0],['turmas','Turmas',1,0],['alunos','Alunos',1,0],['inscricoes','Inscrições',1,1],['financeiro','Financeiro',1,0]];
+const NAVI=[['painel','Dashboard',1,1],['chamada','Chamada',1,1],['agenda','Agenda',1,1],['registro','Histórico',1,0],['turmas','Turmas',1,0],['alunos','Alunos',1,0],['inscricoes','Inscrições',1,0],['financeiro','Financeiro',1,0]];
 function itensNav(){const sp=!can('painel');return NAVI.map(([v,l,d,m])=>sp&&v==='painel'?{v:'avisos',l:'Avisos',d,m}:{v,l,d,m}).filter(x=>can(x.v))}
 function montaNav(){
  const it=itensNav(),nv=document.querySelector('nav'),dv=new Set(it.filter(x=>x.d).map(x=>x.v)),mv=new Set(it.filter(x=>x.m).map(x=>x.v)),pn=pendentes().length;
