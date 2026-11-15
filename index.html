@@ -770,11 +770,11 @@ busca.addEventListener('keydown',e=>{
  if(!q)return;
  const norm=v=>String(v||'').toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
  const achados=[];
- if(can('alunos'))S.turmas.forEach(t=>(t.alunos||[]).forEach(a=>{if(norm(a.nome).includes(q))achados.push({view:'alunos',label:nm(a)+' · '+t.nome,turma:t.id})}));
- if(can('turmas'))S.turmas.forEach(t=>{if(norm(t.nome).includes(q))achados.push({view:'turmas',label:t.nome})});
- if(can('agenda'))(S.aulas||[]).forEach(a=>{const texto=Object.values(a).filter(v=>typeof v==='string').join(' ');if(norm(texto).includes(q))achados.push({view:'agenda',label:a.titulo||a.tema||a.assunto||a.nome||'Aula agendada'})});
+ if(can('alunos'))TV().forEach(t=>(t.alunos||[]).forEach(a=>{if(norm(a.nome).includes(q))achados.push({view:'alunos',label:nm(a)+' · '+t.nome,turma:t.id})}));
+ if(can('turmas'))TV().forEach(t=>{if(norm(t.nome).includes(q))achados.push({view:'turmas',label:t.nome})});
+ if(can('agenda'))S.aulas.filter(a=>turma(a.turma)&&minha(a)).forEach(a=>{const texto=Object.values(a).filter(v=>typeof v==='string').join(' ');if(norm(texto).includes(q))achados.push({view:'agenda',label:a.tema||a.titulo||a.assunto||a.nome||'Aula agendada'})});
  if(!achados.length){toast('Nenhum resultado encontrado para “'+busca.value.trim()+'”.');return}
- const r=achados[0];view=r.view;render();scrollTo(0,0);
+ const r=achados[0];if(r.view==='alunos'&&r.turma)expT.add(r.turma);view=r.view;render();scrollTo(0,0);
  toast('Encontrado: '+r.label+(achados.length>1?' · '+achados.length+' resultados':'')+'.');
 });
 busca.addEventListener('keydown',e=>{if(e.key==='Escape'){busca.value='';busca.blur()}});
