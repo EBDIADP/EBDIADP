@@ -225,62 +225,8 @@ nav button[data-v="grupo"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www
 body{padding-bottom:96px}
 #toast{bottom:92px}
 @media (prefers-reduced-motion:reduce){details.dt summary::after{transition:none}}
-
-/* === EBD IADP REBRANDING — desktop dashboard === */
-@media (min-width: 900px){
-  :root{--bg:#1f1611;--surface:#2b201a;--ink:#f3ebe4;--muted:#b8a99f;--line:#3a2c24;--brand:#1f1611;--onbrand:#f3ebe4;--accent:#f5b83d;--soft:#33261f;}
-  body{background:#1f1611;color:var(--ink);padding:0;min-height:100vh;}
-  header{position:fixed;z-index:20;left:0;top:0;width:220px;height:100vh;box-sizing:border-box;background:#1f1611;color:#f3ebe4;border:0;border-radius:0;padding:22px 16px 18px;display:flex;flex-direction:column;align-items:stretch;}
-  header img{width:30px;height:30px;padding:6px;background:#f5b83d;border-radius:10px;object-fit:contain;margin:0 0 18px 6px;}
-  header h1{font-size:15px;font-weight:600;line-height:1.2;position:absolute;top:27px;left:58px;margin:0;}
-  header p{position:absolute;top:47px;left:58px;margin:0;color:#b8a99f;font-size:11px;}
-  #tema{position:absolute;right:16px;top:20px;width:34px;height:34px;border:0;border-radius:50%;background:#2b201a;color:#f5b83d;font-size:16px;}
-  header:after{content:'Link de inscrição\A Compartilhe com a igreja e\A receba novos alunos.\A\A       ⧉  Copiar link';white-space:pre;position:absolute;left:16px;right:16px;bottom:18px;background:#f5b83d;color:#1f1611;border-radius:16px;padding:12px;font-size:11px;line-height:1.45;font-weight:500;}
-  main{max-width:none;margin:0;padding:118px 28px 48px 250px;min-height:100vh;box-sizing:border-box;}
-  main>h2:first-child{font-size:28px;font-weight:600;letter-spacing:-.02em;margin:0 0 2px;}
-  main>p.sub:first-of-type{margin:0 0 18px;color:#b8a99f;}
-  nav{position:fixed;z-index:25;left:16px;top:86px;bottom:120px;width:188px;background:transparent;border:0;display:flex;flex-direction:column;align-items:stretch;padding:0;gap:4px;}
-  nav button[data-v]{flex:0 0 auto;max-width:none;width:100%;min-width:0;height:42px;border:0;border-radius:12px;background:transparent;color:#b8a99f;padding:8px 12px;text-align:left;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;}
-  nav button[data-v]::before{width:19px;height:19px;flex:0 0 19px;}
-  nav button[aria-current="page"]{background:#f3ebe4;color:#1f1611;font-weight:600;box-shadow:none;}
-  nav button[aria-current="page"]::after{display:none;}
-  .subnav{position:fixed;z-index:30;left:250px;top:78px;background:transparent;border:0;padding:0;margin:0;max-width:none;display:flex;gap:8px;}
-  .subnav button{background:#2b201a;border-color:#4a382d;color:#f3ebe4;border-radius:999px;padding:9px 15px;}
-  .subnav button[aria-current="page"]{background:#f5b83d;color:#1f1611;border-color:#f5b83d;}
-  .edbd-dashboard{display:grid;grid-template-columns:minmax(430px,1.18fr) minmax(260px,.9fr) minmax(260px,.9fr);grid-template-rows:92px 92px 190px;gap:12px;max-width:1180px;}
-  .edbd-card{background:#2b201a;border:1px solid #35271f;border-radius:16px;padding:14px;box-sizing:border-box;min-width:0;overflow:hidden;}
-  .edbd-card.light{background:#f3ebe4;color:#1f1611;border:0;}
-  .edbd-card.dark{background:#2b201a;color:#f3ebe4;}
-  .edbd-card.primary{grid-row:1 / span 3;}
-  .edbd-card.freq{grid-row:1 / span 2;grid-column:3;}
-  .edbd-card.chart{grid-column:2 / span 2;}
-  .edbd-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;}
-  .edbd-ic{width:28px;height:28px;border-radius:50%;background:#3a2c24;display:grid;place-items:center;flex:0 0 28px;}
-  .edbd-card.light .edbd-ic{background:#e9dfd6;}
-  .edbd-big{font-size:30px;line-height:1.05;font-weight:500;}
-  .edbd-sm{font-size:11px;color:#b8a99f;}
-  .edbd-card.light .edbd-sm{color:#7a6d64;}
-  .edbd-chip{display:inline-block;background:#f5b83d;color:#1f1611;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:600;vertical-align:top;}
-  .edbd-bubbles{position:relative;height:178px;margin-top:6px;}
-  .edbd-bubble{position:absolute;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:10px;line-height:1.1;}
-  .edbd-bubble b{font-size:21px;font-weight:500;}
-  .edbd-meter{height:7px;border-radius:99px;background:#46372e;overflow:hidden;margin-top:5px;}
-  .edbd-meter i{display:block;height:100%;border-radius:99px;}
-  .edbd-dots{display:grid;grid-template-columns:repeat(9,1fr);gap:6px;margin-top:13px;}
-  .edbd-dot{height:10px;border-radius:50%;background:#4a392f;}
-  .edbd-statrow{display:flex;gap:28px;margin-top:8px;}
-  .edbd-chartarea{height:100px;display:flex;align-items:flex-end;justify-content:space-between;padding:8px 4px 0;}
-  .edbd-bars{display:flex;align-items:flex-end;gap:3px;height:74px;}
-  .edbd-bars i{width:10px;background:#4a392f;border-radius:8px 8px 0 0;display:block;}
-  .edbd-bars i.hot{background:#f5b83d;}.edbd-bars i.peach{background:#e5ae92;}
-  .edbd-month{font-size:10px;color:#b8a99f;text-align:center;margin-top:3px;}
-  .edbd-side-link{display:none;}
-}
-@media (max-width:899px){
-  .edbd-dashboard{display:block}.edbd-card{margin-bottom:10px}
-}
-
 </style>
+<link rel="stylesheet" href="css/system.css">
 </head>
 <body>
 <header><img src="logo-header.png" alt="" width="42" height="23"><h1>Escola Bíblica Dominical</h1><p id="hd"></p><button id="tema" type="button" class="noprint" aria-label="Mudar para o modo escuro" title="Mudar para o modo escuro">☾</button></header>
@@ -606,28 +552,27 @@ function vPainel(){
  const latest=Object.keys(S.pres).filter(proprio).map(k=>k.split('|')[0]).sort().pop();
  const sm={pres:0,poss:0,bib:0,of:0,vis:0};
  if(latest)TV().forEach(t=>{const k=latest+'|'+t.id,e=ex(k)||{};sm.pres+=(S.pres[k]||[]).length;if(S.pres[k])sm.poss+=eleg(t,k).length;sm.bib+=e.biblias||0;sm.of+=e.oferta||0;sm.vis+=e.visitantes||0});
- const lbl=latest?new Date(latest+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long'}):'Nenhuma chamada';
- const faixa=pendentes().length?'<div class="novas" role="alert"><b>'+pendentes().length+' conta(s) aguardando liberação</b></div>':'';
- const contrib=sm.of||0;
- const bib=sm.bib||0;
- const turmaHtml=all.slice(0,4).map(x=>'<div style="display:flex;justify-content:space-between;gap:8px;margin:8px 0;font-size:11px"><span>'+esc(x.t.nome)+'</span><b>'+x.s.p+'%</b></div><div class="edbd-meter"><i style="width:'+x.s.p+'%;background:'+(x.s.p>=75?'#e5ae92':x.s.p>=50?'#f5b83d':'#f3ebe4')+'"></i></div>').join('');
- const dots=Array.from({length:45},(_,i)=>'<span class="edbd-dot" style="background:'+(i%7===0?'#f5b83d':i%3===0?'#e5ae92':'#4a392f')+'"></span>').join('');
- const bars=['44,56','52,38','36,48','50,44','78,56','40,52','46,34'];
- const months=['Jun','Jul','Ago','Set','Out ↗','Nov','Dez'];
- const chart=months.map((m,i)=>'<div style="text-align:center"><div class="edbd-bars"><i style="height:'+bars[i].split(',')[0]+'px" class="'+(i===4?'hot':'')+'"></i><i style="height:'+bars[i].split(',')[1]+'px" class="'+(i===4?'peach':'')+'"></i></div><div class="edbd-month">'+m+'</div></div>').join('');
- return faixa+'<h2>Visão geral</h2><p class="sub">Acompanhe a frequência da sua EBD</p>'
- +'<div class="edbd-dashboard">'
- +'<div class="edbd-card light primary"><div class="edbd-title"><span class="edbd-ic">♧</span>Última chamada</div>'
- +'<div style="margin-top:9px"><span class="edbd-big">'+(sm.pres||0)+'</span> <span class="edbd-sm">de '+(sm.poss||0)+' presentes</span> <span class="edbd-chip">'+(pc||0)+'%</span></div>'
- +'<div class="edbd-bubbles"><div class="edbd-bubble" style="left:2px;top:7px;width:122px;height:122px;background:#e5ae92"><b>'+((all[0]&&all[0].s.p)||0)+'%</b>Desbravadores</div><div class="edbd-bubble" style="left:108px;top:36px;width:96px;height:96px;background:#1f1611;color:#f3ebe4"><b>'+((all[1]&&all[1].s.p)||0)+'%</b>Bereanos</div><div class="edbd-bubble" style="left:66px;top:100px;width:78px;height:78px;background:#f5b83d;color:#1f1611"><b>'+((all[2]&&all[2].s.p)||0)+'%</b>Escolhidas</div></div>'
- +'<div style="margin-top:6px"><div style="display:flex;justify-content:space-between"><span class="edbd-big" style="font-size:20px">'+pc+'%</span><span class="edbd-sm">Presentes</span></div><div class="edbd-meter" style="background:#e5ddd6"><i style="width:'+pc+'%;background:#e5ae92"></i></div></div>'
- +'<div style="margin-top:12px"><div style="display:flex;justify-content:space-between"><span class="edbd-big" style="font-size:20px">'+(P?Math.round(bib/P*100):0)+'%</span><span class="edbd-sm">Com Bíblia física</span></div><div class="edbd-meter" style="background:#e5ddd6"><i style="width:'+(P?Math.round(bib/P*100):0)+'%;background:#1f1611"></i></div></div></div>'
- +'<div class="edbd-card"><div class="edbd-title"><span class="edbd-ic">◉</span>Contribuições</div><div style="margin-top:8px"><span class="edbd-big" style="font-size:26px">'+brl(contrib)+'</span> <span class="edbd-chip">+12%</span></div><div class="edbd-sm">na última aula</div></div>'
- +'<div class="edbd-card freq"><div class="edbd-title"><span class="edbd-ic">⌁</span>Índice de frequência</div><div style="margin-top:8px"><span class="edbd-big">'+pc+'</span><span class="edbd-sm">%</span> <span class="edbd-chip">+10%</span></div><div class="edbd-dots">'+dots+'</div></div>'
- +'<div class="edbd-card"><div class="edbd-title"><span class="edbd-ic">▣</span>Bíblias físicas</div><div style="margin-top:8px"><span class="edbd-big" style="font-size:26px">'+bib+'</span> <span class="edbd-sm">de '+P+' alunos</span></div><div class="edbd-sm">'+(sm.vis||0)+' visitante(s) na aula</div></div>'
- +'<div class="edbd-card"><div class="edbd-title"><span class="edbd-ic">♧</span>Por turma</div>'+turmaHtml+'</div>'
- +'<div class="edbd-card dark chart"><div class="edbd-title"><span class="edbd-ic">▥</span>Frequência mensal <span style="margin-left:auto;background:#3c2e26;border-radius:999px;padding:5px 12px;font-size:11px">Mensal⌄</span></div><div class="edbd-statrow"><div><span class="edbd-big" style="font-size:24px">'+pc+'</span><span class="edbd-sm">%</span><div class="edbd-sm">Frequência média</div></div><div><span class="edbd-big" style="font-size:24px">'+(sm.pres||0)+'</span><div class="edbd-sm">Presentes na última aula</div></div></div><div class="edbd-chartarea">'+chart+'</div></div>'
- +'</div>';
+ const lbl=latest?new Date(latest+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'long'}):'Sem chamada registrada';
+ const PN=pendentes();
+ const faixa=PN.length?'<div class="novas" role="alert"><b>'+(PN.length===1?'1 conta aguardando liberação':PN.length+' contas aguardando liberação')+'</b><span class="sub">'+PN.slice(0,5).map(u=>esc(u.nome)).join(', ')+(PN.length>5?' e mais '+(PN.length-5):'')+'</span><div class="acts"><button class="btn" style="margin-top:0" data-rev="1">Revisar agora</button></div></div>':'';
+ const totalAlunos=T||0;
+ const classes=all.length?all.map(({t,s})=>'<div class="ds-class"><div class="ds-class-name">'+esc(t.nome)+'<small>'+s.tot+' aluno(s) · '+(s.keys.length?s.keys.length+' chamada(s)':'sem chamada')+'</small></div><strong>'+s.p+'%</strong><div class="meter"><i style="width:'+s.p+'%"></i></div></div>').join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>';
+ const now=new Date();
+ const meses=[];
+ for(let i=6;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');let pr=0,po=0;Object.keys(S.pres).filter(k=>proprio(k)&&k.startsWith(key+'-')).forEach(k=>{const t=S.turmas.find(x=>x.id===k.split('|')[1]);if(!t)return;pr+=(S.pres[k]||[]).length;po+=eleg(t,k).length});meses.push({l:d.toLocaleDateString('pt-BR',{month:'short'}).replace('.',''),q:po?Math.round(pr/po*100):0});}
+ const max=Math.max(1,...meses.map(m=>m.q));
+ const chart=meses.map(m=>'<div class="ds-month"><div class="ds-columns"><i style="height:'+Math.max(12,Math.round(m.q/max*92))+'px"></i><i style="height:'+Math.max(10,Math.round((100-m.q)/100*70))+'px"></i></div><b>'+esc(m.l)+'</b></div>').join('');
+ return faixa+'<div class="dashboard">'
+ +'<div class="dashboard-head"><div><h2>Visão geral</h2><p class="sub">Acompanhe a frequência da sua EBD</p></div><div class="dashboard-date">'+(latest?esc(lbl):'Hoje')+'</div></div>'
+ +'<div class="dashboard-grid">'
+ +'<section class="ds-card hero"><div class="ds-kicker">Última chamada</div><div class="sub" style="margin-top:6px">'+(latest?esc(lbl):'Nenhuma chamada registrada')+'</div><div class="ds-stat"><div><strong class="ds-number">'+sm.pres+'<small> de '+sm.poss+'</small></strong><div class="sub">presentes</div></div><strong class="ds-number">'+pc+'<small>%</small></strong></div><div class="ds-bars">'+(all.length?all.slice(0,3).map(({t,s})=>'<div class="ds-bar-row"><span>'+esc(t.nome)+'</span><div class="meter"><i style="width:'+s.p+'%"></i></div><span>'+s.p+'%</span></div>').join(''):'<span class="sub">Cadastre uma turma para começar.</span>')+'</div></section>'
+ +'<section class="ds-card accent"><div class="ds-kicker">Contribuições</div><div class="ds-stat"><strong>'+brl(sm.of)+'</strong><span>'+ (latest?'+12% na última aula':'') +'</span></div></section>'
+ +'<section class="ds-card peach"><div class="ds-kicker">Índice de frequência</div><div class="ds-stat"><strong>'+pc+'%</strong><span>+10%</span></div><div class="meter" style="margin-top:14px;background:rgba(31,22,17,.12)"><i style="width:'+pc+'%;background:#1F1611"></i></div></section>'
+ +'<section class="ds-card soft"><div class="ds-kicker">Bíblias físicas</div><div class="ds-stat"><strong>'+sm.bib+'</strong><span>de '+totalAlunos+' alunos</span></div><p class="sub" style="margin:8px 0 0">'+(sm.vis||0)+' visitante(s) na aula</p></section>'
+ +'<section class="ds-card ds-chart"><div class="ds-chart-head"><div><h3>Frequência mensal</h3><div class="sub">Média de presença por mês</div></div><strong>'+pc+'%</strong></div><div class="ds-chart-bars">'+chart+'</div></section>'
+ +'<section class="ds-card ds-table"><div class="ds-chart-head"><div><h3>Por turma</h3><div class="sub">Frequência e participação</div></div></div><div class="ds-table">'+classes+'</div></section>'
+ +'<section class="ds-card ds-inscription"><div><h3>Link de inscrição</h3><div class="sub" style="color:rgba(31,22,17,.7)">Compartilhe com a igreja e receba novos alunos.</div></div><button class="btn" data-cplink="1">Copiar link</button></section>'
+ +'</div></div>';
 }
 function hForm(k,t){const list=t.alunos.filter(a=>workH.has(a.id)||(a.ativo!==false&&!a.arq&&!emAula(a,t,k.split('|')[0]))),e=ex(k)||{};
  return '<div class="item"><b>Editando esta chamada</b><span class="sub">Toque no nome para marcar presente ou ausente.</span></div><div class="list" style="margin:0 12px 12px">'
