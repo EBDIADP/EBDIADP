@@ -15,6 +15,9 @@
 *{box-sizing:border-box}
 html,body{background:var(--bg);color:var(--ink);font-family:Figtree,Inter,system-ui,sans-serif}
 body{margin:0;padding:0 0 0 258px;min-height:100vh}
+/* Desktop brand lives in the fixed Venus sidebar, not duplicated in the top bar */
+header .venus-brand{display:none}
+nav:before{content:"✝  EBDIADP"}
 header{position:fixed;z-index:80;top:0;left:258px;right:0;height:76px;padding:0 30px;display:flex;align-items:center;gap:18px;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 2px 14px rgba(31,25,73,.025)}
 header>img,header>h1{display:none}
 #hd{font-size:13px;color:var(--muted);margin-left:auto;white-space:nowrap}
@@ -126,6 +129,7 @@ nav button[data-v="financeiro"] .venus-nav-icon{font-size:12px}
 
 /* Mobile Venus polish: keep search reachable and make the full module menu usable */
 @media(max-width:900px){
+  header .venus-brand{display:flex}
   header{
     height:108px;
     min-height:108px;
