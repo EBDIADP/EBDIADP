@@ -67,7 +67,7 @@ end $$;
 drop function if exists public.salvar_chamada_publica(text,text[]);
 create or replace function public.salvar_chamada_publica(p_token text,p_presentes text[],p_extras jsonb)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare l public.chamada_links%rowtype; v_key text; v_old jsonb; v_aula jsonb; v_ids text[]; v_roster text[]; v_bib integer; v_vis integer; v_oferta numeric; v_clima text;
+declare l public.chamada_links%rowtype; v_key text; v_old jsonb; v_aula jsonb; v_ids text[]; v_roster text[]; v_bib integer; v_vis integer; v_oferta numeric; v_clima text; v_tema text; v_prof text; v_top text; v_just jsonb; v_extra jsonb;
 begin
   if p_token is null or p_token !~ '^[0-9a-f]{64}$' then return jsonb_build_object('ok',false,'error','Link inválido'); end if;
   select * into l from public.chamada_links where token_hash=encode(extensions.digest(p_token,'sha256'),'hex') for update;
@@ -80,20 +80,37 @@ begin
   if cardinality(v_ids)<>(select count(distinct x) from unnest(v_ids) x) or exists(select 1 from unnest(v_ids) x where not x=any(v_roster)) then
     return jsonb_build_object('ok',false,'error','A lista de presenças contém dados inválidos.');
   end if;
-  v_bib := coalesce(nullif(p_extras->>'biblias','')::integer,0);
-  v_vis := coalesce(nullif(p_extras->>'visitantes','')::integer,0);
-  v_oferta := coalesce(nullif(p_extras->>'oferta','')::numeric,0);
+  -- Bíblias, visitantes e contribuições: só números (mensagem clara em vez de erro técnico)
+  begin
+    v_bib := coalesce(nullif(p_extras->>'biblias','')::integer,0);
+    v_vis := coalesce(nullif(p_extras->>'visitantes','')::integer,0);
+    v_oferta := coalesce(nullif(p_extras->>'oferta','')::numeric,0);
+  exception when invalid_text_representation or numeric_value_out_of_range then
+    return jsonb_build_object('ok',false,'error','Bíblias, visitantes e contribuições precisam ser números, sem letras.');
+  end;
   v_clima := coalesce(p_extras->>'clima','');
   if v_bib<0 or v_vis<0 or v_oferta<0 or v_clima not in ('','ensolarado','nublado','chuvoso') then
     return jsonb_build_object('ok',false,'error','Confira Bíblias, visitantes, contribuições e clima.');
   end if;
+  -- teto máximo (evita erro de digitação e abuso): 1000 Bíblias, 1000 visitantes, R$ 100.000
+  if v_bib>1000 or v_vis>1000 or v_oferta>100000 then
+    return jsonb_build_object('ok',false,'error','Valor muito alto. Máximo: 1000 Bíblias, 1000 visitantes e R$ 100.000 de contribuições.');
+  end if;
   v_key := l.dia::text || '|' || l.turma_id;
   select dados into v_aula from public.aulas where dados->>'turma'=l.turma_id and dados->>'data'=l.dia::text limit 1;
   select dados into v_old from public.chamadas where id=v_key;
-  insert into public.chamadas(id,dados) values(v_key,jsonb_build_object('p',to_jsonb(v_ids),'e',coalesce(v_old->'e','{}'::jsonb) ||
-    jsonb_build_object('biblias',v_bib,'oferta',v_oferta,'visitantes',v_vis,'clima',v_clima,'tema',coalesce(v_aula->>'tema',''),'prof',coalesce(v_aula->>'prof',''),'topicos',coalesce(v_aula->>'topicos',''))))
+  -- tema, professor e tópicos: usa os da aula agendada; se a aula mudou ou sumiu, mantém o que já estava salvo
+  v_tema := coalesce(nullif(v_aula->>'tema',''),nullif(v_old->'e'->>'tema',''),'');
+  v_prof := coalesce(nullif(v_aula->>'prof',''),nullif(v_old->'e'->>'prof',''),'');
+  v_top  := coalesce(nullif(v_aula->>'topicos',''),nullif(v_old->'e'->>'topicos',''),'');
+  -- justificativa de falta de quem agora está presente não faz mais sentido: remove
+  v_just := case when jsonb_typeof(v_old->'e'->'just')='object'
+    then (select coalesce(jsonb_object_agg(j.key,j.value),'{}'::jsonb) from jsonb_each(v_old->'e'->'just') j where j.key <> all(v_ids)) end;
+  v_extra := jsonb_build_object('biblias',v_bib,'oferta',v_oferta,'visitantes',v_vis,'clima',v_clima,'tema',v_tema,'prof',v_prof,'topicos',v_top)
+    || case when v_just is null then '{}'::jsonb else jsonb_build_object('just',v_just) end;
+  insert into public.chamadas(id,dados) values(v_key,jsonb_build_object('p',to_jsonb(v_ids),'e',coalesce(v_old->'e','{}'::jsonb) || v_extra))
     on conflict(id) do update set dados=public.chamadas.dados || jsonb_build_object('p',to_jsonb(v_ids),
-      'e',coalesce(public.chamadas.dados->'e','{}'::jsonb) || jsonb_build_object('biblias',v_bib,'oferta',v_oferta,'visitantes',v_vis,'clima',v_clima,'tema',coalesce(v_aula->>'tema',''),'prof',coalesce(v_aula->>'prof',''),'topicos',coalesce(v_aula->>'topicos','')));
+      'e',coalesce(public.chamadas.dados->'e','{}'::jsonb) || v_extra);
   update public.chamada_links set usado_em=now() where token_hash=l.token_hash;
   return jsonb_build_object('ok',true);
 end $$;

@@ -13,7 +13,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://dltijyufuyiienzkzryz.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;800&family=Figtree:wght@400;500;700&display=swap">
 <style>
 /* EBD app */
@@ -493,7 +496,7 @@ async function push(){
 function save(){mut++;pend++;fila=fila.then(push).catch(()=>{}).then(()=>{pend--})}
 window.addEventListener('beforeunload',e=>{if(pend){e.preventDefault();e.returnValue=''}});
 async function todos(tab){let out=[],i=0;for(;;){const {data,error}=await sb.from(tab).select('id,dados').order('id').range(i,i+999);if(error)throw error;out=out.concat(data);if(data.length<1000)return out;i+=1000}}
-async function pull(ok){const r={};for(const tab of TAB)r[tab]=await todos(tab);if(ok&&!ok())return false;
+async function pull(ok){const r={},L=await Promise.all(TAB.map(t=>todos(t)));TAB.forEach((t,i)=>{r[t]=L[i]});if(ok&&!ok())return false;
  const u=S.usuarios;S=vazio();S.usuarios=u;S.turmas=r.turmas.map(x=>x.dados);S.aulas=r.aulas.map(x=>x.dados);S.avisos=r.avisos.map(x=>x.dados);
  r.chamadas.forEach(x=>{S.pres[x.id]=x.dados.p||[];if(x.dados.e)S.extras[x.id]=x.dados.e});norm();remoto=snapAll();return true}
 let aprovCol=false,extraCol=false,turmasCol=false;
@@ -924,9 +927,9 @@ async function atualizaAuto(){
  if(atualizando||!navigator.onLine||document.visibilityState!=='visible'||ocupado())return;
  atualizando=true;const m0=mut;
  try{const antes=JSON.stringify(remoto);
-  const ok=await pull(()=>mut===m0&&!ocupado());
+  const k0=INS.map(i=>i.id).join(),[ok]=await Promise.all([pull(()=>mut===m0&&!ocupado()),pullIns()]);
   if(ok)avisaAulas();
-  if(ok){const k0=INS.map(i=>i.id).join();await pullIns();avisaIns();if(INS.map(i=>i.id).join()!==k0&&VIEWS_LIVRES.includes(view)&&!ocupado())render()}
+  if(ok){avisaIns();if(INS.map(i=>i.id).join()!==k0&&VIEWS_LIVRES.includes(view)&&!ocupado())render()}
   if(ok&&JSON.stringify(remoto)!==antes&&VIEWS_LIVRES.includes(view)&&!ocupado()){render();toast('Dados atualizados',1500)}
  }catch(x){}finally{atualizando=false}}
 setInterval(atualizaAuto,60000);
@@ -1394,8 +1397,7 @@ async function boot(){
  if(error){toast('Erro ao conectar. Tente novamente.');me=null;acesso='';render();return}
  if(!p||!p.ativo){me=null;acesso='pendente';pendNome=(p&&(p.nome||p.email))||session.user.email||'';render();return}
  me={id:p.id,nome:p.nome||p.email,login:p.email,perfil:p.perfil,ativo:true,alunoId:p.aluno_id||null,turmaId:p.turma_id||null,turmaIds:[...new Set([p.turma_id].concat(Array.isArray(p.turma_ids)?p.turma_ids:[]).filter(Boolean))],extras:Array.isArray(p.perfis_extra)?p.perfis_extra:[]};acesso='';
- try{await pull();if(me.perfil==='admin'){await pullUsers();if(!S.turmas.length){S.turmas=seed().turmas;norm();save()}}}catch(e){toast('Erro ao carregar os dados')}
- await pullIns();
+ try{await Promise.all([pull(),me.perfil==='admin'?pullUsers():null,pullIns()]);if(me.perfil==='admin'&&!S.turmas.length){S.turmas=seed().turmas;norm();save()}}catch(e){toast('Erro ao carregar os dados')}
  if(ehEquipe()&&me.turmaIds.length)cur=me.turmaIds[0];view=can('painel')?'painel':'chamada';render();scrollTo(0,0);if(me.perfil==='admin')avisaNovas();else avisaAulas();avisaIns()}
 $('#app').addEventListener('click',async e=>{
  const id=e.target.id,B=e.target.closest('[data-ue],[data-ud],[data-uok],[data-uno],[data-uek]'),D=B?B.dataset:{};
@@ -1441,7 +1443,7 @@ $('#app').addEventListener('click',async e=>{
 });
 if(sb)sb.auth.onAuthStateChange((ev)=>{if(ev==='PASSWORD_RECOVERY'){modo='nova';me=null;render()}});
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!me||pend)return;
- try{await pull();if(me.perfil==='admin'){await pullUsers();avisaNovas()}else avisaAulas();await pullIns();avisaIns();const ae=document.activeElement;if(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName))render()}catch(x){}});
+ try{await Promise.all([pull(),me.perfil==='admin'?pullUsers():null,pullIns()]);if(me.perfil==='admin')avisaNovas();else avisaAulas();avisaIns();const ae=document.activeElement;if(!ae||!/INPUT|TEXTAREA|SELECT/.test(ae.tagName))render()}catch(x){}});
 
 render();
 boot();
