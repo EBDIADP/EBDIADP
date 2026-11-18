@@ -667,7 +667,7 @@ function vChamada(){
  const hoje=ymd(new Date()),A=S.aulas.find(x=>x.id===selA&&turma(x.turma)&&minha(x));
  if(!A){selA='';
   const ok=S.aulas.filter(x=>turma(x.turma)&&minha(x)),
-   disp=ok.filter(x=>x.data<=hoje&&!(x.data<hoje&&S.pres[aulaKey(x)])).sort((a,b)=>b.data.localeCompare(a.data)),
+   ult=ok.filter(x=>x.data<=hoje).reduce((m,x)=>x.data>m?x.data:m,''),disp=ok.filter(x=>x.data===ult).sort((a,b)=>b.data.localeCompare(a.data)),
    fut=ok.filter(x=>x.data>hoje).sort((a,b)=>a.data.localeCompare(b.data));
   const card=(x,aberta)=>{const feita=!!S.pres[aulaKey(x)];
    return '<div class="item"><b style="display:inline;text-transform:capitalize">'+fmtD(x.data)+'</b><div>'+esc(x.tema)+'</div><span class="sub">Professor(a): '+(x.prof?esc(x.prof):'a definir')+(feita?' · chamada salva':'')+'</span>'
@@ -679,7 +679,7 @@ function vChamada(){
    if(f.length>1)maisF+=f.length-1;
    return '<div class="sec"><h2>'+esc(t.nome)+'</h2><div class="list">'+d.map(x=>card(x,true)).join('')
     +(f.length?'<div class="item sub" style="padding-bottom:0"><b>Próximas aulas</b></div>'+(expF?f:f.slice(0,1)).map(x=>card(x,false)).join(''):'')+'</div></div>'}).join('');
-  return '<h2>Chamada</h2><p class="sub">A chamada é liberada conforme as aulas da Agenda e fica disponível a partir do dia da aula. Separada por turma.</p>'
+  return '<h2>Chamada</h2><p class="sub">A chamada é liberada conforme as aulas da Agenda e fica disponível a partir do dia da aula. Aparece só a aula mais recente; as anteriores ficam no Histórico. Separada por turma.</p>'
    +(grupos?grupos+(maisF?'<div class="list" style="margin-top:8px"><div class="item" style="text-align:center"><button class="tg" data-vf="1">'+(expF?'Mostrar menos':'Ver todas as próximas aulas')+'</button></div></div>':''):'<div class="list"><div class="item sub">'+semAula()+'</div></div>');
  }
  const t=turma(A.turma),key=aulaKey(A),e=ex(key)||{};
