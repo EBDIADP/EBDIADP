@@ -779,8 +779,6 @@ function vPainel(){
   const lk=s.keys[s.keys.length-1],le=ex(lk)||{},last=lk?S.pres[lk].length:0;
   return '<details class="dt"><summary><span>'+esc(t.nome)+'</span><span class="mt"><i style="width:'+s.p+'%"></i></span><b>'+s.p+'%</b></summary>'
   +'<div class="item sub">'+(lk?'Última chamada · '+dBR(lk.split('|')[0])+': '+last+' de '+eleg(t,lk).length+' presentes · '+(le.biblias||0)+' bíblias físicas · '+brl(le.oferta)+(le.visitantes?' · '+le.visitantes+' visitante(s)':''):'Sem chamada salva')+'</div>'
-  +(ativos(t).length?ativos(t).map(a=>{const r=rowsA(a,t),n=r.filter(x=>x.ok).length,q=r.length?Math.round(n/r.length*100):0;
-   return '<div class="freq"><div><span>'+esc(nm(a))+'</span><b>'+q+'%</b></div><div class="meter"><i style="width:'+q+'%"></i></div></div>'}).join(''):'<div class="item sub">Sem alunos.</div>')
   +'</details>'}).join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>')+'</div>';
 }
 
