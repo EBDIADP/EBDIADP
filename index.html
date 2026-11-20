@@ -1376,12 +1376,12 @@ async function bkRestaurar(){if(bkOcupado||!BK)return;
 async function bkZerar(){if(bkOcupado||!me||me.perfil!=='admin')return;
  if(pend){toast('Aguarde o app terminar de salvar e tente de novo');return}
  const cf=$('#zrc');if(!cf||cf.value.trim().toUpperCase()!=='ZERAR'){toast('Digite ZERAR para confirmar');return}
- const comAulas=!!($('#zra')&&$('#zra').checked);bkOcupado=true;bkMsg='';render();
+ bkOcupado=true;bkMsg='';render();
  try{const seg=await geraBackup();baixa('ebd-antes-de-zerar-'+ymd(new Date())+'.json',JSON.stringify(seg),'application/json');
-  const hoje=ymd(new Date()),apaga=async(t,ids)=>{for(let i=0;i<ids.length;i+=100){const lote=ids.slice(i,i+100),{data,error}=await sb.from(t).delete().in('id',lote).select('id');if(error)throw error;if((data||[]).length<lote.length)throw {code:'42501',message:'row-level security'}}};
+  const apaga=async(t,ids)=>{for(let i=0;i<ids.length;i+=100){const lote=ids.slice(i,i+100),{data,error}=await sb.from(t).delete().in('id',lote).select('id');if(error)throw error;if((data||[]).length<lote.length)throw {code:'42501',message:'row-level security'}}};
   await apaga('chamadas',seg.chamadas.map(r=>r.id));
-  let na=0;if(comAulas){const ids=seg.aulas.filter(r=>r.dados&&r.dados.data<hoje).map(r=>r.id);na=ids.length;await apaga('aulas',ids)}
-  await pull();ZR=false;bkMsg='Chamadas zeradas: '+seg.chamadas.length+' apagada(s)'+(comAulas?' e '+na+' aula(s) passada(s) removida(s) da Agenda':'')+'. Uma cópia do estado anterior foi baixada (ebd-antes-de-zerar).'}
+  await apaga('aulas',seg.aulas.map(r=>r.id));
+  await pull();ZR=false;bkMsg='Chamadas zeradas: '+seg.chamadas.length+' apagada(s)'+' e '+seg.aulas.length+' aula(s) removida(s) da Agenda. Uma cópia do estado anterior foi baixada (ebd-antes-de-zerar).'}
  catch(e){bkMsg='Não foi possível zerar tudo ('+((e&&e.message)||'erro')+'). Parte das chamadas pode ter sido apagada. Uma cópia foi baixada antes; se precisar, restaure por ela.';try{await pull()}catch(x){}}
  bkOcupado=false;render()}
 function vBackup(){const dis=bkOcupado?' disabled':'',o=BK&&BK.o;
@@ -1395,10 +1395,9 @@ function vBackup(){const dis=bkOcupado?' disabled':'',o=BK&&BK.o;
   +(bkOcupado?'<div class="novas" role="status"><b>Aguarde…</b></div>':bkMsg?'<div class="novas" role="status"><b>'+esc(bkMsg)+'</b></div>':'')
   +'<div class="sec"><h2>Baixar</h2><p class="sub">Último backup baixado neste aparelho: '+esc(lerUlt()||'nenhum')+'</p><button class="btn full" data-bkj="1"'+dis+'>Baixar backup completo (.json)</button><button class="btn full" data-bkc="1"'+dis+'>Baixar chamadas para Excel (.csv)</button></div>'
   +'<div class="sec"><h2>Restaurar</h2>'+conf+'</div>'
-  +'<div class="sec"><h2>Zerar chamadas</h2><p class="sub">Para começar um novo ano do zero: apaga todas as chamadas salvas (presenças, Bíblias, contribuições, visitantes e faltas justificadas) de todas as turmas. Turmas, alunos, professores, avisos e usuários continuam. As contribuições das chamadas também saem do Financeiro.</p>'
+  +'<div class="sec"><h2>Zerar chamadas</h2><p class="sub">Para começar um novo ano do zero: apaga todas as chamadas salvas (presenças, Bíblias, contribuições, visitantes e faltas justificadas) e todas as aulas da Agenda, passadas e futuras. Turmas, alunos, professores, avisos e usuários continuam. As contribuições das chamadas também saem do Financeiro.</p>'
   +(ZR?'<div class="novas" role="alert"><b>Faça o backup antes de continuar</b><span class="sub">Esta ação não pode ser desfeita pelo app. Só dá para recuperar restaurando um backup. Último backup baixado neste aparelho: '+esc(lerUlt()||'nenhum')+'.</span><div class="acts"><button class="btn" style="margin-top:0" data-bkj="1"'+dis+'>Baixar backup completo (.json)</button></div></div>'
-   +'<label class="chkl"><input type="checkbox" id="zra" checked'+dis+'>Também apagar da Agenda as aulas já passadas (sem isso, elas apareceriam como "Chamadas atrasadas")</label>'
-   +'<p class="sub">Aulas de hoje e futuras continuam na Agenda. Ao confirmar, o app ainda baixa uma cópia de segurança antes de apagar.</p>'
+   +'<p class="sub">Depois de zerar, será preciso agendar as aulas do novo ano na Agenda. Ao confirmar, o app ainda baixa uma cópia de segurança antes de apagar.</p>'
    +'<label for="zrc">Digite ZERAR para confirmar</label><input id="zrc" autocomplete="off"'+dis+'><div class="acts"><button class="tg bad" data-zrgo="1"'+dis+'>Zerar chamadas agora</button><button class="tg" data-zrno="1"'+dis+'>Cancelar</button></div>'
    :'<button class="tg bad" data-zr="1"'+dis+'>Zerar chamadas…</button>')+'</div>'}
 $('#app').addEventListener('change',e=>{if(e.target.id==='bkf'&&e.target.files[0])bkLer(e.target.files[0])});
