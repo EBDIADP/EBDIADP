@@ -1330,7 +1330,7 @@ $('#app').addEventListener('click',async e=>{
    .sort((a,b)=>a.d.localeCompare(b.d));
   baixa('ebd-financeiro-'+m+'.csv','\ufeff'+[['Data','Tipo','Categoria','Turma','Descrição','Valor (R$)']].concat(R.map(x=>x.l)).map(l=>l.map(q).join(';')).join('\r\n'),'text/csv;charset=utf-8');toast('Planilha baixada')}});
 // ===== Backup e restauração (só administrador) =====
-let BK=null,bkMsg='',bkOcupado=false;
+let BK=null,bkMsg='',bkOcupado=false,ZR=false;
 const lerUlt=()=>{try{return localStorage.getItem('ebd_ult_backup')||''}catch(e){return ''}};
 function baixa(nome,txt,tipo){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:tipo}));a.download=nome;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
 async function geraBackup(){const o={app:'ebd-iadp',versao:1,geradoEm:new Date().toISOString()};
@@ -1373,6 +1373,17 @@ async function bkRestaurar(){if(bkOcupado||!BK)return;
   await pull();BK=null;bkMsg='Backup restaurado. Uma cópia do estado anterior foi baixada (ebd-antes-de-restaurar).'}
  catch(e){bkMsg='A restauração parou no meio ('+((e&&e.message)||'erro')+'). Os dados podem estar parcialmente restaurados. Escolha o mesmo arquivo e restaure de novo.';try{await pull()}catch(x){}}
  bkOcupado=false;render()}
+async function bkZerar(){if(bkOcupado||!me||me.perfil!=='admin')return;
+ if(pend){toast('Aguarde o app terminar de salvar e tente de novo');return}
+ const cf=$('#zrc');if(!cf||cf.value.trim().toUpperCase()!=='ZERAR'){toast('Digite ZERAR para confirmar');return}
+ const comAulas=!!($('#zra')&&$('#zra').checked);bkOcupado=true;bkMsg='';render();
+ try{const seg=await geraBackup();baixa('ebd-antes-de-zerar-'+ymd(new Date())+'.json',JSON.stringify(seg),'application/json');
+  const hoje=ymd(new Date()),apaga=async(t,ids)=>{for(let i=0;i<ids.length;i+=100){const lote=ids.slice(i,i+100),{data,error}=await sb.from(t).delete().in('id',lote).select('id');if(error)throw error;if((data||[]).length<lote.length)throw {code:'42501',message:'row-level security'}}};
+  await apaga('chamadas',seg.chamadas.map(r=>r.id));
+  let na=0;if(comAulas){const ids=seg.aulas.filter(r=>r.dados&&r.dados.data<hoje).map(r=>r.id);na=ids.length;await apaga('aulas',ids)}
+  await pull();ZR=false;bkMsg='Chamadas zeradas: '+seg.chamadas.length+' apagada(s)'+(comAulas?' e '+na+' aula(s) passada(s) removida(s) da Agenda':'')+'. Uma cópia do estado anterior foi baixada (ebd-antes-de-zerar).'}
+ catch(e){bkMsg='Não foi possível zerar tudo ('+((e&&e.message)||'erro')+'). Parte das chamadas pode ter sido apagada. Uma cópia foi baixada antes; se precisar, restaure por ela.';try{await pull()}catch(x){}}
+ bkOcupado=false;render()}
 function vBackup(){const dis=bkOcupado?' disabled':'',o=BK&&BK.o;
  const conf=o?'<div class="list"><div class="item"><b>'+esc(BK.nome)+'</b><span class="sub">'+(o.geradoEm?'Gerado em '+esc(fdt(o.geradoEm)):'Backup no formato antigo')+'</span></div>'
   +kv('Turmas',o.turmas.length)+kv('Alunos',o.turmas.reduce((n,r)=>n+r.dados.alunos.length,0))+kv('Aulas',o.aulas.length)+kv('Chamadas',o.chamadas.length)+kv('Avisos',o.avisos.length)+'</div>'
@@ -1383,10 +1394,17 @@ function vBackup(){const dis=bkOcupado?' disabled':'',o=BK&&BK.o;
  return '<h2>Backup e restauração</h2><p class="sub">Baixe uma cópia dos dados com frequência e guarde fora do celular (Google Drive da igreja e mais um lugar). As contas de login (e-mail e senha) ficam no Supabase e não entram no backup.</p>'
   +(bkOcupado?'<div class="novas" role="status"><b>Aguarde…</b></div>':bkMsg?'<div class="novas" role="status"><b>'+esc(bkMsg)+'</b></div>':'')
   +'<div class="sec"><h2>Baixar</h2><p class="sub">Último backup baixado neste aparelho: '+esc(lerUlt()||'nenhum')+'</p><button class="btn full" data-bkj="1"'+dis+'>Baixar backup completo (.json)</button><button class="btn full" data-bkc="1"'+dis+'>Baixar chamadas para Excel (.csv)</button></div>'
-  +'<div class="sec"><h2>Restaurar</h2>'+conf+'</div>'}
+  +'<div class="sec"><h2>Restaurar</h2>'+conf+'</div>'
+  +'<div class="sec"><h2>Zerar chamadas</h2><p class="sub">Para começar um novo ano do zero: apaga todas as chamadas salvas (presenças, Bíblias, contribuições, visitantes e faltas justificadas) de todas as turmas. Turmas, alunos, professores, avisos e usuários continuam. As contribuições das chamadas também saem do Financeiro.</p>'
+  +(ZR?'<div class="novas" role="alert"><b>Faça o backup antes de continuar</b><span class="sub">Esta ação não pode ser desfeita pelo app. Só dá para recuperar restaurando um backup. Último backup baixado neste aparelho: '+esc(lerUlt()||'nenhum')+'.</span><div class="acts"><button class="btn" style="margin-top:0" data-bkj="1"'+dis+'>Baixar backup completo (.json)</button></div></div>'
+   +'<label class="chkl"><input type="checkbox" id="zra" checked'+dis+'>Também apagar da Agenda as aulas já passadas (sem isso, elas apareceriam como "Chamadas atrasadas")</label>'
+   +'<p class="sub">Aulas de hoje e futuras continuam na Agenda. Ao confirmar, o app ainda baixa uma cópia de segurança antes de apagar.</p>'
+   +'<label for="zrc">Digite ZERAR para confirmar</label><input id="zrc" autocomplete="off"'+dis+'><div class="acts"><button class="tg bad" data-zrgo="1"'+dis+'>Zerar chamadas agora</button><button class="tg" data-zrno="1"'+dis+'>Cancelar</button></div>'
+   :'<button class="tg bad" data-zr="1"'+dis+'>Zerar chamadas…</button>')+'</div>'}
 $('#app').addEventListener('change',e=>{if(e.target.id==='bkf'&&e.target.files[0])bkLer(e.target.files[0])});
 $('#app').addEventListener('click',e=>{const c=k=>e.target.closest(k);
- if(c('[data-bkj]'))bkBaixar();else if(c('[data-bkc]'))bkCsv();else if(c('[data-bkgo]'))bkRestaurar();else if(c('[data-bkno]')){BK=null;bkMsg='';render()}});
+ if(c('[data-bkj]'))bkBaixar();else if(c('[data-bkc]'))bkCsv();else if(c('[data-bkgo]'))bkRestaurar();else if(c('[data-bkno]')){BK=null;bkMsg='';render()}
+ else if(c('[data-zr]')){if(me&&me.perfil==='admin'){ZR=true;bkMsg='';render()}}else if(c('[data-zrno]')){ZR=false;render()}else if(c('[data-zrgo]'))bkZerar()});
 async function boot(){
  vistos=null;F=novoF();INS=[];insRec='';insAv.clear();
  if(!sb){acesso='config';me=null;render();return}
