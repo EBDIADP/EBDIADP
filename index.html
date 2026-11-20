@@ -777,11 +777,11 @@ function vPainel(){
   +'</div>':'';
  return faixa+faixaInc(can('alunos'))+'<div class="ph"><div><h2>Visão geral</h2><p class="sub" style="margin:0">Acompanhe a frequência da sua EBD</p></div><span class="dlbl">'+esc(dateLabel)+'</span></div>'
  +'<div class="dm">'+dm+'</div>'+dd
- +'<div class="tl"><span>Por turma</span><span class="cp">'+(ehEquipe()?'Sua turma':'Geral')+' '+pc+'%</span></div><div class="list">'+(all.length?all.map(({t,s})=>{
-  const lk=s.keys[s.keys.length-1],le=ex(lk)||{},last=lk?S.pres[lk].length:0;
+ +'<div class="tl"><span>Por turma'+(latest?' · '+dBR(latest):'')+'</span><span class="cp">'+(ehEquipe()?'Sua turma':'Geral')+' '+pc+'%</span></div><div class="list">'+(all.length?(all.filter(({t})=>latest&&S.pres[latest+'|'+t.id]).map(({t,s})=>{
+  const lk=latest+'|'+t.id,le=ex(lk)||{},last=S.pres[lk].length;
   return '<details class="dt"><summary><span>'+esc(t.nome)+'</span><span class="mt"><i style="width:'+s.p+'%"></i></span><b>'+s.p+'%</b></summary>'
-  +'<div class="item sub">'+(lk?'Última chamada · '+dBR(lk.split('|')[0])+': '+last+' de '+eleg(t,lk).length+' presentes · '+(le.biblias||0)+' bíblias físicas · '+brl(le.oferta)+(le.visitantes?' · '+le.visitantes+' visitante(s)':''):'Sem chamada salva')+'</div>'
-  +'</details>'}).join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>')+'</div>';
+  +'<div class="item sub">'+('Chamada · '+dBR(latest)+': '+last+' de '+eleg(t,lk).length+' presentes · '+(le.biblias||0)+' bíblias físicas · '+brl(le.oferta)+(le.visitantes?' · '+le.visitantes+' visitante(s)':''))+'</div>'
+  +'</details>'}).join('')||'<div class="item sub">Nenhuma chamada salva ainda.</div>'):'<div class="item sub">Nenhuma turma cadastrada.</div>')+'</div>';
 }
 
 function hForm(k,t){const list=t.alunos.filter(a=>workH.has(a.id)||(a.ativo!==false&&!a.arq&&!emAula(a,t,k.split('|')[0]))),e=ex(k)||{};
