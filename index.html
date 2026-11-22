@@ -1015,7 +1015,7 @@ async function copiaLink(){const u=new URL('inscricao.html',location.href).href;
 const semAc=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function buscaAlunos(q){const r=$('#res'),k=semAc(q).trim();if(k.length<2){r.hidden=true;return}
  const L=[];S.turmas.filter(t=>tOk(t.id)).forEach(t=>t.alunos.forEach(a=>{if(L.length<8&&semAc(nm(a)).includes(k))L.push([a,t])}));
- r.innerHTML=L.length?L.map(([a,t])=>'<button type="button" data-bf="'+esc(a.id)+'">'+esc(nm(a))+'<small>'+esc(t.nome)+(a.professor?' · Professor(a)':'')+(a.arq?' · Arquivado':a.ativo===false?' · Inativo':'')+(!ehProf()&&pendInfo(a).length?' · Cadastro incompleto':'')+'</small></button>').join(''):'<div class="sub" style="padding:10px">Nenhum aluno encontrado.</div>';r.hidden=false}
+ r.innerHTML=L.length?L.map(([a,t])=>'<button type="button" data-bf="'+esc(a.id)+'">'+esc(nm(a))+'<small>· '+esc(t.nome)+(a.professor?' · Professor(a)':'')+(a.arq?' · Arquivado':a.ativo===false?' · Inativo':'')+(!ehProf()&&pendInfo(a).length?' · Cadastro incompleto':'')+'</small></button>').join(''):'<div class="sub" style="padding:10px">Nenhum aluno encontrado.</div>';r.hidden=false}
 let tBusca;$('#busca').addEventListener('input',e=>{const v=e.target.value;clearTimeout(tBusca);tBusca=setTimeout(()=>buscaAlunos(v),150)});
 $('#busca').addEventListener('keydown',e=>{if(e.key==='Escape'){$('#res').hidden=true}});
 $('#res').addEventListener('click',e=>{const b=e.target.closest('[data-bf]');if(b){$('#res').hidden=true;$('#busca').value='';document.querySelector('.srch').classList.remove('on');abreFicha(b.dataset.bf)}});
