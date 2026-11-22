@@ -1044,7 +1044,7 @@ function fichaHtml(id){
  h+='<div class="sub" style="margin-top:8px">Faltas seguidas: '+seq+' · Última presença: '+(ult?fd(ult.d):'nenhuma')+'</div>';
  if(rows.length)h+='<div class="fdots" role="img" aria-label="Últimas chamadas: verde presente, âmbar falta justificada, vermelho falta">'+rows.slice(-14).map(r=>'<i class="fd '+(r.ok?'p':r.j?'j':'f')+'" title="'+fmtD(r.d)+'"></i>').join('')+'</div>';
  h+='<div class="list" style="margin-top:10px">'+(rows.length?lista.map(r=>{const au=S.aulas.find(x=>x.turma===t.id&&x.data===r.d);
-   return '<div class="kv"><span>'+fd(r.d)+(au&&au.tema?' · '+esc(au.tema):'')+'</span><b style="color:'+(r.ok?'var(--ok)':r.j?'inherit':'var(--bad)')+'">'+(r.ok?'Presente':r.j?'Falta justificada ('+esc(r.j)+')':'Falta')+'</b></div>'}).join('')+(rows.length>8?'<div class="item" style="text-align:center"><button class="tg" data-ftodas="1">'+(fichaTodas?'Mostrar menos':'Ver todas ('+rows.length+')')+'</button></div>':''):'<div class="item sub">Nenhuma chamada registrada ainda.</div>')+'</div>';
+   return '<div class="kv"><span>'+fd(r.d)+'</span><b style="color:'+(r.ok?'var(--ok)':'var(--bad)')+'">'+(r.ok?'Presente':'Ausente')+'</b></div>'}).join('')+(rows.length>8?'<div class="item" style="text-align:center"><button class="tg" data-ftodas="1">'+(fichaTodas?'Mostrar menos':'Ver todas ('+rows.length+')')+'</button></div>':''):'<div class="item sub">Nenhuma chamada registrada ainda.</div>')+'</div>';
  if(a.professor){
   const M=new Map();
   S.aulas.filter(g=>g.prof===n).forEach(g=>M.set(g.data+'|'+g.turma,{d:g.data,t:g.turma,tema:g.tema||''}));
