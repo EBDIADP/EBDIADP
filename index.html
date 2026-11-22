@@ -15,11 +15,16 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://dltijyufuyiienzkzryz.supabase.co" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;800&family=Figtree:wght@400;500;700&display=swap">
+<link rel="preload" href="fonts/figtree-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/figtree-500.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 /* EBD app */
+@font-face{font-family:Figtree;font-weight:400;font-style:normal;font-display:swap;src:url(fonts/figtree-400.woff2) format("woff2")}
+@font-face{font-family:Figtree;font-weight:500;font-style:normal;font-display:swap;src:url(fonts/figtree-500.woff2) format("woff2")}
+@font-face{font-family:Figtree;font-weight:700;font-style:normal;font-display:swap;src:url(fonts/figtree-700.woff2) format("woff2")}
+@font-face{font-family:Outfit;font-weight:600;font-style:normal;font-display:swap;src:url(fonts/outfit-600.woff2) format("woff2")}
+@font-face{font-family:Outfit;font-weight:800;font-style:normal;font-display:swap;src:url(fonts/outfit-800.woff2) format("woff2")}
+.sk{display:grid;gap:12px;padding:4px 0}.sk i{display:block;height:64px;border-radius:14px;background:linear-gradient(90deg,var(--soft) 25%,var(--line) 50%,var(--soft) 75%);background-size:200% 100%;animation:sk 1.2s linear infinite}.sk:not(.f) i:first-child{height:120px}@keyframes sk{to{background-position:-200% 0}}@media (prefers-reduced-motion:reduce){.sk i{animation:none}}
 
 :root{--bg:#FAFAF9;--surface:#FFFFFF;--ink:#1C1917;--muted:#78716C;--line:#E7E5E4;--brand:#462410;--onbrand:#FFF7ED;--accent:#F59E0B;--ok:#16A34A;--bad:#DC2626;--navy:#1C1917;--soft:#F5F5F4;--shadow:0 1px 2px rgba(28,25,23,.05);
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -437,7 +442,9 @@ const SUPABASE_URL='https://dltijyufuyiienzkzryz.supabase.co',SUPABASE_KEY='sb_p
 // WhatsApp do administrador (opcional): só números, com país e DDD. Ex.: '5511999999999'. Deixe vazio para não mostrar o botão.
 const ADMIN_WHATSAPP='5511940417946';
 // ==================================================
-const sb=(!SUPABASE_URL.startsWith('COLE')&&window.supabase)?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+const SKEL=(n,f)=>'<div class="sk'+(f?' f':'')+'" role="status" aria-label="Carregando">'+'<i></i>'.repeat(n||4)+'</div>';
+const fetchT=(u,o={})=>{const m=String(o.method||'GET').toUpperCase();if(m!=='GET'&&m!=='HEAD')return fetch(u,o);const c=new AbortController(),t=setTimeout(()=>c.abort(),15000);if(o.signal){if(o.signal.aborted)c.abort();else o.signal.addEventListener('abort',()=>c.abort(),{once:true})}return fetch(u,{...o,signal:c.signal}).finally(()=>clearTimeout(t))};
+const sb=(!SUPABASE_URL.startsWith('COLE')&&window.supabase)?supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{global:{fetch:fetchT}}):null;
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -648,7 +655,7 @@ const alOpts=sel=>'<option value="">Sem vínculo</option>'+S.turmas.map(t=>{cons
 const pOpts=sel=>PERFIS.map(([v,l])=>'<option value="'+v+'"'+(v===sel?' selected':'')+'>'+l+'</option>').join('');
 function vLogin(){
  const L=(id,t,ty,ac)=>'<label for="'+id+'">'+t+'</label><input id="'+id+'" type="'+(ty||'text')+'" autocomplete="'+(ac||'off')+'"'+(ty==='email'?' autocapitalize="none"':'')+'>';
- if(acesso==='carregando')return '<p class="sub">Carregando…</p>';
+ if(acesso==='carregando')return SKEL(4);
  if(acesso==='config')return '<h2>Configuração pendente</h2><p class="sub">Preencha SUPABASE_URL e SUPABASE_KEY no início do script do arquivo index.html (veja o PASSO-A-PASSO) e confira se há internet.</p>';
  if(acesso==='pendente'){const wa=String(ADMIN_WHATSAPP||'').replace(/\D/g,''),msg='Olá! Criei uma conta na EBD IADP'+(pendNome?' ('+pendNome+')':'')+' e estou aguardando a liberação do acesso.';
   return '<h2>Aguardando aprovação</h2><p class="sub">Sua conta foi criada, mas ainda não foi liberada. O administrador é avisado dentro do app. Quando ele liberar, entre novamente.</p>'+(wa?'<a class="btn full" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box" target="_blank" rel="noopener" href="https://wa.me/'+wa+'?text='+encodeURIComponent(msg)+'">Avisar o administrador no WhatsApp</a>':'')+'<button class="btn full" id="sairPend">Sair</button>'}
@@ -1008,7 +1015,7 @@ const semAc=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toL
 function buscaAlunos(q){const r=$('#res'),k=semAc(q).trim();if(k.length<2){r.hidden=true;return}
  const L=[];S.turmas.filter(t=>tOk(t.id)).forEach(t=>t.alunos.forEach(a=>{if(L.length<8&&semAc(nm(a)).includes(k))L.push([a,t])}));
  r.innerHTML=L.length?L.map(([a,t])=>'<button type="button" data-bf="'+esc(a.id)+'">'+esc(nm(a))+'<small>'+esc(t.nome)+(a.professor?' · Professor(a)':'')+(a.arq?' · Arquivado':a.ativo===false?' · Inativo':'')+(!ehProf()&&pendInfo(a).length?' · Cadastro incompleto':'')+'</small></button>').join(''):'<div class="sub" style="padding:10px">Nenhum aluno encontrado.</div>';r.hidden=false}
-$('#busca').addEventListener('input',e=>buscaAlunos(e.target.value));
+let tBusca;$('#busca').addEventListener('input',e=>{const v=e.target.value;clearTimeout(tBusca);tBusca=setTimeout(()=>buscaAlunos(v),150)});
 $('#busca').addEventListener('keydown',e=>{if(e.key==='Escape'){$('#res').hidden=true}});
 $('#res').addEventListener('click',e=>{const b=e.target.closest('[data-bf]');if(b){$('#res').hidden=true;$('#busca').value='';document.querySelector('.srch').classList.remove('on');abreFicha(b.dataset.bf)}});
 document.addEventListener('click',e=>{if(!e.target.closest('.srch')&&!e.target.closest('#lupa')){$('#res').hidden=true;document.querySelector('.srch').classList.remove('on')};
@@ -1251,7 +1258,7 @@ function vAuditoria(){
  const filtro='<label for="hfil">Mostrar</label><select id="hfil">'+HF.map(([v,l])=>'<option value="'+v+'"'+(v===H.f?' selected':'')+'>'+l+'</option>').join('')+'</select>';
  const corpo=H.err==='sql'?'<div class="item sub">A tabela de histórico ainda não existe. Rode o arquivo auditoria.sql no SQL Editor do Supabase.</div>'
   :H.err?'<div class="item sub">Não foi possível carregar o histórico. Verifique a conexão e toque em Atualizar.</div>'
-  :!H.ok?'<div class="item sub">Carregando…</div>'
+  :!H.ok?SKEL(3,true)
   :H.l.length?H.l.map(h=>'<div class="item"><b style="display:inline">'+esc(h.quem_nome||'Sistema')+'</b> <span class="tag">'+esc((HF.find(x=>x[0]===h.tabela)||[0,h.tabela])[1])+'</span><span class="sub" style="display:block">'+fdt(h.quando)+'</span>'+descH(h).map(l=>'<div>'+esc(l)+'</div>').join('')+'</div>').join('')
   :'<div class="item sub">Nenhuma alteração registrada.</div>';
  return '<h2>Histórico de alterações</h2><p class="sub">Quem mudou o quê, do mais recente para o mais antigo. Só o administrador vê esta tela.</p>'+filtro
@@ -1297,7 +1304,7 @@ function vFinanceiro(){
  if(!meses.includes(m))meses.push(m);
  const sel='<div class="noprint"><label for="fmes">Mês</label><select id="fmes">'+meses.map(x=>'<option value="'+x+'"'+(x===m?' selected':'')+'>'+mesRot(x)+'</option>').join('')+'</select></div>';
  const aviso=F.err==='sql'?'<div class="item sub">A tabela do financeiro ainda não existe. Rode o arquivo financeiro.sql no SQL Editor do Supabase.</div>'
-  :F.err?'<div class="item sub">Não foi possível carregar os lançamentos. Verifique a conexão e toque em Atualizar.</div>':!F.ok?'<div class="item sub">Carregando…</div>':'';
+  :F.err?'<div class="item sub">Não foi possível carregar os lançamentos. Verifique a conexão e toque em Atualizar.</div>':!F.ok?SKEL(3,true):'';
  const resumo=pronto?'<div class="list">'+kv('Contribuições das aulas',brl(tof/100))+kv('Outras entradas',brl(av/100))+kv('<b>Total de entradas</b>',brl(ent/100))+kv('Saídas','<span style="color:var(--bad)">'+brl(sai/100)+'</span>')+kv('<b>Saldo do mês</b>','<span style="color:'+(saldo<0?'var(--bad)':'var(--ok)')+'">'+brl(saldo/100)+'</span>')+'</div>':'<div class="list">'+aviso+'</div>';
  const porT={};ofs.forEach(x=>{porT[x.t]=(porT[x.t]||0)+x.c});
  const ofDet='<details class="dt"><summary><b>Contribuições das aulas ('+brl(tof/100)+')</b></summary>'+(ofs.length?Object.keys(porT).map(t=>kv(turma(t)?esc(turma(t).nome):'Turma removida',brl(porT[t]/100))).join('')+'<p class="sub" style="margin:8px 12px">Vêm do campo Contribuições de cada chamada. Para corrigir um valor, edite a chamada em Histórico.</p>':'<div class="item sub">Nenhuma contribuição registrada neste mês.</div>')+'</details>';
