@@ -741,6 +741,11 @@ function vFaltas(){
   +(x.al.length?x.al.map(r=>'<div class="freq"><div><span>'+esc(nm(r.a))+(r.at?' <span class="tag">Atenção</span>':'')+'</span><b>'+r.q+'%</b></div><span class="sub">'+(r.n?r.f+' falta(s)'+(r.fj?' (+'+r.fj+' justificada(s))':'')+' em '+r.n+' chamada(s)'+(r.seg?' · '+r.seg+' seguida(s) no fim':''):'Sem chamadas')+'</span>'+meter(r.q)+'</div>').join(''):'<div class="item sub">Sem alunos.</div>')
   +'</details>'}).join(''):'<div class="item sub">Nenhuma turma cadastrada.</div>')+'</div></div>';
 }
+function lideres(){return TV().map(t=>{const L=t.alunos.filter(a=>!a.arq&&a.ativo!==false).map(a=>{const r=rowsA(a,t),n=r.filter(x=>x.ok).length;return {a,n,len:r.length,p:r.length?Math.round(n/r.length*100):0}}).filter(x=>x.n>0),mn=Math.min(3,Math.max(0,...L.map(x=>x.len))),C=L.filter(x=>x.len>=mn).sort((x,y)=>(y.n/y.len-x.n/x.len)||(y.n-x.n)||nm(x.a).localeCompare(nm(y.a),'pt-BR')),b=C[0];return b?{t,L:C.filter(x=>x.n===b.n&&x.len===b.len)}:null}).filter(Boolean)}
+function vFrequentes(){const LF=lideres();
+ return '<div class="acts" style="margin:0 0 8px"><button class="tg" data-freqback="1">‹ Voltar ao Dashboard</button></div><h2>Mais frequentes</h2><p class="sub">O aluno com maior frequência de cada turma. Se houver empate (mesma porcentagem e mesmo número de presenças), todos os empatados aparecem. Só entram alunos ativos com pelo menos 3 aulas na turma.</p>'
+ +(LF.length?LF.map(({t,L})=>'<div class="sec"><h2>'+esc(t.nome)+'</h2>'+(L.length>1?'<p class="sub" style="margin:-8px 0 8px">Empate entre '+L.length+' alunos</p>':'')+'<div class="list">'+L.map(x=>'<div class="item al"><span><b>'+esc(nm(x.a))+'</b><span class="sub" style="display:block">'+x.n+' presença(s) em '+x.len+' aula(s)</span></span><b style="color:var(--ok)">'+x.p+'%</b></div>').join('')+'</div></div>').join(''):'<p class="sub">Ainda não há presenças suficientes para montar a lista.</p>');
+}
 function vPainel(){
  const all=TV().map(t=>({t,s:stats(t)}));
  const T=all.reduce((n,x)=>n+x.s.tot,0),P=all.reduce((n,x)=>n+x.s.poss,0),pc=P?Math.round(T/P*100):0;
@@ -753,9 +758,7 @@ function vPainel(){
  const lp=sm.poss?Math.round(sm.pres/sm.poss*100):0,pl=pv&&pv.poss?Math.round(pv.pres/pv.poss*100):null;
  const dOf=pv&&pv.of>0?Math.round((sm.of-pv.of)/pv.of*100):null,dFr=pl===null?null:lp-pl;
  const sg=n=>(n>0?'+':'')+n+'%';
- const topF=all.map(({t})=>{const L=t.alunos.filter(a=>!a.arq&&a.ativo!==false).map(a=>{const r=rowsA(a,t),n=r.filter(x=>x.ok).length;return {a,n,len:r.length,p:r.length?Math.round(n/r.length*100):0}}).filter(x=>x.n>0),mx=Math.max(0,...L.map(x=>x.len)),mn=Math.min(3,mx);
-  const b=L.filter(x=>x.len>=mn).sort((x,y)=>(y.n/y.len-x.n/x.len)||(y.n-x.n)||nm(x.a).localeCompare(nm(y.a),'pt-BR'))[0];return b?{t,b}:null}).filter(Boolean);
- const maisF=topF.length?'<div class="tl"><span>Mais frequentes por turma</span></div><div class="list">'+topF.map(({t,b})=>'<div class="item al"><span><b>'+esc(nm(b.a))+'</b><span class="sub" style="display:block">'+esc(t.nome)+' · '+b.n+' presença(s) em '+b.len+' aula(s)</span></span><b style="color:var(--ok)">'+b.p+'%</b></div>').join('')+'</div>':'';
+ const LF=lideres(),maisF=LF.length?'<div data-freq="1" role="button" tabindex="0" aria-label="Ver a lista dos mais frequentes" style="cursor:pointer"><div class="tl"><span>Mais frequentes por turma</span><span class="cp">Ver lista ›</span></div><div class="list">'+LF.map(({t,L})=>{const b=L[0];return '<div class="item al"><span><b>'+esc(nm(b.a))+'</b><span class="sub" style="display:block">'+esc(t.nome)+' · '+b.n+' presença(s) em '+b.len+' aula(s)'+(L.length>1?' · +'+(L.length-1)+' empatado(s)':'')+'</span></span><b style="color:var(--ok)">'+b.p+'%</b></div>'}).join('')+'</div></div>':'';
  const PN=pendentes(),faixa=PN.length?'<div class="novas" role="alert"><b>'+(PN.length===1?'1 conta aguardando liberação':PN.length+' contas aguardando liberação')+'</b><span class="sub">'+PN.slice(0,5).map(u=>esc(u.nome)).join(', ')+(PN.length>5?' e mais '+(PN.length-5):'')+'</span><div class="acts"><button class="btn" style="margin-top:0" data-rev="1">Revisar agora</button></div></div>':'';
  // celular
  const dm=latest?'<div class="hero"><div class="hl">Última chamada · '+lbl+'</div><div class="hn"><span class="hb">'+sm.pres+'</span><span class="hs">de '+sm.poss+' presentes</span><span class="cp">'+lp+'%</span></div><div class="hm"><i style="width:'+lp+'%"></i></div></div>'
@@ -1058,7 +1061,8 @@ $('#ficha').addEventListener('click',e=>{
  if(e.target.closest('[data-fpr]')){fechaFicha();irPara('professores')}});
 $('#lupa').addEventListener('click',()=>{const s=document.querySelector('.srch'),on=!s.classList.contains('on');s.classList.toggle('on',on);if(on)$('#busca').focus();else $('#res').hidden=true});
 
-$('#app').addEventListener('click',e=>{if(e.target.closest('[data-goal]'))irPara('alunos')});
+$('#app').addEventListener('click',e=>{if(e.target.closest('[data-goal]'))irPara('alunos');else if(e.target.closest('[data-freq]'))irPara('frequentes');else if(e.target.closest('[data-freqback]'))irPara('painel')});
+$('#app').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('[data-freq]')){e.preventDefault();irPara('frequentes')}});
 $('#app').addEventListener('click',async e=>{const b=e.target.closest('[data-linkch]');if(!b)return;const a=S.aulas.find(x=>x.id===b.dataset.linkch);if(!a||!minha(a)){toast('Você não pode compartilhar esta chamada');return}b.disabled=true;try{const {data,error}=await sb.rpc('criar_link_chamada',{p_turma_id:a.turma,p_data:a.data});if(error)throw error;const url=new URL('chamada.html',location.href);url.hash=data;try{await navigator.clipboard.writeText(url.href);toast('Link de chamada copiado. Válido por 30 dias e permite um envio.')}catch(_){window.prompt('Copie o link da chamada (válido por 30 dias):',url.href)}}catch(err){console.error(err);toast('Não foi possível criar o link. Confira se chamada-sem-login.sql foi aplicado no Supabase.')}finally{b.disabled=false}});
 function render(){
  S.turmas.forEach(t=>t.alunos.sort((x,y)=>String(x.nome||'').localeCompare(String(y.nome||''),'pt-BR',{sensitivity:'base'})));
@@ -1066,7 +1070,7 @@ function render(){
  if(!me){nv.style.display='none';$('#sub').hidden=true;$('#hd').textContent=''+dateLabel;$('#app').innerHTML=vLogin();return}
  nv.style.display='';if(!can(view))view=can('painel')?'painel':'chamada';montaNav();
  $('#hd').textContent=dateLabel;montaTopo();
- $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='inscricoes'?vInscricoes():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():view==='backup'?vBackup():view==='financeiro'?vFinanceiro():vAvisos();
+ $('#app').innerHTML=view==='agenda'?vAgenda():view==='painel'?vPainel():view==='faltas'?vFaltas():view==='registro'?vRegistro():view==='chamada'?vChamada():view==='turmas'?vTurmas():view==='alunos'?vAlunos():view==='inscricoes'?vInscricoes():view==='professores'?vProfessores():view==='cadastro'?vCadastro():view==='usuarios'?vUsuarios():view==='relatorio'?vRelatorio():view==='auditoria'?vAuditoria():view==='backup'?vBackup():view==='frequentes'?vFrequentes():view==='financeiro'?vFinanceiro():vAvisos();
  if(ehProf()){if(view==='agenda')marcaAulasVistas();else if(!(view==='chamada'&&selA)){const f=faixaAulasProf();if(f)$('#app').insertAdjacentHTML('afterbegin',f)}}
  else if(podeInscr()&&view!=='inscricoes'&&!(view==='chamada'&&selA)){const f=faixaIns();if(f)$('#app').insertAdjacentHTML('afterbegin',f)}
  const gv=grupoDe(view);if(gv){sub=view;subG[gv[0]]=view}
