@@ -421,6 +421,16 @@ nav .nbrand.refresh-logo:focus-visible{outline:2px solid var(--accent);outline-o
 details.dt:has(details.hist-more[open]){position:relative;z-index:20;overflow:visible}
 details.dt:has(details.more[open]){position:relative;z-index:20;overflow:visible}
 details.hist-more .menu{top:auto;bottom:40px;z-index:30}
+
+@media print{
+ body.print-ficha> :not(#ficha){display:none!important}
+ body.print-ficha #ficha{display:block!important;position:static!important;inset:auto!important;z-index:auto!important;background:#fff!important}
+ body.print-ficha #ficha .fbk{display:none!important}
+ body.print-ficha #ficha .fsh{position:static!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;transform:none!important;width:auto!important;max-height:none!important;overflow:visible!important;background:#fff!important;color:#1C1917!important;padding:0!important;margin:0!important;border-radius:0!important}
+ body.print-ficha #ficha .fsh:before{content:"Relatório de frequência";display:block;font:700 22px/1.2 Figtree,system-ui,sans-serif;margin:0 0 18px}
+ body.print-ficha #ficha .noprint,body.print-ficha #ficha [data-fclose],body.print-ficha #ficha [data-ftodas]{display:none!important}
+ body.print-ficha #ficha .kv{break-inside:avoid}
+}
 </style>
 </head>
 <body>
@@ -1057,12 +1067,18 @@ function fichaHtml(id){
   if(Object.keys(porT).length)h+='<div class="sub" style="margin-top:8px">'+Object.entries(porT).map(([k,v])=>esc(k)+' ('+v+')').join(' · ')+'</div>';
   h+='<div class="list" style="margin-top:10px">'+(prox.length?'<div class="item sub" style="padding-bottom:4px">Próximas aulas</div>'+prox.slice(0,5).map(row).join(''):'')+(dadas.length?'<div class="item sub" style="padding-bottom:4px">Últimas aulas dadas</div>'+mostra.map(row).join('')+(dadas.length>8?'<div class="item" style="text-align:center"><button class="tg" data-ftodas="1">'+(fichaTodas?'Mostrar menos':'Ver todas ('+dadas.length+')')+'</button></div>':''):(prox.length?'':'<div class="item sub">Nenhuma aula registrada para este professor ainda.</div>'))+'</div>';
  }
- h+='<div class="acts" style="margin-top:14px">'+(can('alunos')?'<button class="btn" data-fal="'+esc(t.id)+'">Abrir em Alunos</button>':'')+(a.professor&&can('professores')?'<button class="tg" data-fpr="1">Ver em Professores</button>':'')+'</div>';
+ h+='<div class="acts noprint" style="margin-top:14px"><button class="tg" data-fprint="1">Imprimir relatório</button>'+(can('alunos')?'<button class="btn" data-fal="'+esc(t.id)+'">Abrir em Alunos</button>':'')+(a.professor&&can('professores')?'<button class="tg" data-fpr="1">Ver em Professores</button>':'')+'</div>';
  return h}
 function abreFicha(id){fichaId=id;fichaTodas=false;desenhaFicha();$('#ficha').hidden=false;const b=$('#ficha [data-fclose]');if(b)b.focus()}
 function desenhaFicha(){$('#ficha').innerHTML='<div class="fbk" data-fclose="1"></div><div class="fsh" role="dialog" aria-modal="true" aria-label="Ficha do aluno">'+fichaHtml(fichaId)+'</div>'}
 function fechaFicha(){const f=$('#ficha');if(f)f.hidden=true}
+function imprimirFicha(){
+ const todasAntes=fichaTodas;fichaTodas=true;desenhaFicha();document.body.classList.add('print-ficha');
+ let fim=false;const limpar=()=>{if(fim)return;fim=true;document.body.classList.remove('print-ficha');window.removeEventListener('afterprint',limpar);if(!todasAntes){fichaTodas=false;desenhaFicha()}};
+ window.addEventListener('afterprint',limpar,{once:true});setTimeout(()=>window.print(),100);setTimeout(limpar,60000);
+}
 $('#ficha').addEventListener('click',e=>{
+ if(e.target.closest('[data-fprint]')){imprimirFicha();return}
  if(e.target.closest('[data-fclose]')){fechaFicha();return}
  if(e.target.closest('[data-ftodas]')){fichaTodas=!fichaTodas;const sc=$('#ficha .fsh').scrollTop;desenhaFicha();$('#ficha .fsh').scrollTop=sc;return}
  const al=e.target.closest('[data-fal]');if(al){cur=al.dataset.fal;fechaFicha();irPara('alunos');return}
