@@ -427,6 +427,9 @@ input,select,textarea{
   .ds-columns i{width:9px}
 }
 
+/* Keep the frequent-students card visually separated from the attendance dashboard. */
+[data-freq]{margin-top:16px}
+
 /* Accessibility / reduced motion */
 @media (prefers-reduced-motion:reduce){
   .btn{transition:none!important}
