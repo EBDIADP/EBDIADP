@@ -4,7 +4,7 @@ O que foi incluído
 - Em Chamada, o usuário autorizado pode tocar em “Compartilhar chamada sem login”.
 - O sistema copia um link limitado à turma e à data daquela aula.
 - A pessoa abre o link sem conta, marca presenças e envia. Também pode registrar Bíblias físicas, contribuições, visitantes e clima. Tema, professor(a) e tópicos vêm da aula agendada. A gravação entra na tabela chamadas já usada pelo app. Justificativas de falta não aparecem no link.
-- O link vence em 30 dias, aceita um envio e é invalidado quando um novo link para a mesma chamada é criado.
+- O link funciona só no dia da aula (horário de Brasília) e pode ser aberto e enviado mais de uma vez; cada envio atualiza a mesma chamada. Gerar um novo link não cancela os anteriores. A lista de alunos é lida do cadastro a cada abertura, então inclui alunos cadastrados depois da aula agendada (há também o botão “Atualizar lista de alunos”).
 - O token secreto fica no fragmento (#...) do endereço e só seu hash é guardado no banco. O acesso ao link permite visualizar os nomes da turma e enviar a chamada; compartilhe apenas com quem deve ter esse acesso.
 
 ATIVAÇÃO NECESSÁRIA NO SUPABASE
