@@ -1067,7 +1067,7 @@ function fichaHtml(id){
   if(Object.keys(porT).length)h+='<div class="sub" style="margin-top:8px">'+Object.entries(porT).map(([k,v])=>esc(k)+' ('+v+')').join(' · ')+'</div>';
   h+='<div class="list" style="margin-top:10px">'+(prox.length?'<div class="item sub" style="padding-bottom:4px">Próximas aulas</div>'+prox.slice(0,5).map(row).join(''):'')+(dadas.length?'<div class="item sub" style="padding-bottom:4px">Últimas aulas dadas</div>'+mostra.map(row).join('')+(dadas.length>8?'<div class="item" style="text-align:center"><button class="tg" data-ftodas="1">'+(fichaTodas?'Mostrar menos':'Ver todas ('+dadas.length+')')+'</button></div>':''):(prox.length?'':'<div class="item sub">Nenhuma aula registrada para este professor ainda.</div>'))+'</div>';
  }
- h+='<div class="acts noprint" style="margin-top:14px"><button class="tg" data-fprint="1">Imprimir relatório</button>'+(can('alunos')?'<button class="btn" data-fal="'+esc(t.id)+'">Abrir em Alunos</button>':'')+(a.professor&&can('professores')?'<button class="tg" data-fpr="1">Ver em Professores</button>':'')+'</div>';
+ h+='<div class="acts noprint" style="margin-top:14px"><button class="btn" data-fprint="1">Imprimir relatório</button>'+(can('alunos')?'<button class="btn" data-fal="'+esc(t.id)+'">Abrir em Alunos</button>':'')+(a.professor&&can('professores')?'<button class="tg" data-fpr="1">Ver em Professores</button>':'')+'</div>';
  return h}
 function abreFicha(id){fichaId=id;fichaTodas=false;desenhaFicha();$('#ficha').hidden=false;const b=$('#ficha [data-fclose]');if(b)b.focus()}
 function desenhaFicha(){$('#ficha').innerHTML='<div class="fbk" data-fclose="1"></div><div class="fsh" role="dialog" aria-modal="true" aria-label="Ficha do aluno">'+fichaHtml(fichaId)+'</div>'}
