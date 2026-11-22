@@ -753,6 +753,9 @@ function vPainel(){
  const lp=sm.poss?Math.round(sm.pres/sm.poss*100):0,pl=pv&&pv.poss?Math.round(pv.pres/pv.poss*100):null;
  const dOf=pv&&pv.of>0?Math.round((sm.of-pv.of)/pv.of*100):null,dFr=pl===null?null:lp-pl;
  const sg=n=>(n>0?'+':'')+n+'%';
+ const topF=all.map(({t})=>{const L=t.alunos.filter(a=>!a.arq&&a.ativo!==false).map(a=>{const r=rowsA(a,t),n=r.filter(x=>x.ok).length;return {a,n,len:r.length,p:r.length?Math.round(n/r.length*100):0}}).filter(x=>x.n>0),mx=Math.max(0,...L.map(x=>x.len)),mn=Math.min(3,mx);
+  const b=L.filter(x=>x.len>=mn).sort((x,y)=>(y.n/y.len-x.n/x.len)||(y.n-x.n)||nm(x.a).localeCompare(nm(y.a),'pt-BR'))[0];return b?{t,b}:null}).filter(Boolean);
+ const maisF=topF.length?'<div class="tl"><span>Mais frequentes por turma</span></div><div class="list">'+topF.map(({t,b})=>'<div class="item al"><span><b>'+esc(nm(b.a))+'</b><span class="sub" style="display:block">'+esc(t.nome)+' · '+b.n+' presença(s) em '+b.len+' aula(s)</span></span><b style="color:var(--ok)">'+b.p+'%</b></div>').join('')+'</div>':'';
  const PN=pendentes(),faixa=PN.length?'<div class="novas" role="alert"><b>'+(PN.length===1?'1 conta aguardando liberação':PN.length+' contas aguardando liberação')+'</b><span class="sub">'+PN.slice(0,5).map(u=>esc(u.nome)).join(', ')+(PN.length>5?' e mais '+(PN.length-5):'')+'</span><div class="acts"><button class="btn" style="margin-top:0" data-rev="1">Revisar agora</button></div></div>':'';
  // celular
  const dm=latest?'<div class="hero"><div class="hl">Última chamada · '+lbl+'</div><div class="hn"><span class="hb">'+sm.pres+'</span><span class="hs">de '+sm.poss+' presentes</span><span class="cp">'+lp+'%</span></div><div class="hm"><i style="width:'+lp+'%"></i></div></div>'
@@ -777,7 +780,7 @@ function vPainel(){
   +'<div class="dk mm"><div class="dct"><span class="dic">'+ic('grafico')+'</span>Frequência mensal<span class="pl">Mensal</span></div><div class="sx"><div><b>'+pc+'</b><span class="dsm">%</span><div class="dsm">Frequência média</div></div><div><b>'+sm.pres+'</b><div class="dsm">Presentes na última aula</div></div></div><div class="mb">'+mens+'</div><div class="lgd"><span><i style="background:#F5B83D"></i>Presentes</span><span><i style="background:#E5AE92"></i>Com Bíblia</span><span>média por dia de chamada</span></div></div>'
   +'</div>':'';
  return faixa+faixaInc(can('alunos'))+'<div class="ph"><div><h2>Visão geral</h2><p class="sub" style="margin:0">Acompanhe a frequência da sua EBD</p></div><span class="dlbl">'+esc(dateLabel)+'</span></div>'
- +'<div class="dm">'+dm+'</div>'+dd
+ +'<div class="dm">'+dm+'</div>'+dd+maisF
  +'<div class="tl"><span>Por turma'+(latest?' · '+dBR(latest):'')+'</span><span class="cp">'+(ehEquipe()?'Sua turma':'Geral')+' '+pc+'%</span></div><div class="list">'+(all.length?(all.filter(({t})=>latest&&S.pres[latest+'|'+t.id]).map(({t,s})=>{
   const lk=latest+'|'+t.id,le=ex(lk)||{},last=S.pres[lk].length;
   return '<details class="dt"><summary><span>'+esc(t.nome)+'</span><span class="mt"><i style="width:'+s.p+'%"></i></span><b>'+s.p+'%</b></summary>'
